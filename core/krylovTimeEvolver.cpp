@@ -501,8 +501,9 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
  * @return false, is no happy breakdown has occured; true if happy breakdown has occured
  */
 bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *VRet, double *hRet, size_t *mRet) {
-
+    std::cout << "New Modified Gram SChmid" << std::endl;
 	double normy = 0.;
+	std::complex<double> negativeH;
 	cblas_zcopy(Hsize, currentVec, 1, VRet->values, 1);
 
 	for (size_t j = 0; j <= m - 1; j++) {
@@ -513,21 +514,22 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
             std::cerr << "MKL error " << mklStatus << std::endl;
             exit(1);
         }
-		cblas_zdotc_sub(Hsize, VRet->values + j * Hsize, 1, tmpBlasVec, 1,
-				(HRet->values) + j + (j * m));
-		std::complex<double> negativeH = (-1.0) * *((HRet->values) + j + j * m);
-		cblas_zaxpy(Hsize, &negativeH, VRet->values + j * Hsize, 1, tmpBlasVec,
-				1);
 		if (j != 0) {
 			negativeH = (-1.0) * *((HRet->values) + j - 1 + j * m);
 			cblas_zaxpy(Hsize, &negativeH, VRet->values + (j - 1) * Hsize, 1,
 					tmpBlasVec, 1);
 		}
+		cblas_zdotc_sub(Hsize, VRet->values + j * Hsize, 1, tmpBlasVec, 1,
+				(HRet->values) + j + (j * m));
+		negativeH = (-1.0) * *((HRet->values) + j + j * m);
+		cblas_zaxpy(Hsize, &negativeH, VRet->values + j * Hsize, 1, tmpBlasVec,
+				1);
+		
 		normy = cblas_dznrm2(Hsize, tmpBlasVec, 1);
 
-		//Detection of happy breakdown
+		//Detection of lucky breakdown
 		if (normy < tolRate) {
-			std::cout << "***Happy Breakdown at Krylov dimension " << j + 1
+			std::cout << "***Lucky breakdown at Krylov dimension " << j + 1
 					<< " *** " <<std::endl;
 			*mRet = j + 1;
 			*hRet = normy;
