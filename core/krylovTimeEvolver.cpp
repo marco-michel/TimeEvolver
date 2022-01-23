@@ -501,7 +501,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
  * @return false, is no happy breakdown has occured; true if happy breakdown has occured
  */
 bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *VRet, double *hRet, size_t *mRet) {
-    std::cout << "New Modified Gram SChmid" << std::endl;
 	double normy = 0.;
 	std::complex<double> negativeH;
 	cblas_zcopy(Hsize, currentVec, 1, VRet->values, 1);
