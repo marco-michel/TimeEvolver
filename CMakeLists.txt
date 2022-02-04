@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 set (CMAKE_CXX_STANDARD 11)
 
-set(CMAKE_BUILD_TYPE RELEASE)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 
@@ -35,7 +34,6 @@ find_package(HDF5 COMPONENTS CXX REQUIRED)
 #REMOVE following 2 lines WITH find_package(MKL)
 set(BLA_VENDOR Intel10_64ilp)
 find_package(BLAS REQUIRED)
-
 
 #USE following 2 lines WITH find_package(MKL)
 #find_package(MKL MODULE REQUIRED)
