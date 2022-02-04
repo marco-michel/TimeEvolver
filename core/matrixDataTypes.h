@@ -2,6 +2,8 @@
 
 #include <complex>
 #include <string>
+#include <vector>
+#include <algorithm>
 
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
@@ -115,6 +117,35 @@ public:
 		m = n = 0;
 		numValues = 0;
 	}
+
+    double norm1()
+    {
+        std::vector<double> colVal(n);
+        std::vector<double>::iterator result;
+
+        for(uint i = 0; i != numValues; i++)
+        {
+            colVal[columns[i]] += std::abs(values[i]);
+        }
+        
+        result = std::max_element(colVal.begin(),colVal.end());
+        return *result;
+    }
+
+    double normInf()
+    {
+        std::vector<double> rowVal(m);
+        std::vector<double>::iterator result;
+
+        for(uint i = 0; i != numValues; i++)
+        {
+            rowVal[rowIndex[i]] += std::abs(values[i]);
+        }
+
+        result = std::max_element(rowVal.begin(),rowVal.end());
+        return *result;
+    }
+
 
 	smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, int nn, int mm)
 	{
