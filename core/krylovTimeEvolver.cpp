@@ -5,6 +5,8 @@
  The time-evolved vector then becomes the initial vector for constructing the subsequent Krylov-subspace.
  */
 
+#include <boost/math/quadrature/tanh_sinh.hpp>
+
 #include <stdio.h>
 #include <cstdlib>
 #include <cmath>
@@ -70,6 +72,9 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
     //Two temporary vectors of size m
     tmpKrylovVec1 = new std::complex<double>[m];
     tmpKrylovVec2 = new std::complex<double>[m];
+	tmpintKernelExp1 = new std::complex<double>[m];
+	tmpintKernelExp2 = new std::complex<double>[m];
+	tmpintKernelT = new std::complex<double>[m];
 
     descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
     descriptorObs.diag = SPARSE_DIAG_NON_UNIT;
@@ -88,6 +93,9 @@ krylovTimeEvolver::~krylovTimeEvolver()
     delete[] tmpKrylovVec2;
     delete[] sampledState;
     delete[] currentVec;
+	delete[] tmpintKernelExp1;
+	delete[] tmpintKernelExp2;
+	delete[] tmpintKernelT;
     delete samplings;
     if(HamOpt != nullptr)
         delete HamOpt;
@@ -553,3 +561,35 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 	return false;
 }
 
+/*
+* Compute the error integral to determine the analytic error of the krylov approximation
+* @param a Start of integration
+* @param b End of integration
+* @param T Transformation matrix
+* @param spectrumH Eigenvalue spectrum
+* @param h Last entry of the Hessenberg matrix
+*/
+double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h)
+{
+	auto f = [this, T, spectrumH, h](double x) {return errorKernel(x, T, spectrumH, h); };
+	double ret = integ.integrate(f, a, b);
+	return ret;
+}
+
+/*
+* Kernel of the error integral
+*/
+double krylovTimeEvolver::errorKernel(double t, std::complex<double>* T, std::complex<double>* spectrumH, double h)
+{
+	cblas_zcopy(m, spectrumH, 1, tmpintKernelExp1, 1);
+	cblas_zdscal(m, t, tmpintKernelExp1, 1);
+	vzExp(m, tmpintKernelExp1, tmpintKernelExp2);
+	cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1, &zero, tmpintKernelT, 1);
+	for (unsigned int i = 0; i != m; i++)
+		tmpintKernelExp2[i] = tmpintKernelExp2[i] * tmpintKernelT[i];
+	cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
+		tmpintKernelExp2, 1, &zero, tmpintKernelExp1, 1);
+
+	double ret = h * std::abs(tmpintKernelExp1[m - 1]);
+	return ret;
+}

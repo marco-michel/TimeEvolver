@@ -4,6 +4,8 @@
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
 
+#include <boost/math/quadrature/tanh_sinh.hpp>
+
 #include <mkl.h>
 #include <mkl_spblas.h>
 
@@ -64,6 +66,10 @@ protected:
     void sample();
     void findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double s_0, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
     bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
+    double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h);
+
+    double errorKernel(double t, std::complex<double>* T, std::complex<double>* spectrumH, double h);
+
     
     //Input date
     double t; size_t Hsize;
@@ -72,9 +78,13 @@ protected:
     smatrix* Ham;
     std::complex<double> expFactor;
     bool checkNorm;
+    
     //Determined by input data
     size_t n_samples;
     double matrixNorm;
+
+    //Internal variables
+    boost::math::quadrature::tanh_sinh<double> integ;
     
     //variables for mkl-library
     sparse_matrix_t** ObsOpt;
@@ -88,6 +98,9 @@ protected:
     std::complex<double>* tmpBlasVec;
     std::complex<double>* tmpKrylovVec1;
     std::complex<double>* tmpKrylovVec2;
+    std::complex<double>* tmpintKernelExp1;
+    std::complex<double>* tmpintKernelExp2;
+    std::complex<double>* tmpintKernelT;
     size_t index_samples;
 
     //Useful constants
