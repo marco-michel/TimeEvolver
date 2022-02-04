@@ -123,7 +123,7 @@ public:
         std::vector<double> colVal(n);
         std::vector<double>::iterator result;
 
-        for(uint i = 0; i != numValues; i++)
+        for(unsigned int i = 0; i != numValues; i++)
         {
             colVal[columns[i]] += std::abs(values[i]);
         }
@@ -137,7 +137,7 @@ public:
         std::vector<double> rowVal(m);
         std::vector<double>::iterator result;
 
-        for(uint i = 0; i != numValues; i++)
+        for(unsigned int i = 0; i != numValues; i++)
         {
             rowVal[rowIndex[i]] += std::abs(values[i]);
         }

@@ -48,6 +48,8 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
     this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m  = std::min<size_t>(m, Hsize);
     this->observables = observables; this->nbObservables = nbObservables; this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm;
     ObsOpt = nullptr; HamOpt = nullptr;
+
+	matrixNorm = Ham->normInf();
     
     //number of sampling steps
     n_samples = (size_t) floor(t / samplingStep) + 1;
@@ -356,7 +358,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Total accumulated error so far
 	double err = 0.;
 	//Estimate of error due to limited precision of numerical operations
-	double numericalErrorEstimate = Hsize * std::numeric_limits<double>::epsilon();
+	double numericalErrorEstimate = Hsize * matrixNorm * std::numeric_limits<double>::epsilon();
 
     //Flag indicating if a happy breakdown has occured
     bool dummy_hbd = false;

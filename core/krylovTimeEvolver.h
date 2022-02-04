@@ -74,6 +74,7 @@ protected:
     bool checkNorm;
     //Determined by input data
     size_t n_samples;
+    double matrixNorm;
     
     //variables for mkl-library
     sparse_matrix_t** ObsOpt;

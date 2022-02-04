@@ -90,6 +90,9 @@ int main(int argc, char* argv[])
 
     mkl_set_num_threads(numThreads);
     //end determine parameters
+
+
+    std::cout << "TimeEvolver Version:  0.1" << std::endl;
     
     //Create basis
     std::cout << "Creating Basis..." << std::endl;
