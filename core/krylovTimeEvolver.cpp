@@ -642,7 +642,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	double termination = std::sqrt(std::numeric_limits<double>::epsilon());
 	termination = 100;
 	size_t level;
-	auto f = [this, T, spectrumH, h](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m-1]); };
+	auto f = [&](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m-1]); };
 	double ret;
 
 	ret = integ.integrate(f, a, b, termination, &error, &L1, &level);
