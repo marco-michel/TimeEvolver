@@ -22,6 +22,7 @@
 
 #include <mkl.h>
 #include <mkl_spblas.h>
+
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
 
@@ -72,6 +73,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
     //Two temporary vectors of size m
     tmpKrylovVec1 = new std::complex<double>[m];
     tmpKrylovVec2 = new std::complex<double>[m];
+	tmpintKernelExp = new std::complex<double>[m];
 	tmpintKernelExp1 = new std::complex<double>[m];
 	tmpintKernelExp2 = new std::complex<double>[m];
 	tmpintKernelT = new std::complex<double>[m];
@@ -93,6 +95,7 @@ krylovTimeEvolver::~krylovTimeEvolver()
     delete[] tmpKrylovVec2;
     delete[] sampledState;
     delete[] currentVec;
+	delete[] tmpintKernelExp;
 	delete[] tmpintKernelExp1;
 	delete[] tmpintKernelExp2;
 	delete[] tmpintKernelT;
@@ -180,6 +183,68 @@ void krylovTimeEvolver::optimizeInput()
         }
     }
 }
+
+
+void krylovTimeEvolver::findMaximalStepSize2(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet)
+{
+	//Maximal number of substepreductions to meet tolerance
+	unsigned int GO_MAX = 100;
+	unsigned int nbReductions = 0;
+
+
+
+	double t_step = t_stepSuggestion;
+	double err_step = integrateError(0, t_step, T, spectrumH, h);
+	
+	
+	while (err_step > tolRate * t_step && nbReductions < GO_MAX)
+	{
+		nbReductions++;
+		t_step = t_step / 2.0;
+		err_step = integrateError(0, t_step, T, spectrumH, h);
+	}
+
+	double s = t_step / n_s_min;
+	int n_s = 0;
+	double deltaError = 0;
+
+	//Maximal number of steps to reach t_step_max
+	double n_s_max = ceil(t_step_max / s);
+	if (n_s_max < n_s_min) {
+		n_s_max = n_s_min + 1;
+		s = t_step_max / n_s_max;
+	}
+
+	while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1)
+	{
+		deltaError += integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h);
+		n_s++;
+	}
+
+	t_step += (n_s - 1) * s;
+	err_step += deltaError;
+
+	if (err_step < numericalErrorEstimate) {
+		std::cerr
+			<< "CRITICAL WARNING: the computed error bound "
+			<< err_step
+			<< "was smaller than the estimate of the numerical error "
+			<< numericalErrorEstimate
+			<< ". THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED. (Remaining time "
+			<< t_step_max
+			<< ") Restart with bigger error bound or smaller time."
+			<< std::endl;
+		err_step = numericalErrorEstimate;
+	}
+
+	*t_stepRet = t_step;
+	*err_stepRet = err_step;
+
+	std::complex<double>* w_Krylov = expKrylov(t_step, T, spectrumH);
+	cblas_zcopy(m, w_Krylov, 1, w_KrylovRet, 1);
+
+}
+
 
 /**
  * Given a Krylov subspace, this function finds out how far (i.e. for what time step) one can use it without exceeding the prescribed error bound. To this end, it uses small substeps and computes an error bound for each substep. This function only operates in the Krylov subspace, i.e. with vectors and matrices of dimension m
@@ -370,7 +435,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
     //Flag indicating if a happy breakdown has occured
     bool dummy_hbd = false;
-    //In case of happy breakdown, size of Krylov space
+    //In case of lucky breakdown, size of Krylov space
     size_t m_hbd;
 
     //Hessenberg matrix
@@ -397,7 +462,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		//STEP 1: Construct Krylov subspace using Arnoldi algorithm
 		dummy_hbd = arnoldiAlgorithm(tolRate, H, V, &h, &m_hbd);
 
-		//Some special adjustments in case of a happy breakdown, i.e. when projection in Krylov-subspace of dimension m_hbd <= m is exact (within numerical uncertainty)
+		//Some special adjustments in case of a lucky breakdown, i.e. when projection in Krylov-subspace of dimension m_hbd <= m is exact (within numerical uncertainty)
 		//In particular, the time step of the current Krylov space can be arbitarily large in this case
 		if (dummy_hbd) {
 			t_step = t - t_now;
@@ -428,8 +493,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         //STEP 2: find maximal time step ('t_step') for which current Krylov subspace can be used without violating error bound
 		if (dummy_hbd == false)
         {
-            double s_0 = INITIAL_STEP_FRACTION*t_step / N_SUBSTEPS_MIN;
-            findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step);
+            //double s_0 = INITIAL_STEP_FRACTION*t_step / N_SUBSTEPS_MIN;
+            //findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step);
+			double s_0 = INITIAL_STEP_FRACTION * t_step;
+			findMaximalStepSize2(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step);
             if (t_step <= 0)
             {
                 std::cout << "Internal error: negative step size" << std::endl;
@@ -571,13 +638,13 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 */
 double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h)
 {
-	auto f = [this, T, spectrumH, h](double x) {return errorKernel(x, T, spectrumH, h); };
+	auto f = [this, T, spectrumH, h](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m-1]); };
 	double ret = integ.integrate(f, a, b);
 	return ret;
 }
 
 /*
-* Kernel of the error integral
+* Kernel of the error integral -- DELETE
 */
 double krylovTimeEvolver::errorKernel(double t, std::complex<double>* T, std::complex<double>* spectrumH, double h)
 {
@@ -592,4 +659,22 @@ double krylovTimeEvolver::errorKernel(double t, std::complex<double>* T, std::co
 
 	double ret = h * std::abs(tmpintKernelExp1[m - 1]);
 	return ret;
+}
+
+/*
+* Calculate time evolution in Kyrlov space
+*/
+std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH)
+{
+	cblas_zcopy(m, spectrumH, 1, tmpintKernelExp1, 1);
+	cblas_zdscal(m, t, tmpintKernelExp1, 1);
+	vzExp(m, tmpintKernelExp1, tmpintKernelExp2);
+	cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1, &zero, tmpintKernelT, 1);
+	for (unsigned int i = 0; i != m; i++)
+		tmpintKernelExp2[i] = tmpintKernelExp2[i] * tmpintKernelT[i];
+	cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
+		tmpintKernelExp2, 1, &zero, tmpintKernelExp, 1);
+
+	return tmpintKernelExp;
+
 }

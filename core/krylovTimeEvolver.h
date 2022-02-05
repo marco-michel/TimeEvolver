@@ -62,6 +62,7 @@ public:
     
 protected:
     void optimizeInput();
+    void findMaximalStepSize2(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
     void destroyOptimizeInput();
     void sample();
     void findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double s_0, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
@@ -69,6 +70,8 @@ protected:
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h);
 
     double errorKernel(double t, std::complex<double>* T, std::complex<double>* spectrumH, double h);
+
+    std::complex<double>* expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH);
 
     
     //Input date
@@ -98,6 +101,7 @@ protected:
     std::complex<double>* tmpBlasVec;
     std::complex<double>* tmpKrylovVec1;
     std::complex<double>* tmpKrylovVec2;
+    std::complex<double>* tmpintKernelExp;
     std::complex<double>* tmpintKernelExp1;
     std::complex<double>* tmpintKernelExp2;
     std::complex<double>* tmpintKernelT;
