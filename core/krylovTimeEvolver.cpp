@@ -224,7 +224,7 @@ void krylovTimeEvolver::findMaximalStepSize2(std::complex<double>* T, std::compl
 	t_step += (n_s - 1) * s;
 	err_step += deltaError;
 
-	if (err_step < numericalErrorEstimate) {
+	if (err_step < numericalErrorEstimate && (n_s != n_s_max)) {
 		std::cerr
 			<< "CRITICAL WARNING: the computed error bound "
 			<< err_step
@@ -405,7 +405,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 {
 	//Constants
 	//Minimal number of substeps per time step (needed for accuracy of computation of error)
-	int N_SUBSTEPS_MIN = 50;
+	int N_SUBSTEPS_MIN = 10;
 	//After each time step, the optimal step size is computed. To avoid substep reduction because of a too small number of substeps, the optimal step size is multiplied by this number
 	double INITIAL_STEP_FRACTION = 0.97;
 
@@ -638,8 +638,15 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 */
 double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h)
 {
+	double error, L1;
+	double termination = std::sqrt(std::numeric_limits<double>::epsilon());
+	termination = 100;
+	size_t level;
 	auto f = [this, T, spectrumH, h](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m-1]); };
-	double ret = integ.integrate(f, a, b);
+	double ret;
+
+	ret = integ.integrate(f, a, b, termination, &error, &L1, &level);
+	
 	return ret;
 }
 
