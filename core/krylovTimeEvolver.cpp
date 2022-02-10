@@ -6,6 +6,9 @@
  */
 
 #include <boost/math/quadrature/tanh_sinh.hpp>
+#include <boost/math/quadrature/trapezoidal.hpp>
+#include <boost/math/quadrature/gauss.hpp> 
+#include <boost/math/quadrature/gauss_kronrod.hpp>
 
 #include <stdio.h>
 #include <cstdlib>
@@ -185,23 +188,33 @@ void krylovTimeEvolver::optimizeInput()
 }
 
 
-void krylovTimeEvolver::findMaximalStepSize2(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet)
+void krylovTimeEvolver::findMaximalStepSize2(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet, bool increaseStep)
 {
 	//Maximal number of substepreductions to meet tolerance
 	unsigned int GO_MAX = 100;
 	unsigned int nbReductions = 0;
 
-
-
 	double t_step = t_stepSuggestion;
+
+	//Increasing step size. Used in the first go through when there is no good guess for the step size. 
+	if (increaseStep)
+	{
+		while (integrateError(0, 2*t_step, T, spectrumH, h) < tolRate * t_step && t_step < t_step_max)
+			t_step *= 2.0;
+	}
+
 	double err_step = integrateError(0, t_step, T, spectrumH, h);
 	
-	
-	while (err_step > tolRate * t_step && nbReductions < GO_MAX)
+	while (err_step > tolRate * t_step)
 	{
 		nbReductions++;
 		t_step = t_step / 2.0;
 		err_step = integrateError(0, t_step, T, spectrumH, h);
+		if (nbReductions == GO_MAX)
+		{
+			std::cerr << "Error: No small enough time step found to meet tolerance requirements." << std::endl;
+			exit(-1);
+		}
 	}
 
 	double s = t_step / n_s_min;
@@ -405,7 +418,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 {
 	//Constants
 	//Minimal number of substeps per time step (needed for accuracy of computation of error)
-	int N_SUBSTEPS_MIN = 10;
+	int N_SUBSTEPS_MIN = 50;
 	//After each time step, the optimal step size is computed. To avoid substep reduction because of a too small number of substeps, the optimal step size is multiplied by this number
 	double INITIAL_STEP_FRACTION = 0.97;
 
@@ -496,7 +509,11 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
             //double s_0 = INITIAL_STEP_FRACTION*t_step / N_SUBSTEPS_MIN;
             //findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step);
 			double s_0 = INITIAL_STEP_FRACTION * t_step;
-			findMaximalStepSize2(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step);
+			if(t_now == 0)
+				findMaximalStepSize2(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step, false);
+			else
+				findMaximalStepSize2(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step, false);
+
             if (t_step <= 0)
             {
                 std::cout << "Internal error: negative step size" << std::endl;
@@ -640,13 +657,26 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 {
 	double error, L1;
 	double termination = std::sqrt(std::numeric_limits<double>::epsilon());
-	termination = 100;
+	termination = 1.0/100.0;
 	size_t level;
 	auto f = [&](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m-1]); };
 	double ret;
+	size_t maxref = 8;
 
-	ret = integ.integrate(f, a, b, termination, &error, &L1, &level);
-	
+
+
+	//ret = integ.integrate(f, a, b, termination, &error, &L1, &level);
+
+	ret = boost::math::quadrature::trapezoidal(f, a, b, termination, maxref, &error);
+
+	//ret = boost::math::quadrature::gauss<double, 15>::integrate(f, a, b);
+
+	//ret = boost::math::quadrature::gauss_kronrod<double, 15>::integrate(f, a, b, 0, termination, &error);
+
+	//boost::math::quadrature::tanh_sinh<double> intTanh(maxref);
+	//ret = intTanh.integrate(f, a, b, termination, &error, &L1, &level);
+
+
 	return ret;
 }
 

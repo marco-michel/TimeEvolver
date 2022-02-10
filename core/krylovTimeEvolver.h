@@ -62,7 +62,7 @@ public:
     
 protected:
     void optimizeInput();
-    void findMaximalStepSize2(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
+    void findMaximalStepSize2(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet, bool increaseStep);
     void destroyOptimizeInput();
     void sample();
     void findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double s_0, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
