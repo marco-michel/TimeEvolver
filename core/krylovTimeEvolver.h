@@ -1,10 +1,9 @@
 #pragma once
 
+#include <boost/math/quadrature/tanh_sinh.hpp>
 
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
-
-#include <boost/math/quadrature/tanh_sinh.hpp>
 
 #include <mkl.h>
 #include <mkl_spblas.h>
@@ -21,10 +20,11 @@ struct krylovReturn
     size_t n_steps;
 	size_t dim;
 	size_t nSamples;
+    int errorCode;
 
-    krylovReturn(unsigned int nbObservables, unsigned int Hsize, unsigned int nbSamples)
+    krylovReturn(unsigned int nbObservables, unsigned int Hsize, unsigned int nbSamples, int error)
     {
-        err = 0; n_steps = 0; dim = Hsize; nSamples = nbSamples;
+        err = 0; n_steps = 0; dim = Hsize; nSamples = nbSamples; errorCode = error;
         if(nbObservables == 0 && (nSamples * Hsize * sizeof(std::complex<double>) > std::pow(2.,34.)))
         {
             std::cerr << "Requested output would be too large" << std::endl;
@@ -53,7 +53,7 @@ struct krylovReturn
 class krylovTimeEvolver
 {
 public:
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm);
+    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
@@ -62,12 +62,11 @@ public:
     
 protected:
     void optimizeInput();
-    void findMaximalStepSize2(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet, bool increaseStep);
+    int findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet, bool increaseStep);
     void destroyOptimizeInput();
     void sample();
-    void findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double s_0, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
     bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
-    double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h);
+    double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, bool& successful);
 
     double errorKernel(double t, std::complex<double>* T, std::complex<double>* spectrumH, double h);
 
@@ -80,7 +79,7 @@ protected:
     smatrix** observables; int nbObservables;
     smatrix* Ham;
     std::complex<double> expFactor;
-    bool checkNorm;
+    bool checkNorm, fastIntegration;
     
     //Determined by input data
     size_t n_samples;
@@ -88,6 +87,8 @@ protected:
 
     //Internal variables
     boost::math::quadrature::tanh_sinh<double> integ;
+    int integrationMethodLong, integrationMethodShort;
+    double termination;
     
     //variables for mkl-library
     sparse_matrix_t** ObsOpt;
@@ -104,6 +105,7 @@ protected:
     std::complex<double>* tmpintKernelExp;
     std::complex<double>* tmpintKernelExp1;
     std::complex<double>* tmpintKernelExp2;
+    std::complex<double>* tmpintKernelExp3;
     std::complex<double>* tmpintKernelT;
     size_t index_samples;
 

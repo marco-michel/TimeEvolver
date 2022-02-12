@@ -6,9 +6,7 @@
  */
 
 #include <boost/math/quadrature/tanh_sinh.hpp>
-#include <boost/math/quadrature/trapezoidal.hpp>
 #include <boost/math/quadrature/gauss.hpp> 
-#include <boost/math/quadrature/gauss_kronrod.hpp>
 
 #include <stdio.h>
 #include <cstdlib>
@@ -43,7 +41,7 @@
  * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
  * @param checkNorm Whether or not it should be check that the time evolved state has unit norm
  */
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int m, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm)
+krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int m, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration)
 {
     if(Hsize == 0)
     {
@@ -52,10 +50,23 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
     }
     
     this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m  = std::min<size_t>(m, Hsize);
-    this->observables = observables; this->nbObservables = nbObservables; this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm;
+	this->observables = observables; this->nbObservables = nbObservables; this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration;
     ObsOpt = nullptr; HamOpt = nullptr;
 
-	matrixNorm = Ham->normInf();
+	matrixNorm = Ham->norm1();
+
+	if (fastIntegration)//Use Gauss integration
+	{
+		integrationMethodLong = 0;
+		integrationMethodShort = 1;
+	}
+	else//Use double exponential integration
+	{
+		integrationMethodLong = integrationMethodShort = 2;
+	}
+
+	//Numerical integration terminates if error*L1 < termination
+	termination = std::sqrt(std::numeric_limits<double>::epsilon()); 
     
     //number of sampling steps
     n_samples = (size_t) floor(t / samplingStep) + 1;
@@ -79,6 +90,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	tmpintKernelExp = new std::complex<double>[m];
 	tmpintKernelExp1 = new std::complex<double>[m];
 	tmpintKernelExp2 = new std::complex<double>[m];
+	tmpintKernelExp3 = new std::complex<double>[m];
 	tmpintKernelT = new std::complex<double>[m];
 
     descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
@@ -91,6 +103,9 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 }
 
+/*
+* Destructor
+*/
 krylovTimeEvolver::~krylovTimeEvolver()
 {
     delete[] tmpBlasVec;
@@ -101,6 +116,7 @@ krylovTimeEvolver::~krylovTimeEvolver()
 	delete[] tmpintKernelExp;
 	delete[] tmpintKernelExp1;
 	delete[] tmpintKernelExp2;
+	delete[] tmpintKernelExp3;
 	delete[] tmpintKernelT;
     delete samplings;
     if(HamOpt != nullptr)
@@ -187,78 +203,6 @@ void krylovTimeEvolver::optimizeInput()
     }
 }
 
-
-void krylovTimeEvolver::findMaximalStepSize2(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet, bool increaseStep)
-{
-	//Maximal number of substepreductions to meet tolerance
-	unsigned int GO_MAX = 100;
-	unsigned int nbReductions = 0;
-
-	double t_step = t_stepSuggestion;
-
-	//Increasing step size. Used in the first go through when there is no good guess for the step size. 
-	if (increaseStep)
-	{
-		while (integrateError(0, 2*t_step, T, spectrumH, h) < tolRate * t_step && t_step < t_step_max)
-			t_step *= 2.0;
-	}
-
-	double err_step = integrateError(0, t_step, T, spectrumH, h);
-	
-	while (err_step > tolRate * t_step)
-	{
-		nbReductions++;
-		t_step = t_step / 2.0;
-		err_step = integrateError(0, t_step, T, spectrumH, h);
-		if (nbReductions == GO_MAX)
-		{
-			std::cerr << "Error: No small enough time step found to meet tolerance requirements." << std::endl;
-			exit(-1);
-		}
-	}
-
-	double s = t_step / n_s_min;
-	int n_s = 0;
-	double deltaError = 0;
-
-	//Maximal number of steps to reach t_step_max
-	double n_s_max = ceil(t_step_max / s);
-	if (n_s_max < n_s_min) {
-		n_s_max = n_s_min + 1;
-		s = t_step_max / n_s_max;
-	}
-
-	while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1)
-	{
-		deltaError += integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h);
-		n_s++;
-	}
-
-	t_step += (n_s - 1) * s;
-	err_step += deltaError;
-
-	if (err_step < numericalErrorEstimate && (n_s != n_s_max)) {
-		std::cerr
-			<< "CRITICAL WARNING: the computed error bound "
-			<< err_step
-			<< "was smaller than the estimate of the numerical error "
-			<< numericalErrorEstimate
-			<< ". THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED. (Remaining time "
-			<< t_step_max
-			<< ") Restart with bigger error bound or smaller time."
-			<< std::endl;
-		err_step = numericalErrorEstimate;
-	}
-
-	*t_stepRet = t_step;
-	*err_stepRet = err_step;
-
-	std::complex<double>* w_Krylov = expKrylov(t_step, T, spectrumH);
-	cblas_zcopy(m, w_Krylov, 1, w_KrylovRet, 1);
-
-}
-
-
 /**
  * Given a Krylov subspace, this function finds out how far (i.e. for what time step) one can use it without exceeding the prescribed error bound. To this end, it uses small substeps and computes an error bound for each substep. This function only operates in the Krylov subspace, i.e. with vectors and matrices of dimension m
  * @param T The orthogonal transformation matrix for the Hamiltonian in the Krylov subspace
@@ -272,29 +216,47 @@ void krylovTimeEvolver::findMaximalStepSize2(std::complex<double>* T, std::compl
  * @param t_stepRet Returns the time step
  * @param w_KrylovRet Returns the Krylov vector after the time step
  * @param err_stepRet Returns the error of the time step
+ * @param increaseStep Boolean if the function should first try to increase the step size in case no good suggestion was provided
+ * @param Return errorcode (0=Success, 1=estimate of roundoff errors are larger than analytical error, 20=error of integration larger than requested termination tolerance, multiple errors are indicated as the sum of respective error codes
  */
-void krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double s, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet)
+int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet, bool increaseStep)
 {
-
-	//CONSTANTS
 	//Maximal number of substepreductions to meet tolerance
 	unsigned int GO_MAX = 100;
-	// If the local error rate is bigger than tolRate by this fraction, it is
-	// regarded as non-zero and sign changes in the error rate will be monitored
-	double SIGNIFICANT_ERROR_FRACTION = 1. / 100;
-	// If the number of monitored sign changes of the derivative of the error is
-	//bigger than the number of steps by this fraction, a warning will be issued
-	double SIGNIFICANT_SIGN_CHANGE_FRACTION = 1. / 7;
+	unsigned int nbReductions = 0;
 
-	//TEMPORARY VARIABLES
-	double t_step = 0;
-	bool substepReduction;
-	unsigned int nbSignChanges;
-	int n_s;
-	std::complex<double> *w_Krylov = new std::complex<double>[m];
-	std::complex<double> *w_Krylov_Previous = new std::complex<double>[m];
-	std::complex<double> *expSpectrum = new std::complex<double>[m];
-	std::complex<double> *spectrumHTime = new std::complex<double>[m];
+	double t_step = t_stepSuggestion;
+	int errorCode = 0;
+	bool numericalIntegrationSuccessful; //Did numerical integration converge to adequat tolerance?
+
+
+
+	//Increasing step size. Used in the first go through when there is no good guess for the step size. 
+	if (increaseStep)
+	{
+		while (integrateError(0, 2*t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful) < tolRate * t_step && t_step < t_step_max)
+			t_step *= 2.0;
+	}
+
+	//Integrate to get a first error estimate 
+	double err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);
+	
+	//Reduce step_size in case the error is not within requested tolerance
+	while (err_step > tolRate * t_step)
+	{
+		nbReductions++;
+		t_step = t_step / 2.0;
+		err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);
+		if (nbReductions == GO_MAX)
+		{
+			std::cerr << "Error: No small enough time step found to meet tolerance requirements." << std::endl;
+			exit(1);
+		}
+	}
+	
+	double s = t_step / n_s_min;
+	int n_s = 0;
+	double deltaError = 0;
 
 	//Maximal number of steps to reach t_step_max
 	double n_s_max = ceil(t_step_max / s);
@@ -302,113 +264,39 @@ void krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::comple
 		n_s_max = n_s_min + 1;
 		s = t_step_max / n_s_max;
 	}
-
-	//In each loop, one tries to reach the minimal number of required substeps n_s_min with a given substepsize s
-	//If it is not successful, s is halved
-	for (unsigned int go = 1; go < GO_MAX; go++) {
-		n_s = 0;
-		substepReduction = false;
-		double err_step = 0;
-		double err_step_Previous = 0;
-		double errRate_Previous = 0;
-		double errRate = 0;
-		nbSignChanges = 0;
-		int theSignPrevious = 1;
-
-		//Consecutive substeps are performed until tolRate is exceeded
-		for (; n_s <= n_s_max - 1; n_s++) {
-			//Compute time-evolved Krylov vector: w_Krylov = T e^((n_s + 1)*s*spectrumH)*T'*e_1
-			cblas_zcopy(m, spectrumH, 1, spectrumHTime, 1);
-			cblas_zdscal(m, (n_s + 1) * s, spectrumHTime, 1);
-			vzExp(m, spectrumHTime, expSpectrum);
-			cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1,
-					&zero, tmpKrylovVec1, 1);
-			for (unsigned int i = 0; i != m; i++)
-				tmpKrylovVec1[i] = tmpKrylovVec1[i] * expSpectrum[i];
-			cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
-					tmpKrylovVec1, 1, &zero, w_Krylov, 1);
-
-			//Compute local error via numerical integration: err_step += s*h*max(|w_Krylov[m - 1]|,|w_Krylov:Previous[m - 1]|)
-			errRate = h * std::abs(w_Krylov[m - 1]);
-			err_step += s * std::max(errRate, errRate_Previous);
-			//To check quality of numerical integration: count how many times errorRate changes from decreasing to increasing
-			int theSign = (int) std::signbit(errRate - errRate_Previous);
-			if (errRate > SIGNIFICANT_ERROR_FRACTION * tolRate
-					&& theSign != theSignPrevious)
-				nbSignChanges++;
-
-			t_step = (n_s + 1) * s;
-
-			//Stop loop over substeps if tolRate is exceeded
-			if (err_step > (n_s + 1) * s * tolRate) {
-				//If there were not enough substeps, try again with smaller substepsize
-				if (n_s < n_s_min) {
-					substepReduction = true;
-					s = fmin(s / 2.0, s * ((n_s + 1.0) / n_s_min));
-					n_s_max = ceil(t_step_max / s);
-				}
-				//If there were enough substeps, the function can terminate
-				//The current substep is discarded (since it exceeded tolRate) and the previous substep is returned
-				else {
-					t_step = n_s * s;
-					err_step = err_step_Previous;
-					cblas_zcopy(m, w_Krylov_Previous, 1, w_Krylov, 1);
-					if (err_step < numericalErrorEstimate) {
-						std::cerr
-								<< "CRITICAL WARNING: the computed error bound "
-								<< err_step
-								<< "was smaller than the estimate of the numerical error "
-								<< numericalErrorEstimate
-								<< ". THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED. (Remaining time "
-								<< t_step_max
-								<< ") Restart with bigger error bound or smaller time."
-								<< std::endl;
-						err_step = numericalErrorEstimate;
-					}
-				}
-				break;
-			}
-
-			cblas_zcopy(m, w_Krylov, 1, w_Krylov_Previous, 1);
-			errRate_Previous = errRate;
-			err_step_Previous = err_step;
-			theSignPrevious = theSign;
-
-		}//end n_s-loop
-
-	    //If enough substeps were achieved, the go-loop can be terminated
-		if (substepReduction == false) {
-			*t_stepRet = t_step;
-			*err_stepRet = err_step;
-			cblas_zcopy(m, w_Krylov, 1, w_KrylovRet, 1);
-			if (nbSignChanges > SIGNIFICANT_SIGN_CHANGE_FRACTION * n_s) {
-				std::cout
-						<< "WARNING: The sampling may not have been sufficiently dense. "
-						<< "The error rate has changed between increasing and decreasing "
-						<< nbSignChanges << " times with only " << n_s
-						<< " total substeps. (Remaining time " << t_step_max
-						<< ")" << std::endl;
-			}
-			break;
-		}
-
-	}//end go-loop
-
-	//If the go-loop was terminated without ever achieving enough substeps, an error is returned
-	if (substepReduction == true) {
-		std::cerr << "ERROR : Substep " << s
-				<< " still too big at remaining time " << t_step_max
-				<< " after maximum number " << GO_MAX
-				<< " of substep-reuctions reached, without the error staying below the"
-				<< " required tolerance" << std::endl;
-		exit(1);
+	
+	//Increase step size in small substeps to use the Krylov space as long as possible
+	while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1)
+	{
+		deltaError += integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
+		n_s++;
 	}
 
-	delete[] w_Krylov_Previous;
-	delete[] w_Krylov;
-	delete[] spectrumHTime;
-	delete[] expSpectrum;
+	t_step += (n_s - 1) * s;
+	err_step += deltaError;
+
+
+	if (err_step < numericalErrorEstimate)  //Estimate of numerical error is larger than analytic error
+	{
+		if(increaseStep || t_step > 0.1 * t_stepSuggestion) //To trigger the error it must be either the very first Krylov space so no good comparison time scale is available or t_step has to be at least 10 % of the previous step size. 
+			errorCode += 1;    
+	}
+		
+
+	if (!numericalIntegrationSuccessful)
+		errorCode += 20; 	//Numerical integration can not be trusted, nullifing the error bound
+
+	*t_stepRet = t_step;
+	*err_stepRet = err_step;
+
+	//Compute state in Krylov space at t=t_step and return it
+	std::complex<double>* w_Krylov = expKrylov(t_step, T, spectrumH);
+	cblas_zcopy(m, w_Krylov, 1, w_KrylovRet, 1);
+
+	return errorCode;
+
 }
+
 
 /**
  * Main rountine: performs time evolution according to the data provided in the constructor
@@ -417,7 +305,7 @@ void krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::comple
 krylovReturn* krylovTimeEvolver::timeEvolve()
 {
 	//Constants
-	//Minimal number of substeps per time step (needed for accuracy of computation of error)
+	//Minimal number of substeps per time step (needed for precise mapping of available Kyrlov space)
 	int N_SUBSTEPS_MIN = 50;
 	//After each time step, the optimal step size is computed. To avoid substep reduction because of a too small number of substeps, the optimal step size is multiplied by this number
 	double INITIAL_STEP_FRACTION = 0.97;
@@ -450,7 +338,13 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
     bool dummy_hbd = false;
     //In case of lucky breakdown, size of Krylov space
     size_t m_hbd;
-
+	//Track if an error occured within timeEvolve(). A value unequal 0 indicates that numerical result likely violates error bound.
+	int errorCode = 0;
+	//Monitoring if something went wrong in findSubstep
+	int errorCodeFindSubstep = 0;
+	//Count number of Kyrlov spaces with error bound failures
+	int nbErrRoundOff = 0;
+	int nbErrInt = 0;
     //Hessenberg matrix
 	matrix *H = new matrix(m, m);
 	//Corresponding transformation matrix
@@ -499,28 +393,40 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		int infocheck = LAPACKE_zhseqr(LAPACK_COL_MAJOR, 'S', 'I', m, 1, m,
 				H->values, m, eigenvalues, schurvector, m);
 		if (infocheck != 0) {
-			std::cout << "LAPACK Error " << infocheck << std::endl;
+			std::cerr << "Internal error: LAPACK error " << infocheck << std::endl;
+			exit(1);
 		}
 		//END STEP 1
         
         //STEP 2: find maximal time step ('t_step') for which current Krylov subspace can be used without violating error bound
 		if (dummy_hbd == false)
         {
-            //double s_0 = INITIAL_STEP_FRACTION*t_step / N_SUBSTEPS_MIN;
-            //findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step);
 			double s_0 = INITIAL_STEP_FRACTION * t_step;
 			if(t_now == 0)
-				findMaximalStepSize2(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step, false);
+				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step, true);
 			else
-				findMaximalStepSize2(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step, false);
+				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step, false);
 
-            if (t_step <= 0)
-            {
-                std::cout << "Internal error: negative step size" << std::endl;
-                exit(1);
-            }
             cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec1, 1, &zero, currentVec, 1);
         }
+
+		//Error handling of findMaximalStepSize
+
+		switch (errorCodeFindSubstep)
+		{
+		case 0:
+			break; //There were no problems detected
+		case 1:
+			nbErrRoundOff++; //Numerical error was larger than analytic error
+			break;
+		case 20:
+			nbErrInt++; //Requested accuracy of numerical integration could not be met  
+			break;
+		case 21:
+			nbErrInt++; nbErrRoundOff++;
+			break;
+		}
+
 		//END STEP 2
         
 		//STEP 3: sample observables in current time step, i.e. between 't_now' and 't_now + t_step'
@@ -562,8 +468,28 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         
     }
 
+	if (nbErrRoundOff != 0)
+	{
+		std::cerr << "CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in " << nbErrRoundOff << " Krylov spaces." << std::endl;
+		std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
+		std::cerr << "Restart with bigger error bound or smaller time." << std::endl;
+
+		std::cerr << "The total computed analytic error is: " << err << std::endl;
+		std::cerr << "The total numerical error estimate for all Krylov spaces is " << n_steps*numericalErrorEstimate << std::endl;
+
+		errorCode = 1;
+	}
+	else if (nbErrInt != 0)
+	{
+		std::cerr << "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " << nbErrInt << " Krylov spaces." << std::endl;
+		std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
+
+		errorCode = 1;
+	}
+
     //Return result
-    krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples);
+	
+    krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, errorCode);
     cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
     unsigned int nbResults;
     if (nbObservables != 0)
@@ -653,64 +579,55 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 * @param spectrumH Eigenvalue spectrum
 * @param h Last entry of the Hessenberg matrix
 */
-double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h)
+double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, bool& successful)
 {
 	double error, L1;
-	double termination = std::sqrt(std::numeric_limits<double>::epsilon());
-	termination = 1.0/100.0;
-	size_t level;
-	auto f = [&](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m-1]); };
 	double ret;
-	size_t maxref = 8;
+	bool success = true;
 
+	//Define Integrand as a lambda function
+	auto f = [&](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m - 1]); };
 
+	if(method == 0)
+		ret = boost::math::quadrature::gauss<double, 15>::integrate(f, a, b); //Gauss-Legendre quadrature with 15 abscissa 
+	else if(method == 1)
+		ret = boost::math::quadrature::gauss<double, 7>::integrate(f, a, b); //Gauss-Legendre quadrature with 7 abscissa 
+	else if (method == 2)
+	{
+		ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
+		if (error * L1 > 0.01)
+			success = false;
+	}
+	else
+	{
+		std::cerr << "Internal error: No method of integration selected" << std::endl;
+		exit(-1);
+	}
 
-	//ret = integ.integrate(f, a, b, termination, &error, &L1, &level);
-
-	ret = boost::math::quadrature::trapezoidal(f, a, b, termination, maxref, &error);
-
-	//ret = boost::math::quadrature::gauss<double, 15>::integrate(f, a, b);
-
-	//ret = boost::math::quadrature::gauss_kronrod<double, 15>::integrate(f, a, b, 0, termination, &error);
-
-	//boost::math::quadrature::tanh_sinh<double> intTanh(maxref);
-	//ret = intTanh.integrate(f, a, b, termination, &error, &L1, &level);
-
-
+	successful = success;
 	return ret;
 }
 
-/*
-* Kernel of the error integral -- DELETE
-*/
-double krylovTimeEvolver::errorKernel(double t, std::complex<double>* T, std::complex<double>* spectrumH, double h)
-{
-	cblas_zcopy(m, spectrumH, 1, tmpintKernelExp1, 1);
-	cblas_zdscal(m, t, tmpintKernelExp1, 1);
-	vzExp(m, tmpintKernelExp1, tmpintKernelExp2);
-	cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1, &zero, tmpintKernelT, 1);
-	for (unsigned int i = 0; i != m; i++)
-		tmpintKernelExp2[i] = tmpintKernelExp2[i] * tmpintKernelT[i];
-	cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
-		tmpintKernelExp2, 1, &zero, tmpintKernelExp1, 1);
-
-	double ret = h * std::abs(tmpintKernelExp1[m - 1]);
-	return ret;
-}
 
 /*
 * Calculate time evolution in Kyrlov space
+* @param t Time
+* @param T Transformation matrix
+* @param spectrumH Eigenvalues
 */
 std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH)
 {
 	cblas_zcopy(m, spectrumH, 1, tmpintKernelExp1, 1);
+	
+	//Exponenting scaled eigenvalues
 	cblas_zdscal(m, t, tmpintKernelExp1, 1);
 	vzExp(m, tmpintKernelExp1, tmpintKernelExp2);
+
+	//Rotate basis back to Kyrlovspace
 	cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1, &zero, tmpintKernelT, 1);
-	for (unsigned int i = 0; i != m; i++)
-		tmpintKernelExp2[i] = tmpintKernelExp2[i] * tmpintKernelT[i];
+	vzMul(m, tmpintKernelExp2, tmpintKernelT, tmpintKernelExp3);
 	cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
-		tmpintKernelExp2, 1, &zero, tmpintKernelExp, 1);
+		tmpintKernelExp3, 1, &zero, tmpintKernelExp, 1);
 
 	return tmpintKernelExp;
 
