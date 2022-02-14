@@ -142,13 +142,13 @@ row indices of the non-zero values, ``col`` the column indices of the non-zero v
     * ``size_t nSamples`` The number of samples taken
 
 ## Krylov status codes
-* 0: Success
-* 1: Lucky breakdown
-* 2: Analytic error was smaller than the estimated total round-off error. 
-* 10: Error: Numerical error estimate was larger than analytic error in at least one substep. Requested accuacy was probably not achived.  
-* 11: Error: Numerical error estimate was larger than analytic error. Requested accuacy was probably not achived.
-* 20: Error: Numerical integration of the error integral failed.
-* 100: Error: Multible error occured.
+* ``0`` Success
+* ``1`` Lucky breakdown
+* ``2`` Analytic error was smaller than the estimated total round-off error. 
+* ``10`` Error: Numerical error estimate was larger than analytic error in at least one substep. Requested accuacy was probably not achived.  
+* ``11`` Error: Total numerical error estimate was larger than the total analytic error. Requested accuacy was probably not achived.
+* ``20`` Error: Numerical integration of the error integral failed.
+* ``100`` Error: Multible errors occured.
 
 # Build Documentation
 
