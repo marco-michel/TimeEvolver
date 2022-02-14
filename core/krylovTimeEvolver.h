@@ -20,11 +20,11 @@ struct krylovReturn
     size_t n_steps;
 	size_t dim;
 	size_t nSamples;
-    int errorCode;
+    int statusCode;
 
-    krylovReturn(unsigned int nbObservables, unsigned int Hsize, unsigned int nbSamples, int error)
+    krylovReturn(unsigned int nbObservables, unsigned int Hsize, unsigned int nbSamples, int status)
     {
-        err = 0; n_steps = 0; dim = Hsize; nSamples = nbSamples; errorCode = error;
+        err = 0; n_steps = 0; dim = Hsize; nSamples = nbSamples; statusCode = status;
         if(nbObservables == 0 && (nSamples * Hsize * sizeof(std::complex<double>) > std::pow(2.,34.)))
         {
             std::cerr << "Requested output would be too large" << std::endl;
