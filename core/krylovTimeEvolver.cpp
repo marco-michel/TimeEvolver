@@ -228,6 +228,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	double t_step = t_stepSuggestion;
 	int errorCode = 0;
 	bool numericalIntegrationSuccessful; //Did numerical integration converge to adequat tolerance?
+	bool skipSubsteps = false; //in case t_step > t_step_max
 
 
 
@@ -236,6 +237,12 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	{
 		while (integrateError(0, 2*t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful) < tolRate * t_step && t_step < t_step_max)
 			t_step *= 2.0;
+	} 
+
+	if (t_step > t_step_max)
+	{
+		t_step = t_step_max; 
+		skipSubsteps = true;
 	}
 
 	//Integrate to get a first error estimate 
@@ -266,7 +273,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	}
 	
 	//Increase step size in small substeps to use the Krylov space as long as possible
-	while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1)
+	while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1 && !skipSubsteps)
 	{
 		deltaError += integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
 		n_s++;
@@ -278,7 +285,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 
 	if (err_step < numericalErrorEstimate)  //Estimate of numerical error is larger than analytic error
 	{
-		if(increaseStep || t_step > 0.1 * t_stepSuggestion) //To trigger the error it must be either the very first Krylov space so no good comparison time scale is available or t_step has to be at least 10 % of the previous step size. 
+		if(!skipSubsteps) //TODO:CHECK IF THIS ACTUALLY MAKES SENSE
 			errorCode += 1;    
 	}
 		
@@ -345,6 +352,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Count number of Kyrlov spaces with error bound failures
 	int nbErrRoundOff = 0;
 	int nbErrInt = 0;
+	//WarningPrinted
+	bool warningPrinted = false;
+
+
     //Hessenberg matrix
 	matrix *H = new matrix(m, m);
 	//Corresponding transformation matrix
@@ -363,7 +374,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
     while (index_samples < n_samples)
     {
 		n_steps++;
-		t_step = fmin(t - t_now, t_step);
+		//t_step = fmin(t - t_now, t_step);
 		double err_step = 0;
 
 		//STEP 1: Construct Krylov subspace using Arnoldi algorithm
@@ -425,6 +436,12 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		case 21:
 			nbErrInt++; nbErrRoundOff++;
 			break;
+		}
+
+		if (errorCodeFindSubstep != 0 && !warningPrinted)
+		{
+			warningPrinted = true;
+			std::cerr << "TimeEvolver encountered an problem. Details will be provided after the simulation has finished." << std::endl;
 		}
 
 		//END STEP 2
