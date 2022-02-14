@@ -1,3 +1,5 @@
+![example workflow](https://github.com/marco-michel/TimeEvolver/actions/workflows/cmake.yml/badge.svg)
+
 # Introduction
 
 
