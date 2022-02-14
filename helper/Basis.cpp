@@ -1,14 +1,10 @@
-#include "Basis.h"
 #include <vector>
-#include <array>
 #include <unordered_map>
-#ifdef __linux__
-#include <boost/functional/hash.hpp>
-#else
-#include "boost/container_hash/hash.hpp"
-#endif
 
+#include "boost/container_hash/hash.hpp"
 #include "boost/math/special_functions/binomial.hpp"
+
+#include "Basis.h"
 
 basis::~basis()
 {

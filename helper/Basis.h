@@ -2,15 +2,11 @@
 
 #include <complex>
 #include <vector>
-#include <array>
 #include <iostream>
 #include <unordered_map>
 
-#ifdef __linux__
-#include <boost/functional/hash.hpp>
-#else
+
 #include "boost/container_hash/hash.hpp"
-#endif
 #include "boost/math/special_functions/binomial.hpp"
 
 

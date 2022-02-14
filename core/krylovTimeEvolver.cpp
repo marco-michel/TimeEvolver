@@ -8,11 +8,8 @@
 #include <boost/math/quadrature/tanh_sinh.hpp>
 #include <boost/math/quadrature/gauss.hpp> 
 
-#include <stdio.h>
 #include <cstdlib>
 #include <cmath>
-#include <complex.h>
-#include <time.h>
 #include <complex>
 #include <limits>
 #include <algorithm>
@@ -489,7 +486,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         double nrm = cblas_dznrm2(Hsize, currentVec, 1);
         if (checkNorm)
         {
-            if (fabs(nrm - 1) > tol)
+            if (std::abs(nrm - 1) > tol)
             {
                 std::cerr << "Error: computed norm is not inside specified tolerance." << std::endl;
                 exit(1);
@@ -537,6 +534,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		else
 		{
 			std::cout << "Info: Analytic error " << err << " was smaller than the estimate of the numerical error " << numericalErrorEstimateTotal << "." << std::endl;
+			std::cout << "The computed error is not accurate." << std::endl;
 
 			if (statusCode != 1) //Don't overwrite Lucky breakdown status
 				statusCode = 2;
