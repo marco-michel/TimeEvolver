@@ -141,6 +141,12 @@ row indices of the non-zero values, ``col`` the column indices of the non-zero v
     * ``size_t dim`` The dimension of the Hilbert space
     * ``size_t nSamples`` The number of samples taken
 
+## Krylov status codes
+* 0: Success
+* 1: Lucky breakdown
+* 10: Error: Numerical error estimate was larger than analytic error. Requested accuacy was probably not achived. 
+* 11: Error: Numerical integration of the error integral failed.
+
 # Build Documentation
 
 To build a local version of the documentation you have to install the program ``doxygen``:
