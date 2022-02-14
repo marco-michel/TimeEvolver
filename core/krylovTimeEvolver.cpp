@@ -66,7 +66,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	}
 
 	//Numerical integration terminates if error*L1 < termination
-	termination = std::sqrt(std::numeric_limits<double>::epsilon()); 
+	termination = 1e-4; 
     
     //number of sampling steps
     n_samples = (size_t) floor(t / samplingStep) + 1;
@@ -226,7 +226,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	unsigned int nbReductions = 0;
 
 	double t_step = t_stepSuggestion;
-	int errorCode = 0;
+	int statusCode = 0;
 	bool numericalIntegrationSuccessful; //Did numerical integration converge to adequat tolerance?
 	bool skipSubsteps = false; //in case t_step > t_step_max
 
@@ -242,7 +242,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	if (t_step > t_step_max)
 	{
 		t_step = t_step_max; 
-		skipSubsteps = true;
+		skipSubsteps = true; //there is no need to increase the step size anylonger 
 	}
 
 	//Integrate to get a first error estimate 
@@ -259,6 +259,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 			std::cerr << "Error: No small enough time step found to meet tolerance requirements." << std::endl;
 			exit(1);
 		}
+		skipSubsteps = false;
 	}
 	
 	double s = t_step / n_s_min;
@@ -273,25 +274,28 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	}
 	
 	//Increase step size in small substeps to use the Krylov space as long as possible
-	while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1 && !skipSubsteps)
+
+	if (!skipSubsteps)
 	{
-		deltaError += integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
-		n_s++;
+		while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1)
+		{
+			deltaError += integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
+			n_s++;
+		}
+
+		t_step += (n_s - 1) * s;
+		err_step += deltaError;
 	}
-
-	t_step += (n_s - 1) * s;
-	err_step += deltaError;
-
 
 	if (err_step < numericalErrorEstimate)  //Estimate of numerical error is larger than analytic error
 	{
-		if(!skipSubsteps) //TODO:CHECK IF THIS ACTUALLY MAKES SENSE
-			errorCode += 1;    
+		if(!skipSubsteps || err_step > 0.1 * tolRate * t_step) //Warning can only be skipped if it's the last Krylov space and the error budget was barely exploited. 
+			statusCode += 1;
 	}
 		
 
 	if (!numericalIntegrationSuccessful)
-		errorCode += 20; 	//Numerical integration can not be trusted, nullifing the error bound
+		statusCode += 20; 	//Numerical integration can not be trusted, nullifing the error bound
 
 	*t_stepRet = t_step;
 	*err_stepRet = err_step;
@@ -300,7 +304,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	std::complex<double>* w_Krylov = expKrylov(t_step, T, spectrumH);
 	cblas_zcopy(m, w_Krylov, 1, w_KrylovRet, 1);
 
-	return errorCode;
+	return statusCode;
 
 }
 
@@ -318,7 +322,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	double INITIAL_STEP_FRACTION = 0.97;
 
 	optimizeInput();
-	if (checkNorm) {
+	if (checkNorm) 
+	{
 		if (cblas_dznrm2(Hsize, currentVec, 1) - 1.0 > tol) {
 			std::cerr << "Norm error in initial vector" << std::endl;
 			exit(1);
@@ -338,15 +343,17 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	double tolRate = tol / t;
 	//Total accumulated error so far
 	double err = 0.;
-	//Estimate of error due to limited precision of numerical operations
+	//Estimate of error due to limited precision of numerical operations per Kyrlov space
 	double numericalErrorEstimate = Hsize * matrixNorm * std::numeric_limits<double>::epsilon();
+	//Total esimate of round-off errors
+	double numericalErrorEstimateTotal = 0;
 
     //Flag indicating if a happy breakdown has occured
     bool dummy_hbd = false;
     //In case of lucky breakdown, size of Krylov space
     size_t m_hbd;
 	//Track if an error occured within timeEvolve(). A value unequal 0 indicates that numerical result likely violates error bound.
-	int errorCode = 0;
+	int statusCode = 0;
 	//Monitoring if something went wrong in findSubstep
 	int errorCodeFindSubstep = 0;
 	//Count number of Kyrlov spaces with error bound failures
@@ -354,6 +361,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	int nbErrInt = 0;
 	//WarningPrinted
 	bool warningPrinted = false;
+	//Were there multible errors thrown
+	int nbErrors = 0;
 
 
     //Hessenberg matrix
@@ -382,7 +391,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 		//Some special adjustments in case of a lucky breakdown, i.e. when projection in Krylov-subspace of dimension m_hbd <= m is exact (within numerical uncertainty)
 		//In particular, the time step of the current Krylov space can be arbitarily large in this case
-		if (dummy_hbd) {
+		if (dummy_hbd) 
+		{
 			t_step = t - t_now;
 			matrix *Htmp = new matrix(m_hbd, m_hbd);
 			matrix *Vtmp = new matrix(Hsize, m_hbd);
@@ -398,12 +408,15 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			H = Htmp;
 			V = Vtmp;
 			m = m_hbd;
-			err_step = std::max(h,numericalErrorEstimate)*t_step;
+
+			std::cout << "***Lucky breakdown at Krylov dimension " << m	<< " *** " << std::endl;
+			statusCode = 1;
 		}
 		//Finally diagonalize Hessenberg matrix H (since it will be exponentiated many times)
 		int infocheck = LAPACKE_zhseqr(LAPACK_COL_MAJOR, 'S', 'I', m, 1, m,
 				H->values, m, eigenvalues, schurvector, m);
-		if (infocheck != 0) {
+		if (infocheck != 0) 
+		{
 			std::cerr << "Internal error: LAPACK error " << infocheck << std::endl;
 			exit(1);
 		}
@@ -485,6 +498,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         
     }
 
+	//Rough estimate of total round-of error
+	numericalErrorEstimateTotal = numericalErrorEstimate * n_steps; 
+
+
 	if (nbErrRoundOff != 0)
 	{
 		std::cerr << "CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in " << nbErrRoundOff << " Krylov spaces." << std::endl;
@@ -494,19 +511,42 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		std::cerr << "The total computed analytic error is: " << err << std::endl;
 		std::cerr << "The total numerical error estimate for all Krylov spaces is " << n_steps*numericalErrorEstimate << std::endl;
 
-		errorCode = 1;
+		nbErrors++;
+		statusCode = 10;
 	}
 	else if (nbErrInt != 0)
 	{
 		std::cerr << "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " << nbErrInt << " Krylov spaces." << std::endl;
 		std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
 
-		errorCode = 1;
+		nbErrors++;
+		statusCode = 20;
 	}
+
+	if (nbErrors > 1)
+		statusCode = 100;
+
+	if (numericalErrorEstimateTotal > err && nbErrRoundOff == 0) //No need to output warning twice. 
+	{
+		if (numericalErrorEstimateTotal > tol)
+		{
+			std::cerr << "CRITICAL WARNING: The numerical error " << numericalErrorEstimateTotal << " was larger than the requested tolerance " << tol << std::endl;
+			statusCode = 11;
+			nbErrors++;
+		}
+		else
+		{
+			std::cout << "Info: Analytic error " << err << " was smaller than the estimate of the numerical error " << numericalErrorEstimateTotal << "." << std::endl;
+
+			if (statusCode != 1) //Don't overwrite Lucky breakdown status
+				statusCode = 2;
+		}
+	}
+
 
     //Return result
 	
-    krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, errorCode);
+    krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, statusCode);
     cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
     unsigned int nbResults;
     if (nbObservables != 0)
@@ -565,8 +605,6 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 
 		//Detection of lucky breakdown
 		if (normy < tolRate) {
-			std::cout << "***Lucky breakdown at Krylov dimension " << j + 1
-					<< " *** " <<std::endl;
 			*mRet = j + 1;
 			*hRet = normy;
 			return true;
@@ -612,7 +650,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	else if (method == 2)
 	{
 		ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
-		if (error * L1 > 0.01)
+		if (error * L1 > termination)
 			success = false;
 	}
 	else
