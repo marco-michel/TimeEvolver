@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
         ("C0", po::value<double>(&C0)->default_value(0.1), "Coupling in control sector")
         ("Cm", po::value<double>(&Cm)->default_value(0.1), "Coupling in critical sector")
         ("maxT", po::value<double>(&maxT)->default_value(100), "Simulation-time")
-	("samplingStep", po::value<double>(&samplingStep)->default_value(0.1), "Time interval of sampling")
+	    ("samplingStep", po::value<double>(&samplingStep)->default_value(0.1), "Time interval of sampling")
         ("tol", po::value<double>(&tol)->default_value(1.0e-7), "Optional: Numerical tolerance")
         ("m", po::value<int>(&m)->default_value(40), "Optional: Dimension of Krylov-Space")
         ("threads", po::value<int>(&numThreads)->default_value(2), "Optional: Number of OpenMP Threads for Intel MKL")
@@ -92,10 +92,10 @@ int main(int argc, char* argv[])
     //end determine parameters
 
 
-    std::cout << "TimeEvolver Version:  0.1" << std::endl;
+    std::cout << "TimeEvolver Version:  0.1c" << std::endl;
     
     //Create basis
-    std::cout << "Creating Basis..." << std::endl;
+    std::cout << "Creating basis..." << std::endl;
     tensorBasis basis(N0, 2, Nm, 2*K, capacity);
     
     //Create Hamiltonian
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus, true);
+    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus, true, false);
     krylovReturn* results = timeEvolver.timeEvolve();
     
     auto end = std::chrono::high_resolution_clock::now();
