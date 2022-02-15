@@ -321,7 +321,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	optimizeInput();
 	if (checkNorm) 
 	{
-		if (cblas_dznrm2(Hsize, currentVec, 1) - 1.0 > tol) {
+		if (std::abs(cblas_dznrm2(Hsize, currentVec, 1) - 1.0) > tol) {
 			std::cerr << "Norm error in initial vector" << std::endl;
 			exit(1);
 		}
@@ -451,7 +451,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		if (errorCodeFindSubstep != 0 && !warningPrinted)
 		{
 			warningPrinted = true;
-			std::cerr << "TimeEvolver encountered an problem. Details will be provided after the simulation has finished." << std::endl;
+			std::cerr << "TimeEvolver encountered a problem. Details will be provided after the simulation has finished." << std::endl;
 		}
 
 		//END STEP 2
@@ -488,8 +488,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         {
             if (std::abs(nrm - 1) > tol)
             {
-                std::cerr << "Error: computed norm is not inside specified tolerance." << std::endl;
-                exit(1);
+                std::cerr << "CRITICAL WARNING: Norm of state vector is not inside specified tolerance." << std::endl;
+				std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
+				nbErrors++;
+				statusCode = 30;
             }
         }
         
@@ -520,14 +522,12 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		statusCode = 20;
 	}
 
-	if (nbErrors > 1)
-		statusCode = 100;
-
-	if (numericalErrorEstimateTotal > err && nbErrRoundOff == 0) //No need to output warning twice. 
+	if (numericalErrorEstimateTotal > err && nbErrRoundOff == 0) //No need to output warning twice. Only relevant for very simple systems for which 1 Krylov space is sufficient /  lucky breakdown
 	{
 		if (numericalErrorEstimateTotal > tol)
 		{
 			std::cerr << "CRITICAL WARNING: The numerical error " << numericalErrorEstimateTotal << " was larger than the requested tolerance " << tol << std::endl;
+			std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
 			statusCode = 11;
 			nbErrors++;
 		}
@@ -541,6 +541,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		}
 	}
 
+	if (nbErrors > 1)
+		statusCode = 100;
 
     //Return result
 	
