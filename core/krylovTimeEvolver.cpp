@@ -326,6 +326,9 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			exit(1);
 		}
 	}
+
+	if (fastIntegration)
+		std::cout << "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result." << std::endl;
     
     //Time of current state
 	double t_now = 0.;
@@ -542,8 +545,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	}
 
 	if (nbErrors > 1)
+	{
+		std::cerr << "There were multiple critical warnings raised during evaluation. Please see ouput above for further details." << std::endl;
 		statusCode = 100;
-
+	}
     //Return result
 	
     krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, statusCode);
