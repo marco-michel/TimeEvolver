@@ -117,7 +117,7 @@ The result of time evolution will be stored in a HDF5-file. (For the standard ch
 
 A second option to use the program arises if the user alredy has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``TimeEvolver`` are needed. The core functionality of the TimeEvolver is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
- krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm);
+ krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration)
 ```
 with 
 * ``t`` The time interval over which the state should be time evolved
