@@ -22,8 +22,8 @@ helper                          methods to create the set of basis states and to
 
 This software packages relies on following external libraries:
 * Intel Math Kernel Library (MKL) (required)
+* BOOST (required)
 * HDF5 (optional)
-* BOOST (optional)
 
 On top of that it uses the build managing software Cmake.
 
@@ -43,6 +43,10 @@ Note: If you install Intel MKL via the package manager you will be asked if you 
 
 ## Mac
 
+The MKL Library is not supported on ARM processors used in newer Apple products. Therefore the ``TimeEvolver`` is also not supported on Mac. 
+
+In the following we provide an unsupported workaround for older Macs that are based on x86 processors:
+
 To compile the source code of the TimeEvolver the command line developer tools are required. The installation can be prompted by typing e.g. ``g++`` in a terminal. After that you can install the Intel MKL library via the oneAPI installer provided by Intel. The HDF5 library can either be installed with the pre-compiled package (We recommend this option, however, it requires a free registration) or compiled from source (cmake version). In case the library is installed in a custome location please set the variable ``HDF_DIR5`` in the CMakeLists.txt file to the path containing the ``hdf5-targets.cmake`` file. A example of this is already included as a comment in the file.
 The boost library can be compiled from source following the instructions found on the corresponding website. To compile and install the library system-wide one can use
 ```
@@ -61,12 +65,16 @@ We provide a commented out template in the CMakeLists.txt file. Note also the co
 
 ## Windows 
 
+There are several options to compile the ``TimeEvolver`` on Windows. The easiest option is to use WSL(2), install a virtual Ubuntu machine and follow the instructions described above. Another option is to download compiled libraries with the help of the ``vcpk`` package manager:
+
 BOOST and HDF5 can be obtained for Windows 64bit OS for example with the ``vcpkg`` package manager via
 ```
 .\vcpkg.exe install hdf5:x64-windows
 .\vcpkg.exe install boost:x64-windows
 ```
-However, manual adjustments in cmake may be required. We found it easier to fall back to a virtual linux machine with minuscule performance loss.  
+However, manual adjustments in cmake may be required. 
+
+A third option would be to compile Boost (and HDF5) from source. Please follow the respective instructions for each library. 
 
 ## Standalone Version of Intel MKL
 
@@ -109,7 +117,7 @@ The result of time evolution will be stored in a HDF5-file. (For the standard ch
 
 A second option to use the program arises if the user alredy has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``TimeEvolver`` are needed. The core functionality of the TimeEvolver is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
- krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm);
+ krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration)
 ```
 with 
 * ``t`` The time interval over which the state should be time evolved
@@ -123,6 +131,7 @@ with
 * ``Ham`` The matrix representation of the Hamiltonian
 * ``expFactor`` The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
 * ``checkNorm`` Whether or not it should be check that the time evolved state has unit norm
+* ``fastIntegration`` Whether or not the faster not-adaptive Gauss integration scheme should be used. Note that this option can not guarantee that the numerical integration was performed within the requested tolerance.  
 
 The timeevolution is started with the call of the member function
 ```
@@ -147,10 +156,11 @@ row indices of the non-zero values, ``col`` the column indices of the non-zero v
 * ``0`` Success
 * ``1`` Lucky breakdown
 * ``2`` Analytic error was smaller than the estimated total round-off error. 
-* ``10`` Error: Numerical error estimate was larger than analytic error in at least one substep. Requested accuacy was probably not achived.  
-* ``11`` Error: Total numerical error estimate was larger than the total analytic error. Requested accuacy was probably not achived.
-* ``20`` Error: Numerical integration of the error integral failed.
-* ``100`` Error: Multible errors occured.
+* ``10`` Critical Warning: Numerical error estimate was larger than analytic error in at least one substep. Requested accuacy was probably not achived.  
+* ``11`` Critical Warning: Total numerical error estimate was larger than the total analytic error. Requested accuacy was probably not achived.
+* ``20`` Critical Warning: Numerical integration of the error integral failed.
+* ``30`` Critical Warning: Norm of state vector deviates more than the given accuaracy from one. 
+* ``100`` Critical Warning: Multible errors occured.
 
 # Build Documentation
 
