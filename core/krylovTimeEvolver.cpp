@@ -36,7 +36,8 @@
  * @param nbObservables The number of observables
  * @param Ham The full Hamiltonian
  * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
- * @param checkNorm Whether or not it should be check that the time evolved state has unit norm
+ * @param checkNorm Whether or not it should be check that the time evolved state has unit norm (default value: true)
+ * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
  */
 krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int m, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration)
 {
