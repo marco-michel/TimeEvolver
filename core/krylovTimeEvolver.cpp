@@ -64,7 +64,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	}
 
 	//Numerical integration terminates if error*L1 < termination
-	termination = 1e-4; 
+	termination = 1e-3;//1e-4; 
     
     //number of sampling steps
     n_samples = (size_t) floor(t / samplingStep) + 1;
@@ -220,7 +220,7 @@ void krylovTimeEvolver::optimizeInput()
 int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_substeps, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet)
 {
 	//Maximal number of substepreductions to meet tolerance
-	unsigned int GO_MAX = 100;
+	unsigned int GO_MAX = 20;
 	unsigned int nbReductions = 0;
 
 	double t_step = t_stepSuggestion;
@@ -244,15 +244,22 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	{
 		double err_step_new = err_step;
 		double t_step_new = t_step;
-		while (err_step_new < tolRate * t_step_new && t_step_new < t_step_max)
+		while (err_step_new < tolRate * t_step_new && t_step < t_step_max)
 		{
 			t_step = t_step_new;
 			err_step = err_step_new;
-			t_step_new = std::min(2.0*t_step_new, t_step_max);
+			if(t_step>= t_step_max){
+				skipSubsteps = true;
+				break;
+			}
+			t_step_new *= 2;
+			if(t_step_new > t_step_max)
+			{
+				t_step_new = t_step_max;
+			}
 			err_step_new = integrateError(0, t_step_new, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);	
 		}
 	} 
-
 	
 	//Reduce step_size in case the error is not within requested tolerance
 	while (err_step > tolRate * t_step)
@@ -271,18 +278,22 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	double s = t_step / n_substeps;
 	int n_s = 0;
 	double deltaError = 0;
-
-	//Maximal number of steps to reach t_step_max
-	double n_s_max = ceil(t_step_max / s);
 	
 	//Increase step size in small substeps to use the Krylov space as long as possible
 	if (!skipSubsteps)
 	{
-		while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1)
+		while (err_step + deltaError < tolRate * (t_step + n_s * s))
 		{
 			err_step += deltaError;
-			deltaError = integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
 			n_s++;
+			if(t_step +(n_s-1)*s >= t_step_max)
+			{
+				break;
+			} 
+			else
+			{
+				deltaError = integrateError(t_step + (n_s-1) * s, t_step + n_s * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
+			}
 		}
 
 		t_step += (n_s - 1) * s;
@@ -437,7 +448,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         }
 
 		//Error handling of findMaximalStepSize
-
 		switch (errorCodeFindSubstep)
 		{
 		case 0:
@@ -505,7 +515,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		std::cerr << "Restart with bigger error bound or smaller time." << std::endl;
 
 		std::cerr << "The total computed analytic error is: " << err << std::endl;
-		std::cerr << "The total numerical error estimate for all Krylov spaces is " << n_steps*numericalErrorEstimate << std::endl;
+		std::cerr << "The total numerical error estimate for all Krylov spaces is " << numericalErrorEstimateTotal << std::endl;
 
 		nbErrors++;
 		statusCode = 10;
@@ -522,7 +532,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	{
 		if (numericalErrorEstimateTotal > tol)
 		{
-			std::cerr << "CRITICAL WARNING: The numerical error " << numericalErrorEstimateTotal << " was larger than the requested tolerance " << tol << std::endl;
+			std::cerr << "CRITICAL WARNING: The numerical error estimate " << numericalErrorEstimateTotal << " was larger than the requested tolerance " << tol << std::endl;
 			std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
 			statusCode = 11;
 			nbErrors++;
