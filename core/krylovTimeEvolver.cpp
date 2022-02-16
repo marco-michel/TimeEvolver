@@ -207,7 +207,7 @@ void krylovTimeEvolver::optimizeInput()
  * @param spectrumH The eigenvalues of the Hamiltonian in the Krylov subspace
  * @param h The last element of the Arnoldi algorithm (it's needed for the computation of the error)
  * @param tolRate The maximal admissible error rate (i.e. error per time)
- * @param s The initial substep size
+ * @param t_stepSuggestion The initial substep size
  * @param t_step_max The maximal stepsize (in case tolRate is not exceeded)
  * @param n_substeps The number of substeps (this determines how finely the program tries to increase the time step)
  * @param numericalErrorEstimate The numerical error associated to the Krylov subspace (this sets a lower bound for the error)
@@ -274,7 +274,6 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	double n_s_max = ceil(t_step_max / s);
 	
 	//Increase step size in small substeps to use the Krylov space as long as possible
-
 	if (!skipSubsteps)
 	{
 		while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1)
@@ -641,12 +640,14 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 * @param T Transformation matrix
 * @param spectrumH Eigenvalue spectrum
 * @param h Last entry of the Hessenberg matrix
+* @param method 0 stands for Gauss with 15 abscissa, 1 stands for Gauss with 7 abscissa, 2 stands for an adaptive sinh-tanh method
+* @param successful whether numerical integration converged to sufficient accuracy (accuracy is not monitored in case of Gauss-integration so in this case the value is always true)
 */
 double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, bool& successful)
 {
 	double error, L1;
 	double ret;
-	bool success = true;
+	successful = true;
 
 	//Define Integrand as a lambda function
 	auto f = [&](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m - 1]); };
@@ -659,7 +660,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	{
 		ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
 		if (error * L1 > termination)
-			success = false;
+			successful = false;
 	}
 	else
 	{
@@ -667,7 +668,6 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 		exit(-1);
 	}
 
-	successful = success;
 	return ret;
 }
 
