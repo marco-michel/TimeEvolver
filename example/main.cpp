@@ -34,8 +34,8 @@ using namespace H5;
 //    int N0; int Nm; int K;
 //  double C0; double Cm
 //  double maxT; double samplingStep; 
-//  optional in this order: double tol; int m; int numThreads; int DeltaN; int capacity; 
-//  in total, argc expectets to have 7 + 5 arguments
+//   double tol; int m; int numThreads; int DeltaN; int capacity;  bool fastIntegration
+//  in total, argc can take up to 13 arguments
 int main(int argc, char* argv[])
 {
     
@@ -46,6 +46,7 @@ int main(int argc, char* argv[])
     double maxT; double samplingStep;
     double tol; int m; int numThreads;
      double DeltaN; int capacity; 
+     bool fastIntegration;
     
     po::options_description desc("Allowed options");
     po::variables_map vm;
@@ -61,11 +62,12 @@ int main(int argc, char* argv[])
         ("Cm", po::value<double>(&Cm)->default_value(0.1), "Coupling in critical sector")
         ("maxT", po::value<double>(&maxT)->default_value(100), "Simulation-time")
 	    ("samplingStep", po::value<double>(&samplingStep)->default_value(0.1), "Time interval of sampling")
-        ("tol", po::value<double>(&tol)->default_value(1.0e-7), "Optional: Numerical tolerance")
-        ("m", po::value<int>(&m)->default_value(40), "Optional: Dimension of Krylov-Space")
-        ("threads", po::value<int>(&numThreads)->default_value(2), "Optional: Number of OpenMP Threads for Intel MKL")
-        ("DeltaN", po::value<double>(&DeltaN)->default_value(2), "Optional: Distance between critical sectors")
-        ("capacity", po::value<int>(&capacity)->default_value(1), "Optional: Capacity of cirtial modes")
+        ("tol", po::value<double>(&tol)->default_value(1.0e-7), "Numerical tolerance")
+        ("m", po::value<int>(&m)->default_value(40), "Dimension of Krylov-Space")
+        ("threads", po::value<int>(&numThreads)->default_value(2), "Number of OpenMP Threads for Intel MKL")
+        ("DeltaN", po::value<double>(&DeltaN)->default_value(2), "Distance between critical sectors")
+        ("capacity", po::value<int>(&capacity)->default_value(1), "Capacity of cirtial modes")
+        ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(false), "Use faster and less accurate integration")
         ;
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -126,7 +128,7 @@ int main(int argc, char* argv[])
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus, true, false);
+    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus, true, fastIntegration);
     krylovReturn* results = timeEvolver.timeEvolve();
     
     auto end = std::chrono::high_resolution_clock::now();
@@ -141,7 +143,7 @@ int main(int argc, char* argv[])
     
     //Create string with information about input parameters
         std::cout << "Writing results to file..." << std::endl;
-       const int nbOutputParameters = 11;
+       const int nbOutputParameters = 12;
     std::ostringstream outputnumbers[nbOutputParameters];
     outputnumbers[0] << std::fixed << std::setprecision(0) << N0;
     outputnumbers[1] << std::fixed << std::setprecision(0) << Nm;
@@ -154,12 +156,13 @@ int main(int argc, char* argv[])
     outputnumbers[8] << tol;
     outputnumbers[9] << samplingStep;
     outputnumbers[10] << std::fixed << std::setprecision(0) << m;
+     outputnumbers[11] << fastIntegration;
     
     std::string obligatoryInfo = "_N" + outputnumbers[0].str() + "_Nm" + outputnumbers[1].str() + "_K"
     + outputnumbers[2].str() + "_C" + outputnumbers[3].str();
     
     std::string furtherInfo = "_DeltaN" + outputnumbers[4].str() + "_C0" + outputnumbers[5].str() + "_Cm" + outputnumbers[6].str()
-    + "_maxT" + outputnumbers[7].str() + "_tol" + outputnumbers[8].str() + "_samplingStep" + outputnumbers[9].str() + "_m" + outputnumbers[10].str() + "_Sim1";
+    + "_maxT" + outputnumbers[7].str() + "_tol" + outputnumbers[8].str() + "_samplingStep" + outputnumbers[9].str() + "_m" + outputnumbers[10].str() + "_fastIntegration" + outputnumbers[11].str() + "_Sim1";
    
     std::string fileNameH5 = "ResultBlackHole" + obligatoryInfo + furtherInfo + ".h5";
     //End create string
@@ -199,10 +202,10 @@ int main(int argc, char* argv[])
         
         //write all parameters as attributes to file
         
-        DataSpace** attr_dataspace = new DataSpace*[11];
-        Attribute** attributes = new Attribute*[11];
+        DataSpace** attr_dataspace = new DataSpace*[nbOutputParameters];
+        Attribute** attributes = new Attribute*[nbOutputParameters];
         
-        for (int i = 0; i < 11; ++i)
+        for (int i = 0; i < nbOutputParameters; ++i)
         {
             attr_dataspace[i] = new DataSpace (1, dims );
             attributes[i] = new Attribute();
@@ -221,8 +224,9 @@ int main(int argc, char* argv[])
         *attributes[8] = dataset.createAttribute( "K", PredType::NATIVE_INT, *attr_dataspace[8]); attributes[8]->write(PredType::NATIVE_INT, &K);
         *attributes[9] = dataset.createAttribute( "Capacity", PredType::NATIVE_INT, *attr_dataspace[9]); attributes[9]->write(PredType::NATIVE_INT, &capacity);
         *attributes[10] = dataset.createAttribute( "m", PredType::NATIVE_INT, *attr_dataspace[10]); attributes[10]->write(PredType::NATIVE_INT, &m);
+        *attributes[11] = dataset.createAttribute( "fastIntegration", PredType::NATIVE_INT, *attr_dataspace[11]); attributes[11]->write(PredType::NATIVE_INT, &fastIntegration);
         
-        for (int i = 0; i < 11; ++i)
+        for (int i = 0; i < nbOutputParameters; ++i)
         {
             delete attr_dataspace[i];
             delete attributes[i];
