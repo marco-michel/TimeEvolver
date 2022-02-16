@@ -280,12 +280,12 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	{
 		while (err_step + deltaError < tolRate * (t_step + n_s * s) && n_s <= n_s_max - 1)
 		{
-			deltaError += integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
+			err_step += deltaError;
+			deltaError = integrateError(t_step + n_s * s, t_step + (n_s + 1) * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
 			n_s++;
 		}
 
 		t_step += (n_s - 1) * s;
-		err_step += deltaError;
 	}
 
 	if (err_step < numericalErrorEstimate)  //Estimate of numerical error is larger than analytic error
