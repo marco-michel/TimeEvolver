@@ -202,22 +202,22 @@ void krylovTimeEvolver::optimizeInput()
 }
 
 /**
- * Given a Krylov subspace, this function finds out how far (i.e. for what time step) one can use it without exceeding the prescribed error bound. To this end, it uses small substeps and computes an error bound for each substep. This function only operates in the Krylov subspace, i.e. with vectors and matrices of dimension m
+ * Given a Krylov subspace, this function finds out how far (i.e. for what time step) one can use it without exceeding the prescribed error bound. To this end, it computes an error bound for different possible time steps. This function only operates in the Krylov subspace, i.e. with vectors and matrices of dimension m
  * @param T The orthogonal transformation matrix for the Hamiltonian in the Krylov subspace
  * @param spectrumH The eigenvalues of the Hamiltonian in the Krylov subspace
  * @param h The last element of the Arnoldi algorithm (it's needed for the computation of the error)
  * @param tolRate The maximal admissible error rate (i.e. error per time)
  * @param s The initial substep size
  * @param t_step_max The maximal stepsize (in case tolRate is not exceeded)
- * @param n_s_min The minimal number of substeps (the numerical integration of the error bound gets bad if there are too few substeps)
+ * @param n_substeps The number of substeps (this determines how finely the program tries to increase the time step)
  * @param numericalErrorEstimate The numerical error associated to the Krylov subspace (this sets a lower bound for the error)
+ * @param increaseStep Whether or not the function should first try to increase the step size (useful if no good suggestion was provided)
  * @param t_stepRet Returns the time step
  * @param w_KrylovRet Returns the Krylov vector after the time step
  * @param err_stepRet Returns the error of the time step
- * @param increaseStep Boolean if the function should first try to increase the step size in case no good suggestion was provided
- * @param Return errorcode (0=Success, 1=estimate of roundoff errors are larger than analytical error, 20=error of integration larger than requested termination tolerance, multiple errors are indicated as the sum of respective error codes
+ * @param Return errorcode (0=Success, 1=estimate of roundoff errors are larger than analytical error, 20=error of integration larger than requested termination tolerance, multiple errors are indicated as the sum of respective error codes)
  */
-int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_s_min, double numericalErrorEstimate, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet, bool increaseStep)
+int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_substeps, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet)
 {
 	//Maximal number of substepreductions to meet tolerance
 	unsigned int GO_MAX = 100;
@@ -225,8 +225,8 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 
 	double t_step = t_stepSuggestion;
 	int statusCode = 0;
-	bool numericalIntegrationSuccessful; //Did numerical integration converge to adequat tolerance?
-	bool skipSubsteps = false; //in case t_step > t_step_max
+	bool numericalIntegrationSuccessful; //Did numerical integration converge to adequate tolerance?
+	bool skipSubsteps = false; //needed if t_step > t_step_max
 
 
 
@@ -260,16 +260,12 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 		skipSubsteps = false;
 	}
 	
-	double s = t_step / n_s_min;
+	double s = t_step / n_substeps;
 	int n_s = 0;
 	double deltaError = 0;
 
 	//Maximal number of steps to reach t_step_max
 	double n_s_max = ceil(t_step_max / s);
-	if (n_s_max < n_s_min) {
-		n_s_max = n_s_min + 1;
-		s = t_step_max / n_s_max;
-	}
 	
 	//Increase step size in small substeps to use the Krylov space as long as possible
 
@@ -314,8 +310,8 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 krylovReturn* krylovTimeEvolver::timeEvolve()
 {
 	//Constants
-	//Minimal number of substeps per time step (needed for precise mapping of available Kyrlov space)
-	int N_SUBSTEPS_MIN = 50;
+	//Number of substeps per time step (determines how finely the program tries to increase the maximal timestep per Krylov space)
+	int N_SUBSTEPS = 50;
 	//After each time step, the optimal step size is computed. To avoid substep reduction because of a too small number of substeps, the optimal step size is multiplied by this number
 	double INITIAL_STEP_FRACTION = 0.97;
 
@@ -428,9 +424,9 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         {
 			double s_0 = INITIAL_STEP_FRACTION * t_step;
 			if(t_now == 0)
-				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step, true);
+				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS, numericalErrorEstimate, true, &t_step, tmpKrylovVec1, &err_step);
 			else
-				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS_MIN, numericalErrorEstimate, &t_step, tmpKrylovVec1, &err_step, false);
+				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS, numericalErrorEstimate, false, &t_step, tmpKrylovVec1, &err_step);
 
             cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec1, 1, &zero, currentVec, 1);
         }
