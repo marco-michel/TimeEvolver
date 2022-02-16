@@ -641,13 +641,13 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 * @param spectrumH Eigenvalue spectrum
 * @param h Last entry of the Hessenberg matrix
 * @param method 0 stands for Gauss with 15 abscissa, 1 stands for Gauss with 7 abscissa, 2 stands for an adaptive sinh-tanh method
-* @param successful whether numerical integration converged to sufficient accuracy (accuracy is not monitored in case of Gauss-integration so in this case the value is always true)
+* @param successful logical and-conjuction of input value and bool indicating whether numerical integration converged to sufficient accuracy (accuracy is not monitored in case of Gauss-integration so in this case the input value is always returned)
 */
 double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, bool& successful)
 {
 	double error, L1;
 	double ret;
-	successful = true;
+	bool success = true;
 
 	//Define Integrand as a lambda function
 	auto f = [&](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m - 1]); };
@@ -660,13 +660,15 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	{
 		ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
 		if (error * L1 > termination)
-			successful = false;
+			success = false;
 	}
 	else
 	{
 		std::cerr << "Internal error: No method of integration selected" << std::endl;
 		exit(-1);
 	}
+	
+	successful = successful && success;
 
 	return ret;
 }
