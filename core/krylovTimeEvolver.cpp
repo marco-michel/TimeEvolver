@@ -228,13 +228,21 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	bool numericalIntegrationSuccessful; //Did numerical integration converge to adequate tolerance?
 	bool skipSubsteps = false; //needed if t_step > t_step_max
 
-
-
+	//Integrate to get a first error estimate 
+	double err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);
+	
 	//Increasing step size. Used in the first go through when there is no good guess for the step size. 
 	if (increaseStep)
 	{
-		while (integrateError(0, 2*t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful) < tolRate * t_step && t_step < t_step_max)
-			t_step *= 2.0;
+		double err_step_new = err_step;
+		double t_step_new = t_step;
+		while (err_step_new < tolRate * t_step_new && t_step_new < t_step_max)
+		{
+			t_step = t_step_new;
+			err_step = err_step_new;
+			t_step_new *= 2.0;
+			err_step_new = integrateError(0, t_step_new, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);	
+		}
 	} 
 
 	if (t_step > t_step_max)
@@ -243,8 +251,6 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 		skipSubsteps = true; //there is no need to increase the step size anylonger 
 	}
 
-	//Integrate to get a first error estimate 
-	double err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);
 	
 	//Reduce step_size in case the error is not within requested tolerance
 	while (err_step > tolRate * t_step)
