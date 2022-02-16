@@ -363,8 +363,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Count number of Kyrlov spaces with error bound failures
 	int nbErrRoundOff = 0;
 	int nbErrInt = 0;
-	//WarningPrinted
-	bool warningPrinted = false;
 	//Were there multible errors thrown
 	int nbErrors = 0;
 
@@ -455,12 +453,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			break;
 		}
 
-		if (errorCodeFindSubstep != 0 && !warningPrinted)
-		{
-			warningPrinted = true;
-			std::cerr << "TimeEvolver encountered a problem. Details will be provided after the simulation has finished." << std::endl;
-		}
-
 		//END STEP 2
         
 		//STEP 3: sample observables in current time step, i.e. between 't_now' and 't_now + t_step'
@@ -504,10 +496,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         
     }
 
-	//Rough estimate of total round-of error
-	numericalErrorEstimateTotal = numericalErrorEstimate * n_steps; 
-
-
+	//Output of potential errors
+	numericalErrorEstimateTotal = numericalErrorEstimate * n_steps; //Rough estimate of total round-of error
 	if (nbErrRoundOff != 0)
 	{
 		std::cerr << "CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in " << nbErrRoundOff << " Krylov spaces." << std::endl;
@@ -520,7 +510,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		nbErrors++;
 		statusCode = 10;
 	}
-	else if (nbErrInt != 0)
+	if (nbErrInt != 0)
 	{
 		std::cerr << "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " << nbErrInt << " Krylov spaces." << std::endl;
 		std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
@@ -528,7 +518,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		nbErrors++;
 		statusCode = 20;
 	}
-
 	if (numericalErrorEstimateTotal > err && nbErrRoundOff == 0) //No need to output warning twice. Only relevant for very simple systems for which 1 Krylov space is sufficient /  lucky breakdown
 	{
 		if (numericalErrorEstimateTotal > tol)
@@ -542,7 +531,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		{
 			std::cout << "Info: Analytic error " << err << " was smaller than the estimate of the numerical error " << numericalErrorEstimateTotal << "." << std::endl;
 			std::cout << "The computed error is not accurate." << std::endl;
-
 			if (statusCode != 1) //Don't overwrite Lucky breakdown status
 				statusCode = 2;
 		}
@@ -553,9 +541,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		std::cerr << "There were multiple critical warnings raised during evaluation. Please see ouput above for further details." << std::endl;
 		statusCode = 100;
 	}
+   
+   
     //Return result
-	
-    krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, statusCode);
+	krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, statusCode);
     cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
     unsigned int nbResults;
     if (nbObservables != 0)

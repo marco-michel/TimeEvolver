@@ -22,6 +22,10 @@ struct krylovReturn
 	size_t nSamples;
     int statusCode;
 
+/* Status code has the following meaning: 
+1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected) 
+more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
+ */
     krylovReturn(unsigned int nbObservables, unsigned int Hsize, unsigned int nbSamples, int status)
     {
         err = 0; n_steps = 0; dim = Hsize; nSamples = nbSamples; statusCode = status;
