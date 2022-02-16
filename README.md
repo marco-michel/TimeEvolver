@@ -37,7 +37,7 @@ sudo apt-get install git
 sudo apt-get install cmake
 ```
 ```
-sudo apt-get install intel-mkl-full libgsl-dev libhdf5-dev libboost-program-options-dev 
+sudo apt-get install intel-mkl-full libhdf5-dev libboost-program-options-dev 
 ```
 Note: If you install Intel MKL via the package manager you will be asked if you want to make MKL your default BLAS/LAPACK library. That is not necessary, so you can choose the default answer "No". Additionally, older versions of ``cmake`` might not find the oneapi version of mkl. We therefore recommend cmake version 3.15 or newer. 
 
