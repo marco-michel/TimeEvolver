@@ -215,7 +215,7 @@ void krylovTimeEvolver::optimizeInput()
  * @param t_stepRet Returns the time step
  * @param w_KrylovRet Returns the Krylov vector after the time step
  * @param err_stepRet Returns the error of the time step
- * @param Return errorcode (0=Success, 1=estimate of roundoff errors are larger than analytical error, 20=error of integration larger than requested termination tolerance, multiple errors are indicated as the sum of respective error codes)
+ * @return Return errorcode (0=Success, 1=estimate of roundoff errors are larger than analytical error, 20=error of integration larger than requested termination tolerance, multiple errors are indicated as the sum of respective error codes)
  */
 int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_substeps, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet)
 {
