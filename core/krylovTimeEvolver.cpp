@@ -1,4 +1,4 @@
-/* Brief summary :
+/** Brief summary :
  For given Hamiltonian, time evolve a given initial state, while also saving results at intermediate time steps.
  This is done in such a way that at each step, the norm difference of the state obtained by numerical time evolution deviates from the true result at most by a prescribed error bound.
  The numerical routine is based on iteratively finding a Krylov-subspaces, on which time evolution can be perform for a small time step.
@@ -101,7 +101,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 }
 
-/*
+/**
 * Destructor
 */
 krylovTimeEvolver::~krylovTimeEvolver()
@@ -634,7 +634,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 	return false;
 }
 
-/*
+/**
 * Compute the error integral to determine the analytic error of the krylov approximation
 * @param a Start of integration
 * @param b End of integration
@@ -642,7 +642,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 * @param spectrumH Eigenvalue spectrum
 * @param h Last entry of the Hessenberg matrix
 * @param method 0 stands for Gauss with 15 abscissa, 1 stands for Gauss with 7 abscissa, 2 stands for an adaptive sinh-tanh method
-* @param maximal admissible error per time (used to compare scale of integral against it; if integral is very small, accuracy of integration will not be monitored)
+* @param tolRate maximal admissible error per time (used to compare scale of integral against it; if integral is very small, accuracy of integration will not be monitored)
 * @param successful logical and-conjuction of input value and bool indicating whether numerical integration converged to sufficient accuracy (accuracy is not monitored in case of Gauss-integration so in this case the input value is always returned)
 */
 double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful)
@@ -676,7 +676,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 }
 
 
-/*
+/**
 * Calculate time evolution in Kyrlov space
 * @param t Time
 * @param T Transformation matrix
