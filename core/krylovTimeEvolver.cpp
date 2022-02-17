@@ -237,7 +237,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 
 
 	//Integrate to get a first error estimate 
-	double err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);
+	double err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, tolRate, numericalIntegrationSuccessful);
 	
 	//Increasing step size. Used in the first go through when there is no good guess for the step size. 
 	if (increaseStep && !skipSubsteps)
@@ -257,7 +257,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 			{
 				t_step_new = t_step_max;
 			}
-			err_step_new = integrateError(0, t_step_new, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);	
+			err_step_new = integrateError(0, t_step_new, T, spectrumH, h, integrationMethodLong, tolRate, numericalIntegrationSuccessful);	
 		}
 	} 
 	
@@ -266,7 +266,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 	{
 		nbReductions++;
 		t_step = t_step / 2.0;
-		err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, numericalIntegrationSuccessful);
+		err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, tolRate, numericalIntegrationSuccessful);
 		if (nbReductions == GO_MAX)
 		{
 			std::cerr << "Error: No small enough time step found to meet tolerance requirements." << std::endl;
@@ -292,7 +292,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 			} 
 			else
 			{
-				deltaError = integrateError(t_step + (n_s-1) * s, t_step + n_s * s, T, spectrumH, h, integrationMethodShort, numericalIntegrationSuccessful);
+				deltaError = integrateError(t_step + (n_s-1) * s, t_step + n_s * s, T, spectrumH, h, integrationMethodShort, tolRate, numericalIntegrationSuccessful);
 			}
 		}
 
@@ -523,7 +523,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	if (nbErrInt != 0)
 	{
 		std::cerr << "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " << nbErrInt << " Krylov spaces." << std::endl;
-		std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
+		std::cerr << "THE DESIRED ERROR BOUND MAY BE VIOLATED." << std::endl;
 
 		nbErrors++;
 		statusCode = 20;
@@ -642,9 +642,10 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 * @param spectrumH Eigenvalue spectrum
 * @param h Last entry of the Hessenberg matrix
 * @param method 0 stands for Gauss with 15 abscissa, 1 stands for Gauss with 7 abscissa, 2 stands for an adaptive sinh-tanh method
+* @param maximal admissible error per time (used to compare scale of integral against it; if integral is very small, accuracy of integration will not be monitored)
 * @param successful logical and-conjuction of input value and bool indicating whether numerical integration converged to sufficient accuracy (accuracy is not monitored in case of Gauss-integration so in this case the input value is always returned)
 */
-double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, bool& successful)
+double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful)
 {
 	double error, L1;
 	double ret;
@@ -660,7 +661,8 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	else if (method == 2)
 	{
 		ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
-		if (error * L1 > termination)
+		//Check if requested accuracy was achieved; no check is needed if the contribution of the integral computed here to the absolute error integral is small
+		if (error / ret > termination && ret > termination *(b-a) * tolRate)
 			success = false;
 	}
 	else
@@ -670,7 +672,6 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	}
 	
 	successful = successful && success;
-
 	return ret;
 }
 

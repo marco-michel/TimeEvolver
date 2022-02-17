@@ -42,40 +42,23 @@ sudo apt-get install intel-mkl-full libhdf5-dev libboost-program-options-dev
 ```
 Note: If you install Intel MKL via the package manager you will be asked if you want to make MKL your default BLAS/LAPACK library. That is not necessary, so you can choose the default answer "No". Additionally, older versions of ``cmake`` might not find the oneapi version of mkl. We therefore recommend cmake version 3.15 or newer. 
 
-**In order to for the TimeEvolver to work properly Boost version 1.75 and newer is required. As of time of writing most distributions ship packages of the boost library of version 1.74 and older. We therefore provide an option to download and complile the boost library automatically. For details please see section "Basic Installation" **
+**In order to for the TimeEvolver to work properly Boost version 1.75 and newer is required. As of time of writing most distributions ship packages of the boost library of version 1.74 and older. We therefore provide an option to download and complile the boost library automatically. For details please see section " Installation"**
 
 ## Mac
 
-The MKL Library is not supported on ARM processors used in newer Apple products. Therefore the ``TimeEvolver`` is also not supported on Mac. 
-
-In the following we provide an unsupported workaround for older Macs that are based on x86 processors:
-
-To compile the source code of the TimeEvolver the command line developer tools are required. The installation can be prompted by typing e.g. ``g++`` in a terminal. After that you can install the Intel MKL library via the oneAPI installer provided by Intel. The HDF5 library can either be installed with the pre-compiled package (We recommend this option, however, it requires a free registration) or compiled from source (cmake version). In case the library is installed in a custome location please set the variable ``HDF_DIR5`` in the CMakeLists.txt file to the path containing the ``hdf5-targets.cmake`` file. A example of this is already included as a comment in the file.
-The boost library can be compiled from source following the instructions found on the corresponding website. To compile and install the library system-wide one can use
-```
-cd path/to/boost_1_76_0
-./bootstrap.sh --prefix=/usr/local
-./b2
-sudo ./b2 install
-```
-We note that cmake was not able to locate the mkl library properly via the  command ``find_packge(BLAS)`` within our setting. A workaround is to use the ``FindMKL.cmake`` package that is shipped with the standalone version of mkl. The required folder ``examples_core_c.tgz`` can be found (zipped) in the examples folder in the oneapi directory, which is usually located at ``/opt/intel/oneapi/mkl/latest/example``. Unzip this archive and copy the folder ``examples_core_c/cmake`` into the main TimeEvolver directory. Furthermore, the following adjustments to CMakeLists.txt are required in that case: 
-* Add: list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-* Add: include(check_param)
-* Replace: find_package(BLAS REQUIRED) -> find_package(MKL MODULE REQUIRED)
-* Set: BLAS_LIBRARIES with MKL_LINK_PREFIX
-
-We provide a commented out template in the CMakeLists.txt file. Note also the comments on the standalone version of Intel oneapi below. 
+The MKL library is not supported on ARM processors used in newer Apple products. Therefore, the ``TimeEvolver`` is officially not supported on Mac.  
+In practice, however, the code should still work on older x86 based machines.
 
 ## Windows 
 
-There are several options to compile the ``TimeEvolver`` on Windows. The easiest option is to use WSL(2), install a virtual Ubuntu machine and follow the instructions described above. Another option is to download compiled libraries with the help of the ``vcpk`` package manager:
+There are several options to compile the ``TimeEvolver`` on Windows. The easiest option is to use WSL (Windows Subsystem for Linux). Install a virtual Ubuntu machine and follow the instructions described above. Another option is to download binary libraries with the help of the ``vcpk`` package manager:
 
-BOOST and HDF5 can be obtained for Windows 64bit OS for example with the ``vcpkg`` package manager via
+BOOST and HDF5 can be obtained for Windows 64bit OS with the ``vcpkg`` package manager via
 ```
 .\vcpkg.exe install hdf5:x64-windows
 .\vcpkg.exe install boost:x64-windows
 ```
-However, manual adjustments in cmake may be required. 
+Change the library paths in the cmake file accordingly.
 
 A third option would be to compile Boost (and HDF5) from source. Please follow the respective instructions for each library. 
 
@@ -86,6 +69,19 @@ If you use the standalone version of the MKL library, which is now part of the o
 source /opt/intel/oneapi/setvars.sh intel64
 ```
 Note that the variables are only set for the context of your session. For a permanent solution please visit the Intel helppage. 
+
+## Compile external libraries from source
+
+### Boost
+
+The boost library can be compiled from source by downloading the code and following the instructions found on the corresponding website. To compile and install the library system-wide one can use
+```
+cd path/to/boost_1_76_0
+./bootstrap.sh
+./b2
+sudo ./b2 install
+```
+In case a local installation is required please change the corresponding line to ``./bootstrap.sh --prefix=INSTALL_PATH`` with ``INSTALL_PATH`` being the chosen install directory for the boost library. When using a local installation, please set the cmake variable ``-DBOOST_ROOT=INSTALL_PATH`` when building the ``TimeEvolver``. 
 
 
 # Installation
@@ -105,7 +101,7 @@ This will create three folder in the folder ``build``:
 
 Note that the generated ``Makefile`` can compile these three targets independently.
 
-If the dependencies have been installed locally and are not accessible system-wide one also needs to set following cmake variables with the paths of the respective libraries: ``BOOST_ROOT`` ``MKL_ROOT`` ``HDF5_ROOT``. 
+If the dependencies have been installed locally and are not accessible system-wide one also needs to set following cmake variables with the paths of the respective libraries: ``BOOST_ROOT`` ``MKL_ROOT`` ``HDF5_DIR``. 
 
 ## Build and download dependencies automatically
 
@@ -117,7 +113,7 @@ cmake --build .
 ```
 Running the cmake script with an inadequate system-wide installed boost library before executing it with the ``DOWNLOAD_BOOST`` option might set internal variables wrongly. Deleting ``CMakeCache.txt`` and execute ``cmake -DDOWNLOAD_BOOST=ON ..`` again might solve the problem. 
 
-#Usage
+# Usage
 
 ## Usage 1: Examplary Program
 
@@ -169,6 +165,7 @@ row indices of the non-zero values, ``col`` the column indices of the non-zero v
     * ``size_t n_steps`` The number of Kyrlov steps needed for the timeevolution
     * ``size_t dim`` The dimension of the Hilbert space
     * ``size_t nSamples`` The number of samples taken
+    * ``int statusCode``Status code indicating success or (potential) failure of the numerical time evolution 
 
 ## Krylov status codes
 * ``0`` Success
