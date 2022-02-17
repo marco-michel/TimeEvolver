@@ -42,7 +42,7 @@ sudo apt-get install intel-mkl-full libhdf5-dev libboost-program-options-dev
 ```
 Note: If you install Intel MKL via the package manager you will be asked if you want to make MKL your default BLAS/LAPACK library. That is not necessary, so you can choose the default answer "No". Additionally, older versions of ``cmake`` might not find the oneapi version of mkl. We therefore recommend cmake version 3.15 or newer. 
 
-**In order to for the TimeEvolver to work properly Boost version 1.75 and newer is required. As of time of writing most distributions ship packages of the boost library of version 1.74 and older. We therefore provide an option to download and complile the boost library automatically. For details please see section "Basic Installation"**
+**In order to for the TimeEvolver to work properly Boost version 1.75 and newer is required. As of time of writing most distributions ship packages of the boost library of version 1.74 and older. We therefore provide an option to download and complile the boost library automatically. For details please see section " Installation"**
 
 ## Mac
 
