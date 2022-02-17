@@ -363,7 +363,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Total esimate of round-off errors
 	double numericalErrorEstimateTotal = 0;
 
-    //Flag indicating if a happy breakdown has occured
+    //Flag indicating if a lucky breakdown has occured
     bool dummy_hbd = false;
     //In case of lucky breakdown, size of Krylov space
     size_t m_hbd;
@@ -578,12 +578,12 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 /**
  * Perform the Arnoldi algorithm (simplified for an anti-Hermitian matrix) for the current state ('currentVec')
- * @param tolRate Maximal allowable error rate (for detection of happy breakdown)
+ * @param tolRate Maximal allowable error rate (for detection of lucky breakdown)
  * @param HRet Returns the Hessenberg matrix
  * @param VRet Returns the corresponding transformation matrix
  * @param hRet Returns the element (m+1,m) of the Hessenberg matrix
- * @param mRet Returns the actual size of the Krylov subspace (important in case of happy breakdown)
- * @return false, is no happy breakdown has occured; true if happy breakdown has occured
+ * @param mRet Returns the actual size of the Krylov subspace (important in case of lucky breakdown)
+ * @return false, is no lucky breakdown has occured; true if lucky breakdown has occured
  */
 bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *VRet, double *hRet, size_t *mRet) {
 	double normy = 0.;
@@ -617,7 +617,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 			*hRet = normy;
 			return true;
 		}
-		//End detection of happy breakdown
+		//End detection of lucky breakdown
 
 		if (j + 1 != m) {
 			HRet->values[j + (j + 1) * m].real(-normy);
