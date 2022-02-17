@@ -70,7 +70,7 @@ protected:
     void destroyOptimizeInput();
     void sample();
     bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
-    double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, bool& successful);
+    double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
 
     double errorKernel(double t, std::complex<double>* T, std::complex<double>* spectrumH, double h);
 
