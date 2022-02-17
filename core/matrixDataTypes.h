@@ -176,14 +176,20 @@ public:
             imagPart[i] = values[i].imag();
         }
         
+        size_t mExport = (size_t)m;
         std::string fileNameH5 = fileName;
         H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
         int NX = numValues;
         const int RANK = 1;
         hsize_t dimsf[RANK];
+        hsize_t dimsatt[RANK];
         dimsf[0] = NX;
+        dimsatt[0] = 1;
         DataSpace dataspace( RANK, dimsf );
         FloatType datatype( PredType::NATIVE_DOUBLE );
+
+        DataSpace dataspace2(RANK, dimsatt);
+
         datatype.setOrder( H5T_ORDER_LE );
         DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
                                                dataspace );
@@ -200,6 +206,9 @@ public:
         DataSet dataset4 = fileHh.createDataSet("rowIndex", datatypeInt,
                                                 dataspace );
         dataset4.write(rowIndex, PredType::NATIVE_HSIZE );
+
+        DataSet dataset5 = fileHh.createDataSet("dimension", datatypeInt, dataspace2);
+        dataset5.write(&mExport, PredType::NATIVE_HSIZE);
         
         delete[] realPart;
         delete[] imagPart;
