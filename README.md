@@ -12,6 +12,7 @@ The TimeEvolver distribution includes the following files and directories:
 <pre>
 README                          this file
 LICENSE                         the MIT licence
+cmake                           cmake files for downloading dependencies
 core                            the methods for time evolution using Krylov subspace techniques
 example                         concrete example to demonstrate usage of the program
 helper                          methods to create the set of basis states and to compute the Hamiltonian matrix
@@ -40,6 +41,8 @@ sudo apt-get install cmake
 sudo apt-get install intel-mkl-full libhdf5-dev libboost-program-options-dev 
 ```
 Note: If you install Intel MKL via the package manager you will be asked if you want to make MKL your default BLAS/LAPACK library. That is not necessary, so you can choose the default answer "No". Additionally, older versions of ``cmake`` might not find the oneapi version of mkl. We therefore recommend cmake version 3.15 or newer. 
+
+**In order to for the TimeEvolver to work properly Boost version 1.75 and newer is required. As of time of writing most distributions ship packages of the boost library of version 1.74 and older. We therefore provide an option to download and complile the boost library automatically. For details please see section "Basic Installation" **
 
 ## Mac
 
@@ -85,7 +88,9 @@ source /opt/intel/oneapi/setvars.sh intel64
 Note that the variables are only set for the context of your session. For a permanent solution please visit the Intel helppage. 
 
 
-# Basic Installation
+# Installation
+
+## Basic setup
 
 In the root folder `timeEvolver``, you can build the TimeEvolver with no customization using:
 ```
@@ -100,8 +105,21 @@ This will create three folder in the folder ``build``:
 
 Note that the generated ``Makefile`` can compile these three targets independently.
 
+If the dependencies have been installed locally and are not accessible system-wide one also needs to set following cmake variables with the paths of the respective libraries: ``BOOST_ROOT`` ``MKL_ROOT`` ``HDF5_ROOT``. 
 
-# Usage 1: Examplary Program
+## Build and download dependencies automatically
+
+To download and install boost locally one has to set the cmake varibale ``DOWNLOAD_BOOST`` to ``ON``:
+```
+mkdir build; cd build        
+cmake -DDOWNLOAD_BOOST=ON ..                 
+cmake --build .              
+```
+Running the cmake script with an inadequate system-wide installed boost library before executing it with the ``DOWNLOAD_BOOST`` option might set internal variables wrongly. Deleting ``CMakeCache.txt`` and execute ``cmake -DDOWNLOAD_BOOST=ON ..`` again might solve the problem. 
+
+#Usage
+
+## Usage 1: Examplary Program
 
 A first option to use the program relies on a concrete example. In order to execute the corresponding program, navigate to ``cd build/Example`` and type:
 ```
@@ -113,7 +131,7 @@ A set of standard values for the parameters will be used. For a list of availabl
 ```
 The result of time evolution will be stored in a HDF5-file. (For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN2_C00.1_Cm0.1_maxT100_tol1e-07_samplingStep0.1_m40_Sim1.h5``.) It contains the expectation values of the occupation numbers of each of the modes at different times.
 
-# Usage 2: Apply TimeEvolver to own Hamiltonian matrix
+## Usage 2: Apply TimeEvolver to own Hamiltonian matrix
 
 A second option to use the program arises if the user alredy has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``TimeEvolver`` are needed. The core functionality of the TimeEvolver is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
