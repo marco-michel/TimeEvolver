@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
     + outputnumbers[2].str() + "_C" + outputnumbers[3].str();
     
     std::string furtherInfo = "_DeltaN" + outputnumbers[4].str() + "_C0" + outputnumbers[5].str() + "_Cm" + outputnumbers[6].str()
-    + "_maxT" + outputnumbers[7].str() + "_tol" + outputnumbers[8].str() + "_samplingStep" + outputnumbers[9].str() + "_m" + outputnumbers[10].str() + "_fastIntegration" + outputnumbers[11].str() + "_Sim1";
+    + "_maxT" + outputnumbers[7].str() + "_tol" + outputnumbers[8].str() + "_samplingStep" + outputnumbers[9].str() + "_m" + outputnumbers[10].str() + "_fastIntegration" + outputnumbers[11].str();
    
     std::string fileNameH5 = "ResultBlackHole" + obligatoryInfo + furtherInfo + ".h5";
     //End create string
