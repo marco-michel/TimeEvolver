@@ -1,4 +1,4 @@
-/* Brief summary :
+/** Brief summary :
  For given Hamiltonian, time evolve a given initial state, while also saving results at intermediate time steps.
  This is done in such a way that at each step, the norm difference of the state obtained by numerical time evolution deviates from the true result at most by a prescribed error bound.
  The numerical routine is based on iteratively finding a Krylov-subspaces, on which time evolution can be perform for a small time step.
@@ -101,7 +101,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 }
 
-/*
+/**
 * Destructor
 */
 krylovTimeEvolver::~krylovTimeEvolver()
@@ -215,7 +215,7 @@ void krylovTimeEvolver::optimizeInput()
  * @param t_stepRet Returns the time step
  * @param w_KrylovRet Returns the Krylov vector after the time step
  * @param err_stepRet Returns the error of the time step
- * @param Return errorcode (0=Success, 1=estimate of roundoff errors are larger than analytical error, 20=error of integration larger than requested termination tolerance, multiple errors are indicated as the sum of respective error codes)
+ * @return Return errorcode (0=Success, 1=estimate of roundoff errors are larger than analytical error, 20=error of integration larger than requested termination tolerance, multiple errors are indicated as the sum of respective error codes)
  */
 int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_stepSuggestion, double t_step_max, int n_substeps, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet)
 {
@@ -363,7 +363,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Total esimate of round-off errors
 	double numericalErrorEstimateTotal = 0;
 
-    //Flag indicating if a happy breakdown has occured
+    //Flag indicating if a lucky breakdown has occured
     bool dummy_hbd = false;
     //In case of lucky breakdown, size of Krylov space
     size_t m_hbd;
@@ -578,12 +578,12 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 /**
  * Perform the Arnoldi algorithm (simplified for an anti-Hermitian matrix) for the current state ('currentVec')
- * @param tolRate Maximal allowable error rate (for detection of happy breakdown)
+ * @param tolRate Maximal allowable error rate (for detection of lucky breakdown)
  * @param HRet Returns the Hessenberg matrix
  * @param VRet Returns the corresponding transformation matrix
  * @param hRet Returns the element (m+1,m) of the Hessenberg matrix
- * @param mRet Returns the actual size of the Krylov subspace (important in case of happy breakdown)
- * @return false, is no happy breakdown has occured; true if happy breakdown has occured
+ * @param mRet Returns the actual size of the Krylov subspace (important in case of lucky breakdown)
+ * @return false, is no lucky breakdown has occured; true if lucky breakdown has occured
  */
 bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *VRet, double *hRet, size_t *mRet) {
 	double normy = 0.;
@@ -617,7 +617,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 			*hRet = normy;
 			return true;
 		}
-		//End detection of happy breakdown
+		//End detection of lucky breakdown
 
 		if (j + 1 != m) {
 			HRet->values[j + (j + 1) * m].real(-normy);
@@ -634,7 +634,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 	return false;
 }
 
-/*
+/**
 * Compute the error integral to determine the analytic error of the krylov approximation
 * @param a Start of integration
 * @param b End of integration
@@ -642,7 +642,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 * @param spectrumH Eigenvalue spectrum
 * @param h Last entry of the Hessenberg matrix
 * @param method 0 stands for Gauss with 15 abscissa, 1 stands for Gauss with 7 abscissa, 2 stands for an adaptive sinh-tanh method
-* @param maximal admissible error per time (used to compare scale of integral against it; if integral is very small, accuracy of integration will not be monitored)
+* @param tolRate maximal admissible error per time (used to compare scale of integral against it; if integral is very small, accuracy of integration will not be monitored)
 * @param successful logical and-conjuction of input value and bool indicating whether numerical integration converged to sufficient accuracy (accuracy is not monitored in case of Gauss-integration so in this case the input value is always returned)
 */
 double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful)
@@ -676,7 +676,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 }
 
 
-/*
+/**
 * Calculate time evolution in Kyrlov space
 * @param t Time
 * @param T Transformation matrix
