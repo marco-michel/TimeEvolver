@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
     //end determine parameters
 
 
-    std::cout << "TimeEvolver Version:  0.1c" << std::endl;
+    std::cout << "TimeEvolver Example" << std::endl;
     
     //Create basis
     std::cout << "Creating basis..." << std::endl;
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
     std::cout << "Creating observables..." << std::endl;
     smatrix** observables;
     ham.createObservables(observables, &basis);
-    
+
     //Create initial state
     basisVector init = ham.createInitState();
     std::complex<double>* vec = new std::complex<double>[basis.numberElements];
@@ -174,7 +174,7 @@ int main(int argc, char* argv[])
     
     for (int j = 0; j < nbObservables; j++)
     {
-        for (unsigned int i = 0; i < results->nSamples - 1; i++)
+        for (unsigned int i = 0; i < results->nSamples; i++)
         {
             nicelySorted[j][i] = (results->sampling->values + nbObservables * i + j)->real();
         }
@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
     
     for (int j = 0; j < nbObservables; j++)
     {
-        int NX = results->nSamples -1;
+        int NX = results->nSamples;
         const int RANK = 1;
         hsize_t dimsf[RANK];
         dimsf[0] = NX;
