@@ -16,6 +16,7 @@ cmake                           cmake files for downloading dependencies
 core                            the methods for time evolution using Krylov subspace techniques
 example                         concrete example to demonstrate usage of the program
 helper                          methods to create the set of basis states and to compute the Hamiltonian matrix
+output				output of the example
 CMakeLists                      file needed for cmake
 doxyfile                        settings file for creating documentation
 </pre>
