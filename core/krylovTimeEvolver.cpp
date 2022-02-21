@@ -64,7 +64,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	}
 
 	//Numerical integration terminates if error*L1 < termination
-	termination = 1e-3;//1e-4; 
+	termination = 1e-3; 
     
     //number of sampling steps
     n_samples = (size_t) floor(t / samplingStep) + 1;
