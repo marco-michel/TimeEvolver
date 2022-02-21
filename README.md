@@ -127,7 +127,7 @@ A set of standard values for the parameters will be used. For a list of availabl
 ```
 ./main --help
 ```
-The result of time evolution will be stored in a HDF5-file. (For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN2_C00.1_Cm0.1_maxT100_tol1e-07_samplingStep0.1_m40_fastIntegration0.h5``.) It contains the expectation values of the occupation numbers of each of the modes at different times.
+The result of time evolution will be stored in a HDF5-file. (For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.1_m40_fastIntegration0.h5``.) It contains the expectation values of the occupation numbers of each of the modes at different times.
 
 ## Usage 2: Apply TimeEvolver to own Hamiltonian matrix
 
