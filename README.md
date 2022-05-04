@@ -66,7 +66,7 @@ A third option would be to compile Boost (and HDF5) from source. Please follow t
 
 # Installation
 
-## Basic setup
+## Basic setup without installation
 
 In the root folder `timeEvolver``, you can build the TimeEvolver with no customization using:
 ```
@@ -79,9 +79,16 @@ This will create three folder in the folder ``build``:
 * Helper (library for the creation of a matrix representation)
 * TimeEvolver (core functionality: libary for the timeevolution)
 
-**Note that the above procedure will fail if you do not have at least version 1.75 of Boost. Below we describe how to solve this issue.**
+## Basic setup with installation
 
-We remark that the generated ``Makefile`` can compile these three targets independently.
+To install the TimeEvolver to the path ``TIMEEVOLVER_INSTALL_PATH`` set the cmake variable ``CMAKE_INSTALL_PREFIX`` accordingly in the configuration step. If this variable remains unset a system folder will be chosen as installation path by cmake. 
+```
+mkdir build; cd build     					          # create and use a build directroy
+cmake -DCMAKE_INSTALL_PREFIX=TIMEEVOLVER_INSTALL_PATH ..                  # configuration reading the Cmake script
+cmake --build .          						  # compilation and linking (or type "make")
+make install								  # installation to TIMEEVOLVER_INSTALL_PATH 
+```
+**Note that the above procedures will fail if you do not have at least version 1.75 of Boost. Below we describe how to solve this issue.**
 
 If the dependencies have been installed locally and are not accessible system-wide one also needs to set following cmake variables with the paths of the respective libraries: ``BOOST_ROOT`` ``MKL_ROOT`` ``HDF5_DIR``. 
 
