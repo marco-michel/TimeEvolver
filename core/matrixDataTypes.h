@@ -8,13 +8,13 @@
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
 
-#include <mkl.h>
-#include <mkl_spblas.h>
+//#include <mkl.h>
+//#include <mkl_spblas.h>
 
-#include <H5Cpp.h>
-
-using namespace H5;
-
+#ifdef USE_HDF
+    #include <H5Cpp.h>
+    using namespace H5;
+#endif
 
 //Matrix class
 class matrix
@@ -41,7 +41,7 @@ public:
             delete[] values;
         }
 	}
-    
+#ifdef USE_HDF 
     int dumpHDF5(std::string filename)
     {
         double* realPart = new double[numValues];
@@ -74,7 +74,7 @@ public:
         
         return 0;
     }
-    
+#endif    
 };
 
 //Vector class
@@ -163,7 +163,7 @@ public:
 		}
 	}
 
-    
+#ifdef USE_HDF
     int dumpHDF5(std::string fileName)
     {
         
@@ -215,7 +215,7 @@ public:
         
         return 0;
     }
-
+#endif
 	~smatrix()
 	{
 		if (n > 1 || m > 1)

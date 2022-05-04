@@ -28,7 +28,10 @@ endif()
 
 find_package(Boost 1.75 REQUIRED COMPONENTS program_options)
 
-find_package(HDF5 COMPONENTS CXX REQUIRED)
+find_package(HDF5 COMPONENTS CXX)
+if(HDF5_FOUND)
+  add_compile_definitions(USE_HDF)
+endif()
 
 set(BLA_VENDOR Intel10_64ilp)
 find_package(BLAS REQUIRED)
