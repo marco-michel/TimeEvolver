@@ -118,9 +118,13 @@ Note that the variables are only set for the context of your session. For a perm
 
 # Usage
 
-## Usage 1: Examplary Program
+## Usage 1: Examplary Program I
 
-A first option to use the program relies on a concrete example. In order to execute the corresponding program, navigate to ``cd build/Example`` and type:
+A first option to use the program relies on a concrete example. For this purpose we provide the code to generate the model studied in
+
+Dvali, G., Eisemann, L., Michel, M., & Zell, S. (2020). Black hole metamorphosis and stabilization by memory burden. Physical Review D, 102(10), 103523.
+
+In order to execute the corresponding program, navigate to ``cd build/Example`` and type:
 ```
 ./main
 ```
@@ -130,9 +134,18 @@ A set of standard values for the parameters will be used. For a list of availabl
 ```
 The result of time evolution will be stored in a HDF5-file. (For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.1_m40_fastIntegration0.h5``.) It contains the expectation values of the occupation numbers of each of the modes at different times.
 
-## Usage 2: Apply TimeEvolver to own Hamiltonian matrix
+## Usage 2: Examplary Program II
 
-A second option to use the program arises if the user alredy has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``TimeEvolver`` are needed. The core functionality of the TimeEvolver is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
+Furthermore, we provide a second simpler example of two coupled oscillators.
+This example is not included in the build process of the ``TimeEvolver``. Provided that our program has been installed to ``TIMEEVOLVER_INSTALL_PATH`` it can be compiled by following steps
+```
+ g++ simpleExample.cpp -I TIMEEVOLVER_INSTALL_PATH/TimeEvolver/include/ -I /opt/intel/oneapi/mkl/latest/include/ -I /usr/include/mkl -L TIMEEVOLVER_INSTALL_PATH/TimeEvolver/lib/ -lTimeEvolver -lHelper -Wl,-rpath=TIMEEVOLVER_INSTALL_PATHTimeEvolver/lib/ -o simpleExample
+```
+The include directoy for the MKL header might need to be adjusted. 
+
+## Usage 3: Apply TimeEvolver to own Hamiltonian matrix
+
+A third option to use the program arises if the user alredy has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``TimeEvolver`` are needed. The core functionality of the TimeEvolver is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
  krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration)
 ```
