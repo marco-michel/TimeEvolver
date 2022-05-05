@@ -64,9 +64,13 @@ You need to change the library paths in the cmake file accordingly.
 
 A third option would be to compile Boost (and HDF5) from source. Please follow the respective instructions for each library. 
 
-# Installation
+# Compilation
 
-## Basic setup without installation
+There are two possible approaches to compile ``TimeEvolver``. One can either build it locally or install it system-wide: 
+
+**Note that both procedures will fail if you do not have at least version 1.75 of Boost. Further below we describe how to solve this issue.**
+
+## Basic setup without installation (the easiest)
 
 In the root folder `timeEvolver``, you can build the TimeEvolver with no customization using:
 ```
@@ -88,7 +92,7 @@ cmake -DCMAKE_INSTALL_PREFIX=TIMEEVOLVER_INSTALL_PATH ..                  # conf
 cmake --build .          						  # compilation and linking (or type "make")
 make install								  # installation to TIMEEVOLVER_INSTALL_PATH 
 ```
-**Note that the above procedures will fail if you do not have at least version 1.75 of Boost. Below we describe how to solve this issue.**
+## Dependencies
 
 If the dependencies have been installed locally and are not accessible system-wide one also needs to set following cmake variables with the paths of the respective libraries: ``BOOST_ROOT`` ``MKL_ROOT`` ``HDF5_DIR``. 
 
