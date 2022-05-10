@@ -32,8 +32,6 @@ int main()
     std::cout << "Creating basis..." << std::endl;
     basis basis(N0, K, 0, 0);
 
-    std::cout << "Hilbert space Dimension: " << basis.numberElements << std::endl;
-
     //Create Hamiltonian E1 * a^dagger a + E2 * b^dagger b + lambda * (a^dagger b + b^dagger a)
     Hamiltonian hamiltonian;
     std::vector<opTerm> HamiltonianOperator; //See definitions in hamiltonian.h for argument description
