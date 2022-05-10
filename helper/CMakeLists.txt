@@ -4,6 +4,10 @@ target_include_directories(Helper PUBLIC ../core)
 
 target_link_libraries(Helper PUBLIC
     ${BLAS_LIBRARIES}
-    ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
     dl pthread) 
+
+if(HDF5_FOUND)
+    target_link_libraries(Helper PUBLIC
+    ${HDF5_LIBRARIES}) 
+endif()

@@ -31,6 +31,8 @@ find_package(Boost 1.75 REQUIRED COMPONENTS program_options)
 find_package(HDF5 COMPONENTS CXX)
 if(HDF5_FOUND)
   add_compile_definitions(USE_HDF)
+  include_directories(${HDF5_INCLUDE_DIR})
+  set(_hdf5_libs hdf5 hdf5_cpp)
 endif()
 
 set(BLA_VENDOR Intel10_64ilp)
@@ -42,10 +44,7 @@ ELSE()
 include_directories(/usr/include/mkl)
 ENDIF()
 
-include_directories(${HDF5_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} ${boost_SOURCE_DIR})
-
-
-set(_hdf5_libs hdf5 hdf5_cpp)
+include_directories(${Boost_INCLUDE_DIRS} ${boost_SOURCE_DIR})
 
 
 add_subdirectory(core TimeEvolver)
