@@ -12,3 +12,9 @@ target_link_libraries(Example PUBLIC
     dl pthread
     Helper TimeEvolver) 
 
+add_executable(SimpleExample simpleExample.cpp)
+set_target_properties(SimpleExample PROPERTIES OUTPUT_NAME "SimpleExample")
+target_include_directories(SimpleExample PUBLIC ../core ../helper)
+
+target_link_libraries(SimpleExample PUBLIC
+    Helper TimeEvolver) 
