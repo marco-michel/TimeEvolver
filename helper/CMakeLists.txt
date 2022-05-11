@@ -2,8 +2,13 @@
 add_library(Helper SHARED Basis.cpp hamiltonian.cpp)
 target_include_directories(Helper PUBLIC ../core)
 
+set_target_properties(Helper PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 target_link_libraries(Helper PUBLIC
     ${BLAS_LIBRARIES}
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
     dl pthread) 
+
+install(TARGETS Helper LIBRARY DESTINATION TimeEvolver/lib)    
+install(FILES Basis.h hamiltonian.h DESTINATION TimeEvolver/include)
