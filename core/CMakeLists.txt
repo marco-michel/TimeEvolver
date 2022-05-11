@@ -6,3 +6,9 @@ target_link_libraries(TimeEvolver PUBLIC
 
 install(TARGETS TimeEvolver DESTINATION TimeEvolver/lib)
 install(FILES matrixDataTypes.h krylovTimeEvolver.h DESTINATION TimeEvolver/include)
+    dl pthread) 
+
+if(HDF5_FOUND)
+    target_link_libraries(TimeEvolver PUBLIC
+    ${HDF5_LIBRARIES}) 
+endif()

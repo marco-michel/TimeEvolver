@@ -6,9 +6,12 @@ set_target_properties(Helper PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 target_link_libraries(Helper PUBLIC
     ${BLAS_LIBRARIES}
-    ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
     dl pthread) 
 
 install(TARGETS Helper LIBRARY DESTINATION TimeEvolver/lib)    
 install(FILES Basis.h hamiltonian.h DESTINATION TimeEvolver/include)
+if(HDF5_FOUND)
+    target_link_libraries(Helper PUBLIC
+    ${HDF5_LIBRARIES}) 
+endif()
