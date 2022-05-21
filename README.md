@@ -14,7 +14,7 @@ README                          this file
 LICENSE                         the MIT licence
 cmake                           cmake files for downloading dependencies
 core                            the methods for time evolution using Krylov subspace techniques
-example                         concrete example to demonstrate usage of the program
+example                         concrete examples to demonstrate usage of the program
 helper                          methods to create the set of basis states and to compute the Hamiltonian matrix
 output				output of the example
 CMakeLists                      file needed for cmake
@@ -148,7 +148,7 @@ The result of time evolution will be stored in a HDF5-file. (For the standard ch
 ## Usage 2: Examplary Program II
 
 Furthermore, we provide a second simpler example of two coupled oscillators.
-This example is not included in the build process of the ``TimeEvolver``. Provided that our program has been installed to ``TIMEEVOLVER_INSTALL_PATH`` it can be compiled by following steps
+Provided that our program has been installed to ``TIMEEVOLVER_INSTALL_PATH`` it can also be compiled by following steps
 ```
  g++ simpleExample.cpp -I TIMEEVOLVER_INSTALL_PATH/TimeEvolver/include/ -I /opt/intel/oneapi/mkl/latest/include/ -I /usr/include/mkl -L TIMEEVOLVER_INSTALL_PATH/TimeEvolver/lib/ -lTimeEvolver -lHelper -Wl,-rpath=TIMEEVOLVER_INSTALL_PATHTimeEvolver/lib/ -o simpleExample
 ```
