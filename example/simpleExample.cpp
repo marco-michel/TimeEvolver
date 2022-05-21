@@ -23,7 +23,7 @@ int main()
     //Simulation parameters: Evolution time: maxT, stepsize for computing observables: samplingStep,
     //tolerance: tol, Krylovspace dimension: m (around 40 is good for most cases)
     double maxT = 10; double samplingStep = 0.01;
-    double tol = 1.0e-8; int m = 40;
+    double tol = 1.0e-6; int m = 40;
 
     //Number of observables = number of modes
     int nbObservables = K;
