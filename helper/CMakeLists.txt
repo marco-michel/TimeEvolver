@@ -9,9 +9,11 @@ target_link_libraries(Helper PUBLIC
     ${Boost_LIBRARIES}
     dl pthread) 
 
-install(TARGETS Helper LIBRARY DESTINATION TimeEvolver/lib)    
-install(FILES Basis.h hamiltonian.h DESTINATION TimeEvolver/include)
 if(HDF5_FOUND)
     target_link_libraries(Helper PUBLIC
     ${HDF5_LIBRARIES}) 
-endif()
+endif()    
+
+install(TARGETS Helper LIBRARY DESTINATION TimeEvolver/lib)    
+install(FILES Basis.h hamiltonian.h DESTINATION TimeEvolver/include)
+
