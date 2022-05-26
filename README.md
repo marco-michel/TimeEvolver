@@ -72,7 +72,7 @@ There are two possible approaches to compile ``TimeEvolver``. One can either bui
 
 ## Basic setup without installation (the easiest)
 
-In the root folder `timeEvolver``, you can build the TimeEvolver with no customization using:
+In the root folder ``timeEvolver``, you can build the TimeEvolver with no customization using:
 ```
 mkdir build; cd build     # create and use a build directroy
 cmake ..                  # configuration reading the Cmake script
@@ -141,7 +141,7 @@ Note that the variables are only set for the context of your session. For a perm
 
 A first option to use the program relies on a concrete example. For this purpose we provide the code to analyze the model studied in
 
-G. Dvali, L. Eisemann, M. Michel and S. Zell, *Black hole metamorphosis and stabilization by memory burden*, [Phys. Rev. D, 102 (2020) 10, 103523](https://doi.org/10.1103/PhysRevD.102.103523), [arXiv:2006.00011](https://arxiv.org/abs/2006.00011).
+G. Dvali, L. Eisemann, M. Michel and S. Zell, *Black Hole Metamorphosis and Stabilization by Memory Burden*, [Phys. Rev. D, 102 (2020) 10, 103523](https://doi.org/10.1103/PhysRevD.102.103523), [arXiv:2006.00011](https://arxiv.org/abs/2006.00011).
 
 In order to execute the corresponding program, navigate to ``cd build/Example`` and type:
 ```
