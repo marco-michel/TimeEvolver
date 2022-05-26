@@ -85,13 +85,21 @@ This will create three folder in the folder ``build``:
 
 ## Basic setup with installation
 
-To install the TimeEvolver to the path ``TIMEEVOLVER_INSTALL_PATH`` set the cmake variable ``CMAKE_INSTALL_PREFIX`` accordingly in the configuration step. If this variable remains unset a system folder will be chosen as installation path by cmake. 
+To install ``TimeEvolver`` to the path ``TIMEEVOLVER_INSTALL_PATH`` set the cmake variable ``CMAKE_INSTALL_PREFIX`` accordingly in the configuration step. If this variable remains unset a system folder will be chosen as installation path by cmake. 
 ```
 mkdir build; cd build     					          # create and use a build directroy
 cmake -DCMAKE_INSTALL_PREFIX=TIMEEVOLVER_INSTALL_PATH ..                  # configuration reading the Cmake script
 cmake --build .          						  # compilation and linking (or type "make")
 make install								  # installation to TIMEEVOLVER_INSTALL_PATH 
 ```
+
+Now one can proceed as follows to compile a file that uses ``TimeEvolver``. For example, if we want to compile ``simpleExample.cpp``, then we navigate to the folder where it is located and execute
+```
+ g++ simpleExample.cpp -I TIMEEVOLVER_INSTALL_PATH/TimeEvolver/include/ -I /opt/intel/oneapi/mkl/latest/include/ -I /usr/include/mkl -L TIMEEVOLVER_INSTALL_PATH/TimeEvolver/lib/ -lTimeEvolver -lHelper -Wl,-rpath=TIMEEVOLVER_INSTALL_PATHTimeEvolver/lib/ -o simpleExample
+```
+In the above, ``TIMEEVOLVER_INSTALL_PATH`` has to be replaced (three times) by the path where ``TimeEvolver`` was installed. Moreover, the include directoy for the MKL header might need to be adjusted. 
+
+
 ## Dependencies
 
 If the dependencies have been installed locally and are not accessible system-wide one also needs to set following cmake variables with the paths of the respective libraries: ``BOOST_ROOT`` ``MKL_ROOT`` ``HDF5_DIR``. 
@@ -131,9 +139,9 @@ Note that the variables are only set for the context of your session. For a perm
 
 ## Usage 1: Examplary Program I
 
-A first option to use the program relies on a concrete example. For this purpose we provide the code to generate the model studied in
+A first option to use the program relies on a concrete example. For this purpose we provide the code to analyze the model studied in
 
-Dvali, G., Eisemann, L., Michel, M., & Zell, S. (2020). Black hole metamorphosis and stabilization by memory burden. Physical Review D, 102(10), 103523.
+G. Dvali, L. Eisemann, M. Michel and S. Zell, *Black hole metamorphosis and stabilization by memory burden*, [Phys. Rev. D, 102 (2020) 10, 103523](https://doi.org/10.1103/PhysRevD.102.103523), [arXiv:2006.00011](https://arxiv.org/abs/2006.00011).
 
 In order to execute the corresponding program, navigate to ``cd build/Example`` and type:
 ```
@@ -143,16 +151,15 @@ A set of standard values for the parameters will be used. For a list of availabl
 ```
 ./main --help
 ```
-The result of time evolution will be stored in a HDF5-file. (For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.1_m40_fastIntegration0.h5``.) It contains the expectation values of the occupation numbers of each of the modes at different times.
+The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.1_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.)
 
 ## Usage 2: Examplary Program II
 
-Furthermore, we provide a second simpler example of two coupled oscillators.
-Provided that our program has been installed to ``TIMEEVOLVER_INSTALL_PATH`` it can also be compiled by following steps
+Furthermore, we provide a second simpler example of two coupled oscillators. In order to execute it, navigate to ``cd build/Example`` and type:
 ```
- g++ simpleExample.cpp -I TIMEEVOLVER_INSTALL_PATH/TimeEvolver/include/ -I /opt/intel/oneapi/mkl/latest/include/ -I /usr/include/mkl -L TIMEEVOLVER_INSTALL_PATH/TimeEvolver/lib/ -lTimeEvolver -lHelper -Wl,-rpath=TIMEEVOLVER_INSTALL_PATHTimeEvolver/lib/ -o simpleExample
+./SimpleExample
 ```
-The include directoy for the MKL header might need to be adjusted. 
+The expectation values of the occupation numbers of the two oscillators at different times will be written in the files ``output0.csv`` and ``output1.csv``.
 
 ## Usage 3: Apply TimeEvolver to own Hamiltonian matrix
 
