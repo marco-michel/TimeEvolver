@@ -12,7 +12,7 @@ set( boost_INCLUDE_DIR ${boost_INSTALL}/include )
 set( boost_LIB_DIR ${boost_INSTALL}/lib )
 
 unset(Boost_DIR CACHE)
-unset(Boost_INCLUDE_DIR  CACHE)
+unset(Boost_INCLUDE_DIR CACHE)
 unset(Boost_LIBRARY_DIR_DEBUG CACHE)
 unset(Boost_LIBRARY_DIR_RELEASE CACHE)
 unset(Boost_PROGRAM_OPTIONS_LIBRARY_DEBUG CACHE)

@@ -14,21 +14,22 @@
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
 
-#include <boost/program_options.hpp>
-#include <H5Cpp.h>
 #include <mkl_types.h>
 #include <mkl.h>
+
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
+
+#ifdef USE_HDF
+#include <H5Cpp.h>
+using namespace H5;
+#endif
 
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
 #include "Basis.h"
 #include "hamiltonian.h"
 #include "exampleHamiltonian.h"
-
-
-namespace po = boost::program_options;
-using namespace H5;
-
 
 //INPUT:
 //    int N0; int Nm; int K;
@@ -139,11 +140,11 @@ int main(int argc, char* argv[])
     std::cout << "------------------------------------------------------\n" << std::endl;
     std::cout << "Number of steps: " << results->n_steps << "    error: " << results->err << std::endl;
     std::cout << "------------------------------------------------------" << std::endl;
-    //End of actual time evolution    
-    
+    //End of actual time evolution 
+
     //Create string with information about input parameters
-        std::cout << "Writing results to file..." << std::endl;
-       const int nbOutputParameters = 12;
+    std::cout << "Writing results to file..." << std::endl;
+    const int nbOutputParameters = 12;
     std::ostringstream outputnumbers[nbOutputParameters];
     outputnumbers[0] << std::fixed << std::setprecision(0) << N0;
     outputnumbers[1] << std::fixed << std::setprecision(0) << Nm;
@@ -156,18 +157,15 @@ int main(int argc, char* argv[])
     outputnumbers[8] << tol;
     outputnumbers[9] << samplingStep;
     outputnumbers[10] << std::fixed << std::setprecision(0) << m;
-     outputnumbers[11] << fastIntegration;
+    outputnumbers[11] << fastIntegration;
     
     std::string obligatoryInfo = "_N" + outputnumbers[0].str() + "_Nm" + outputnumbers[1].str() + "_K"
     + outputnumbers[2].str() + "_C" + outputnumbers[3].str();
     
     std::string furtherInfo = "_DeltaN" + outputnumbers[4].str() + "_C0" + outputnumbers[5].str() + "_Cm" + outputnumbers[6].str()
-    + "_maxT" + outputnumbers[7].str() + "_tol" + outputnumbers[8].str() + "_samplingStep" + outputnumbers[9].str() + "_m" + outputnumbers[10].str() + "_fastIntegration" + outputnumbers[11].str();
-   
-    std::string fileNameH5 = "ResultBlackHole" + obligatoryInfo + furtherInfo + ".h5";
-    //End create string
-    
-    //Write observables to file
+    + "_maxT" + outputnumbers[7].str() + "_tol" + outputnumbers[8].str() + "_samplingStep" + outputnumbers[9].str() + "_m" + outputnumbers[10].str() + "_fastIntegration" + outputnumbers[11].str();   
+
+    //Sort data from time ordering to observable ordering
     double** nicelySorted = new double*[nbObservables];
     for(int i = 0; i < nbObservables; ++i)
         nicelySorted[i] = new double[results->nSamples]; 
@@ -179,6 +177,10 @@ int main(int argc, char* argv[])
             nicelySorted[j][i] = (results->sampling->values + nbObservables * i + j)->real();
         }
     }
+
+    //Use HDF output if HDF5 libraries are discovered during compiling
+    #ifdef USE_HDF
+    std::string fileNameH5 = "ResultBlackHole" + obligatoryInfo + furtherInfo + ".h5";
 
     H5File fileHh(fileNameH5.c_str(), H5F_ACC_TRUNC);
 
@@ -211,8 +213,6 @@ int main(int argc, char* argv[])
             attributes[i] = new Attribute();
         }
         
-        
-        
         *attributes[0] = dataset.createAttribute( "DeltaN", PredType::NATIVE_DOUBLE, *attr_dataspace[0]); attributes[0]->write(PredType::NATIVE_DOUBLE, &DeltaN);
         *attributes[1] = dataset.createAttribute( "C0", PredType::NATIVE_DOUBLE, *attr_dataspace[1]); attributes[1]->write(PredType::NATIVE_DOUBLE, &C0);
         *attributes[2] = dataset.createAttribute( "Cm", PredType::NATIVE_DOUBLE, *attr_dataspace[2]); attributes[2]->write(PredType::NATIVE_DOUBLE, &Cm);
@@ -238,25 +238,31 @@ int main(int argc, char* argv[])
         dataset.close();
 
     }
+    //If not write data to simple csv files
+    #else
+
+
+    for(int j = 0; j != nbObservables; j++)
+    {
+        std::string fileNameCSV = "ResultBlackHole" + obligatoryInfo + furtherInfo + "mode" + std::to_string(j) + ".csv";
+        std::ofstream outputfile;
+        outputfile.open(fileNameCSV);
+        for(int i = 0; i != results->nSamples; i++)
+            outputfile << nicelySorted[j][i] << ", ";
+        outputfile.close();
+    }
+
+    #endif
     //end write obserables to file
 
 
     //clean up
 	for (int i = 0; i < nbObservables; i++)
-		delete[] nicelySorted[i];
-	delete[] nicelySorted;
-    
-    delete results; 
-
-    delete hamMatrix;
-    delete[] vec;
-
-    for (int i = 0; i != nbObservables; i++)
     {
+		delete[] nicelySorted[i];
         delete observables[i];
     }
-    if(nbObservables > 0 )
-        delete[] observables;
+    delete[] nicelySorted; delete results; delete hamMatrix; delete[] vec; delete[] observables;
     
     return 0;
 }
