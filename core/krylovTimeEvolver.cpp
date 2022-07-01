@@ -591,13 +591,15 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 	cblas_zcopy(Hsize, currentVec, 1, VRet->values, 1);
 
 	for (size_t j = 0; j <= m - 1; j++) {
-		sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, expFactor, *HamOpt,
-				descriptor, (VRet->values) + j * Hsize, zero, tmpBlasVec);
-        if(SPARSE_STATUS_SUCCESS != mklStatus)
+		//sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, expFactor, *HamOpt,
+		//		descriptor, (VRet->values) + j * Hsize, zero, tmpBlasVec);
+		Ham->sparseSpMV(expFactor, (VRet->values) + j * Hsize, tmpBlasVec);
+        /*if (SPARSE_STATUS_SUCCESS != mklStatus)
         {
             std::cerr << "MKL error " << mklStatus << std::endl;
             exit(1);
         }
+		*/
 		if (j != 0) {
 			negativeH = (-1.0) * *((HRet->values) + j - 1 + j * m);
 			cblas_zaxpy(Hsize, &negativeH, VRet->values + (j - 1) * Hsize, 1,

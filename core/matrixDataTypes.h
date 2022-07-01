@@ -8,9 +8,10 @@
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
 
-//#include <mkl.h>
-//#include <mkl_spblas.h>
-
+#ifdef USE_MKL
+    #include <mkl.h>
+    #include <mkl_spblas.h>
+#endif
 #ifdef USE_HDF
     #include <H5Cpp.h>
     using namespace H5;
@@ -96,7 +97,7 @@ public:
 	}
 };
 
-
+enum libraryType { MKL, CUDA };
 //Sparse matrix class
 class smatrix
 {
@@ -108,6 +109,19 @@ public:
 	int n, m;
 	bool sym, hermitian;
     bool upperTri;
+
+    static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
+    static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
+
+    libraryType lType = MKL;
+
+#ifdef USE_MKL
+    sparse_matrix_t* A;
+    matrix_descr descriptor;
+#endif
+
+#ifdef USE_CUDA
+#endif
 
 	smatrix()
 	{
@@ -132,6 +146,38 @@ public:
         return *result;
     }
 
+    void createLibraryType()
+    {
+#ifdef USE_MKL
+        if (lType == MKL)
+        {
+            sparse_status_t mklStatus;
+            matrix_descr type; type.type = SPARSE_MATRIX_TYPE_GENERAL;
+            descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+            A = new sparse_matrix_t;
+            if (numValues != 0)
+                mklStatus = mkl_sparse_z_create_coo(A, SPARSE_INDEX_BASE_ZERO, m, n, numValues, rowIndex, columns, values);
+
+            mklStatus = mkl_sparse_convert_csr(*A, SPARSE_OPERATION_NON_TRANSPOSE, A);
+            mklStatus = mkl_sparse_order(*A);
+        }
+#endif
+    }
+
+    inline int sparseSpMV(std::complex<double> alpha, std::complex<double>* X, std::complex<double>* Y)
+    {
+#ifdef USE_MKL
+        if (lType == MKL)
+        {
+            std::complex<double>* result = 0;
+            sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, alpha, *A,
+                descriptor, X, zero, Y);
+        }
+        return 0;
+#endif
+    }
+
     double normInf()
     {
         std::vector<double> rowVal(m);
@@ -154,6 +200,7 @@ public:
 		columns = new size_t[nbV];
 		rowIndex = new size_t[nbV];
 		values = new std::complex<double>[nbV];
+        lType = MKL;
 
 		for (unsigned int i = 0; i != nbV; i++)
 		{
@@ -162,6 +209,23 @@ public:
 			rowIndex[i] = row[i];
 		}
 	}
+
+    smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, int nn, int mm, libraryType type)
+    {
+        numValues = nbV; n = nn; m = mm;
+        sym = hermitian = false;
+        columns = new size_t[nbV];
+        rowIndex = new size_t[nbV];
+        values = new std::complex<double>[nbV];
+        lType = type;
+
+        for (unsigned int i = 0; i != nbV; i++)
+        {
+            values[i] = val[i];
+            columns[i] = col[i];
+            rowIndex[i] = row[i];
+        }
+    }
 
 #ifdef USE_HDF
     int dumpHDF5(std::string fileName)
