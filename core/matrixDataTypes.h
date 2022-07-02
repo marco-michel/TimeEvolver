@@ -16,7 +16,10 @@
     #include <H5Cpp.h>
     using namespace H5;
 #endif
-
+#ifdef USE_CUDA
+    #include <cuda_runtime_api.h>
+    #include <cusparse.h>
+#endif
 //Matrix class
 class matrix
 {
@@ -121,6 +124,18 @@ public:
 #endif
 
 #ifdef USE_CUDA
+    cusparseHandle_t     handle;
+    cusparseSpMatDescr_t matA;
+    size_t *dA_rows, *dA_columns;
+    std::complex<double> *dA_values;
+    std::complex<double> *dX, *dY;
+    cusparseDnVecDescr_t vecX, vecY;
+    void* dBuffer = NULL;
+    size_t bufferSize = 0;
+
+    cudaError_t CUDAstatus;
+    cusparseStatus_t CUDASpstatus;
+
 #endif
 
 	smatrix()
@@ -146,10 +161,12 @@ public:
         return *result;
     }
 
-    void createLibraryType()
+    void createLibraryType(libraryType a)
     {
+        lType = a;
+
 #ifdef USE_MKL
-        if (lType == MKL)
+        if (a == MKL)
         {
             sparse_status_t mklStatus;
             matrix_descr type; type.type = SPARSE_MATRIX_TYPE_GENERAL;
@@ -161,6 +178,28 @@ public:
 
             mklStatus = mkl_sparse_convert_csr(*A, SPARSE_OPERATION_NON_TRANSPOSE, A);
             mklStatus = mkl_sparse_order(*A);
+        }
+#endif
+#ifdef USE_CUDA
+        if (a == CUDA)
+        {
+
+            CUDAstatus = cudaMalloc((void**)&dA_rows, numValues * sizeof(size_t));
+            CUDAstatus = cudaMalloc((void**)&dA_columns, numValues * sizeof(size_t));
+            CUDAstatus = cudaMalloc((void**)&dA_values, numValues * sizeof(std::complex<double>));
+
+            CUDAstatus = cudaMalloc((void**)&dX, n * sizeof(std::complex<double>));
+            CUDAstatus = cudaMalloc((void**)&dY, n * sizeof(std::complex<double>));
+
+            CUDAstatus = cudaMemcpy(dA_values, values, numValues * sizeof(std::complex<double>), cudaMemcpyHostToDevice);
+            CUDAstatus = cudaMemcpy(dA_rows, rowIndex, numValues * sizeof(size_t), cudaMemcpyHostToDevice);
+            CUDAstatus = cudaMemcpy(dA_columns, columns, numValues * sizeof(size_t), cudaMemcpyHostToDevice);
+
+            CUDASpstatus = cusparseCreate(&handle);
+
+            CUDASpstatus = cusparseCreateCoo(&matA, n, m, numValues, dA_rows, dA_columns, dA_values, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_C_64F);
+            CUDASpstatus = cusparseCreateDnVec(&vecX, n, dX, CUDA_C_64F);
+            CUDASpstatus = cusparseCreateDnVec(&vecY, n, dY, CUDA_C_64F);
         }
 #endif
     }
@@ -176,6 +215,14 @@ public:
         }
         return 0;
 #endif
+
+#ifdef USE_CUDA
+        if (lType == CUDA)
+        {
+
+        }
+#endif
+
     }
 
     double normInf()
