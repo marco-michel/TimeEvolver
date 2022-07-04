@@ -57,8 +57,12 @@ public:
         if(nn*mm >0)
         {
             n = nn; m = mm;
-            values = new std::complex<double>[n*m];
-            numValues = n*m;
+            numValues = n * m;
+#ifdef USE_CUDA
+            cudaMallocHost((void**) &values, n * m * sizeof(std::complex<double>));
+#else
+            values = new std::complex<double>[n * m];
+#endif
         }
 	}
 
@@ -66,7 +70,11 @@ public:
 	{
         if(n*m >0)
         {
+#ifdef USE_CUDA
+            cudaFreeHost(values);
+#else
             delete[] values;
+#endif
         }
 	}
 #ifdef USE_HDF 
