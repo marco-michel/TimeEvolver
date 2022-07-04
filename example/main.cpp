@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
     std::cout << "Creating Hamiltonian matrix..." << std::endl;
     smatrix* hamMatrix;
     ham.createHamiltonMatrix(hamMatrix, &basis);
-    hamMatrix->createLibraryType(MKL);
+    hamMatrix->createLibraryType(CUDA);
 
     //Create matrices for observables
     std::cout << "Creating observables..." << std::endl;
@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
 
     //Use HDF output if HDF5 libraries are discovered during compiling
     #ifdef USE_HDF
-    std::string fileNameH5 = "SparseBlasWrapperv1" + obligatoryInfo + furtherInfo + ".h5";
+    std::string fileNameH5 = "CUDAv1" + obligatoryInfo + furtherInfo + ".h5";
 
     H5File fileHh(fileNameH5.c_str(), H5F_ACC_TRUNC);
 

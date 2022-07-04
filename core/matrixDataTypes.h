@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
@@ -20,11 +21,34 @@
     #include <cuda_runtime_api.h>
     #include <cusparse.h>
 #endif
+
+
+#define CHECK_CUDA(func)                                                       \
+{                                                                              \
+    cudaError_t status = (func);                                               \
+    if (status != cudaSuccess) {                                               \
+        printf("CUDA API failed at line %d with error: %s (%d)\n",             \
+               __LINE__, cudaGetErrorString(status), status);                  \
+        return EXIT_FAILURE;                                                   \
+    }                                                                          \
+}
+
+#define CHECK_CUSPARSE(func)                                                   \
+{                                                                              \
+    cusparseStatus_t status = (func);                                          \
+    if (status != CUSPARSE_STATUS_SUCCESS) {                                   \
+        printf("CUSPARSE API failed at line %d with error: %s (%d)\n",         \
+               __LINE__, cusparseGetErrorString(status), status);              \
+        return EXIT_FAILURE;                                                   \
+    }                                                                          \
+}
+
+
 //Matrix class
 class matrix
 {
 public:
-	std::complex<double>* values;
+	alignas(16) std::complex<double>* values;
 	size_t n, m;
 	size_t numValues;
 
@@ -105,7 +129,7 @@ enum libraryType { MKL, CUDA };
 class smatrix
 {
 public:
-	std::complex<double>* values;
+	alignas(16) std::complex<double>* values;
 	size_t* columns;
 	size_t* rowIndex;
 	size_t numValues;
@@ -124,11 +148,13 @@ public:
 #endif
 
 #ifdef USE_CUDA
+
+    alignas(8) long long *rowIndexCUDA, *colIndexCUDA;
     cusparseHandle_t     handle;
     cusparseSpMatDescr_t matA;
-    size_t *dA_rows, *dA_columns;
-    std::complex<double> *dA_values;
-    std::complex<double> *dX, *dY;
+    long long *dA_rows, *dA_columns;
+    alignas(16) std::complex<double> *dA_values;
+    alignas(16) std::complex<double> *dX, *dY;
     cusparseDnVecDescr_t vecX, vecY;
     void* dBuffer = NULL;
     size_t bufferSize = 0;
@@ -184,20 +210,34 @@ public:
         if (a == CUDA)
         {
 
-            CUDAstatus = cudaMalloc((void**)&dA_rows, numValues * sizeof(size_t));
-            CUDAstatus = cudaMalloc((void**)&dA_columns, numValues * sizeof(size_t));
+            rowIndexCUDA = new long long[numValues];
+            colIndexCUDA = new long long[numValues];
+
+            for (size_t i = 0; i != numValues; i++)
+            {
+                rowIndexCUDA[i] = rowIndex[i];
+                colIndexCUDA[i] = columns[i];
+            }
+
+            
+            CUDAstatus = cudaMalloc((void**)&dA_rows, numValues * sizeof(long long));
+            CUDAstatus = cudaMalloc((void**)&dA_columns, numValues * sizeof(long long));
             CUDAstatus = cudaMalloc((void**)&dA_values, numValues * sizeof(std::complex<double>));
 
             CUDAstatus = cudaMalloc((void**)&dX, n * sizeof(std::complex<double>));
             CUDAstatus = cudaMalloc((void**)&dY, n * sizeof(std::complex<double>));
 
             CUDAstatus = cudaMemcpy(dA_values, values, numValues * sizeof(std::complex<double>), cudaMemcpyHostToDevice);
-            CUDAstatus = cudaMemcpy(dA_rows, rowIndex, numValues * sizeof(size_t), cudaMemcpyHostToDevice);
-            CUDAstatus = cudaMemcpy(dA_columns, columns, numValues * sizeof(size_t), cudaMemcpyHostToDevice);
+
+            std::complex<double>* tests = new std::complex<double>[numValues];
+            CUDAstatus = cudaMemcpy(tests, dA_values, numValues * sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
+
+            CUDAstatus = cudaMemcpy(dA_rows, rowIndex, numValues * sizeof(long long), cudaMemcpyHostToDevice);
+            CUDAstatus = cudaMemcpy(dA_columns, columns, numValues * sizeof(long long), cudaMemcpyHostToDevice);
 
             CUDASpstatus = cusparseCreate(&handle);
 
-            CUDASpstatus = cusparseCreateCoo(&matA, n, m, numValues, dA_rows, dA_columns, dA_values, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_C_64F);
+            CUDASpstatus = cusparseCreateCoo(&matA, n, m, numValues, dA_rows, dA_columns, dA_values, CUSPARSE_INDEX_64I, CUSPARSE_INDEX_BASE_ZERO, CUDA_C_64F);
             CUDASpstatus = cusparseCreateDnVec(&vecX, n, dX, CUDA_C_64F);
             CUDASpstatus = cusparseCreateDnVec(&vecY, n, dY, CUDA_C_64F);
         }
@@ -213,16 +253,36 @@ public:
             sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, alpha, *A,
                 descriptor, X, zero, Y);
         }
-        return 0;
+
 #endif
 
 #ifdef USE_CUDA
         if (lType == CUDA)
         {
 
+            CUDAstatus = cudaMemcpy(dX, X, n * sizeof(std::complex<double>), cudaMemcpyHostToDevice);
+
+
+            alignas(16) std::complex<double> zeroCUDA;
+            alignas(16) std::complex<double> oneCUDA; 
+            oneCUDA.real(1);
+            alignas(16) std::complex<double> alphaCUDA = alpha;
+
+
+            CUDASpstatus = cusparseSpMV_bufferSize(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alphaCUDA, matA, vecX, &zeroCUDA, vecY, CUDA_C_64F, CUSPARSE_MV_ALG_DEFAULT, &bufferSize);
+            CUDAstatus = cudaMalloc(&dBuffer, bufferSize);
+
+
+
+            CUDASpstatus = cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alphaCUDA, matA, vecX, &zeroCUDA, vecY, CUDA_C_64F, CUSPARSE_MV_ALG_DEFAULT, dBuffer);
+
+            CUDAstatus = cudaMemcpy(Y, dY, n * sizeof(std::complex<double>), cudaMemcpyDeviceToHost);
+
+
+
         }
 #endif
-
+        return 0;
     }
 
     double normInf()
