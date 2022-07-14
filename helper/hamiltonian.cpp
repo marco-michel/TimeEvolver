@@ -335,12 +335,9 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 	size_t* rowIndex = new size_t[matrixSize];
 	size_t* columnIndex = new size_t[matrixSize];
 	size_t Index = 0;
-	//std::vector<int> colTmp;
-	//std::vector<std::complex<double>> valTmp;
 	std::map<int, std::complex<double>> perRow;
 	std::map<int, std::complex<double>>::iterator perRowIter;
 	std::map<int, std::complex<double>>::iterator pairDoesNotWork;
-	//std::pair<std::map<int,std::complex<double>>::iterator, bool> tester;
 
 
 	for (int j = 0; j != basis->numberElements; j++) //loop over basis elements
