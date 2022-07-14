@@ -1,3 +1,17 @@
 /build
 /doc
 .vscode/
+/.vs
+/out/build/x64-Debug
+/x64/Debug
+*.csv
+*.h5
+/x64
+/GPUCache
+/VTune Profiler Results/TimeEvolver
+/debug.log
+*.sln
+*.vcxproj
+*.filters
+*.user
+*.dll

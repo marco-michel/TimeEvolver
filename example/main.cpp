@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
 
     //Use HDF output if HDF5 libraries are discovered during compiling
     #ifdef USE_HDF
-    std::string fileNameH5 = "ResultBlackHole" + obligatoryInfo + furtherInfo + ".h5";
+    std::string fileNameH5 = "MatrixParallel" + obligatoryInfo + furtherInfo + ".h5";
 
     H5File fileHh(fileNameH5.c_str(), H5F_ACC_TRUNC);
 

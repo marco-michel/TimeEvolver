@@ -343,8 +343,8 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 	int matrixSize = basis->numberElements*op.size();
 
 	std::complex<double>* values = new std::complex<double>[matrixSize];
-	MKL_INT* rowIndex = new MKL_INT[matrixSize];
-	MKL_INT *columnIndex = new MKL_INT[matrixSize];
+	size_t* rowIndex = new size_t[matrixSize];
+	size_t *columnIndex = new size_t[matrixSize];
 	int Index = 0;
 	std::vector<int> colTmp;
 	std::vector<std::complex<double>> valTmp;
