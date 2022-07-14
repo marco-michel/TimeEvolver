@@ -26,12 +26,12 @@ public:
 
     matrix(size_t nn, size_t mm)
 	{
-        if(nn*mm >0)
-        {
-            n = nn; m = mm;
-            values = new std::complex<double>[n*m];
-            numValues = n*m;
-        }
+        n = nn; m = mm;
+        numValues = n * m;
+        if (nn * mm > 0)
+            values = new std::complex<double>[n * m];
+        else
+            values = nullptr;
 	}
 
 	~matrix()
@@ -55,7 +55,7 @@ public:
         
         std::string fileNameH5 = filename;
         H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
-        int NX = numValues;
+        size_t NX = numValues;
         const int RANK = 1;
         hsize_t dimsf[RANK];
         dimsf[0] = NX;
@@ -84,7 +84,7 @@ public:
 	std::complex<double>* values;
 	size_t length;
 
-	vector(int n)
+	vector(unsigned int n)
 	{
 		length = n;
 		values = new std::complex<double>[length];
@@ -105,13 +105,13 @@ public:
 	size_t* columns;
 	size_t* rowIndex;
 	size_t numValues;
-	int n, m;
+    size_t n, m;
 	bool sym, hermitian;
     bool upperTri;
 
 	smatrix()
 	{
-		sym = hermitian = false;
+		sym = hermitian = upperTri = false;
 		rowIndex = columns = nullptr;
 		values = nullptr;
 		m = n = 0;
@@ -147,10 +147,10 @@ public:
     }
 
 
-	smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, int nn, int mm)
+	smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm)
 	{
 		numValues = nbV; n = nn; m = mm;
-		sym = hermitian = false;
+		sym = hermitian = upperTri = false;
 		columns = new size_t[nbV];
 		rowIndex = new size_t[nbV];
 		values = new std::complex<double>[nbV];
@@ -223,8 +223,6 @@ public:
 			delete[] rowIndex;
 			delete[] values;
             delete[] columns;
-			
-		 
 		}
 	}
 
