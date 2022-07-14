@@ -293,11 +293,11 @@ void Hamiltonian::createHamiltonMatrix(smatrix * &out, basicBasis* basis)
  */
 void Hamiltonian::createObservables(smatrix ** &out, basicBasis* basis)
 {
-    int nbModes = basis->numberModes;
+    unsigned int nbModes = basis->numberModes;
 
 	out = new smatrix*[nbModes];
 
-	for (int i = 0; i != 2; i++)
+	for (unsigned int i = 0; i != nbModes; i++)
 	{
 		std::vector<opTerm> operators;
 		operators.push_back(createNumberOperator(i, 1));
@@ -305,17 +305,6 @@ void Hamiltonian::createObservables(smatrix ** &out, basicBasis* basis)
 		matrix = createMatrix(operators, basis);
 		out[i] = matrix;
 	}
-
-	for (int i = 2; i != nbModes; i++)
-	{
-		std::vector<opTerm> operators;
-		operators.push_back(createNumberOperator(i, 1));
-		smatrix* matrix;
-		matrix = createMatrix(operators, basis);
-		out[i] = matrix;
-	}
-
-
 }
 
 /**
@@ -340,18 +329,15 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 
 	basisState* tmp = nullptr;
 
-	int matrixSize = basis->numberElements*op.size();
+	size_t matrixSize = basis->numberElements*op.size();
 
 	std::complex<double>* values = new std::complex<double>[matrixSize];
 	size_t* rowIndex = new size_t[matrixSize];
-	size_t *columnIndex = new size_t[matrixSize];
-	int Index = 0;
-	std::vector<int> colTmp;
-	std::vector<std::complex<double>> valTmp;
+	size_t* columnIndex = new size_t[matrixSize];
+	size_t Index = 0;
 	std::map<int, std::complex<double>> perRow;
 	std::map<int, std::complex<double>>::iterator perRowIter;
 	std::map<int, std::complex<double>>::iterator pairDoesNotWork;
-	std::pair<std::map<int,std::complex<double>>::iterator, bool> tester;
 
 
 	for (int j = 0; j != basis->numberElements; j++) //loop over basis elements
