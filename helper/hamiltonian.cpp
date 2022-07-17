@@ -335,42 +335,54 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 	size_t* rowIndex = new size_t[matrixSize];
 	size_t* columnIndex = new size_t[matrixSize];
 	size_t Index = 0;
-	std::map<int, std::complex<double>> perRow;
-	std::map<int, std::complex<double>>::iterator perRowIter;
+
+
+	/**/
+	//std::map<int, std::complex<double>> perRow;
+
 	std::map<int, std::complex<double>>::iterator pairDoesNotWork;
 
+	
+	size_t basisSize = basis->numberElements;
+	std::map<int, std::complex<double>>* perRow = new std::map<int, std::complex<double>>[basisSize];
+	//std::map<int, std::complex<double>>::iterator* pairDoesNotWork2 = new std::map<int, std::complex<double>>::iterator[basisSize];
+	
 
-	for (int j = 0; j != basis->numberElements; j++) //loop over basis elements
+
+	#pragma omp parallel for private(pairDoesNotWork) shared(perRow) num_threads(4)
+	for (int j = 0; j < basis->numberElements; j++) //loop over basis elements
 	{
 
 		std::vector<opTerm>::iterator iter = op.begin(); 
 
 
 
-		perRow.clear();
+		perRow[j].clear();
 
 		for (; iter != op.end(); iter++) //loop over terms in hamiltonian
 		{
-			tmp = new basisState(basis->basisElements[j], one);
+			//tmp = new basisState(basis->basisElements[j], one);
+
+			basisState tmp(basis->basisElements[j], one);
 
 			for (unsigned int i = 0; i != iter->operations.size(); i++) //loop over operations in each term
 			{
 				if (iter->operations[i] == 1)
 				{
-					creationOperator(tmp, iter->mode[i], iter->capacity[i]);
+					creationOperator(&tmp, iter->mode[i], iter->capacity[i]);
 				}
 				else if (iter->operations[i] == -1)
 				{
-					annihilationOperator(tmp, iter->mode[i]);
+					annihilationOperator(&tmp, iter->mode[i]);
 				}
 			}
 
-			scalarMultiplication(tmp, iter->coef);
+			scalarMultiplication(&tmp, iter->coef);
 
 			bool skip = false;
 			int currentElement = -1;
 			std::unordered_map<basisVector, int, basisVectorHasher>::iterator hashTableIterator;
-			hashTableIterator = basis->hashTable.find(tmp->b);
+			hashTableIterator = basis->hashTable.find(( & tmp)->b);
 			if (hashTableIterator != basis->hashTable.end())
 				currentElement = hashTableIterator->second;
 			else
@@ -379,20 +391,27 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 			}
 			if (!skip)
 			{
-				pairDoesNotWork = perRow.find(currentElement);
-				if (pairDoesNotWork == perRow.end())
-					perRow.insert(std::make_pair(currentElement, tmp->coef));
+				pairDoesNotWork = perRow[j].find(currentElement);
+				if (pairDoesNotWork == perRow[j].end())
+					perRow[j].insert(std::make_pair(currentElement, (&tmp)->coef));
 				else
-					pairDoesNotWork->second += tmp->coef;
+					pairDoesNotWork->second += (&tmp)->coef;
 			}
 			skip = false;
-			delete tmp;
+			//delete tmp;
 
 		}
 
+	}
+
+
+	std::map<int, std::complex<double>>::iterator perRowIter;
+
+	for (int j = 0; j != basis->numberElements; j++) //loop over basis elements
+	{
 		//write row into matrix
-		perRowIter = perRow.begin();
-		for (; perRowIter != perRow.end(); perRowIter++)
+		perRowIter = perRow[j].begin();
+		for (; perRowIter != perRow[j].end(); perRowIter++)
 		{
 			if (std::abs(perRowIter->second) < std::numeric_limits<double>::epsilon()) // no zeros 
 				continue;
@@ -401,9 +420,8 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 			values[Index] = perRowIter->second;
 			Index++;
 		}
-
-
 	}
+
 
 	int M, N;
 	M = N = basis->numberElements;
@@ -414,6 +432,8 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 	delete[] rowIndex;
 	delete[] columnIndex;
 	delete[] values;
+
+	delete[] perRow;
 
 	return A;
 }
