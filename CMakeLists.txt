@@ -19,9 +19,13 @@ else()
   project(TimeEvolver)
 endif()
 
+
+
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 message("${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 set (Boost_USE_STATIC_LIBS ON)
+
+include(CTest)
 
 if(NOSYSTEMBOOST)
   set (Boost_NO_SYSTEM_PATHS ON)
@@ -51,3 +55,7 @@ include_directories(${Boost_INCLUDE_DIRS} ${boost_SOURCE_DIR})
 add_subdirectory(core TimeEvolver)
 add_subdirectory(helper Helper)
 add_subdirectory(example Example)
+
+add_subdirectory(test Test)
+
+add_test(NAME SimpleExampleTest COMMAND Test/test)
