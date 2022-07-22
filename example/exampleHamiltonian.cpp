@@ -29,7 +29,7 @@ exampleHamiltonian::exampleHamiltonian(int n0, int nm, double deltan, int q1, in
  * Builds the operators that make up the Hamiltonian
  * @return All operators which sum up to the Hamiltonian
  */ 
-std::vector<opTerm> exampleHamiltonian::createSimplifiedHamiltonian()
+void exampleHamiltonian::createSimplifiedHamiltonian()
 {
     std::vector<opTerm> ret;
     opTerm tmp;
@@ -54,10 +54,7 @@ std::vector<opTerm> exampleHamiltonian::createSimplifiedHamiltonian()
     std::vector<opTerm> interactions = simplifiedSphericalInteraction(Q1, Q2, Cm, CmS, C);
     ham.insert(ham.end(),interactions.begin(),interactions.end());
     
-    hamiltonOperator = ham;
-    hamiltonianString = ham;
-    return ham;
-    
+    hamiltonOperator = ham;    
 }
 
 std::vector<opTerm> exampleHamiltonian::simplifiedSphericalInteraction(int Q1, int Q2, double gm, double gms, int C)
