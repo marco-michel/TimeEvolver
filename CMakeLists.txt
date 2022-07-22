@@ -43,6 +43,8 @@ endif()
 set(BLA_VENDOR Intel10_64ilp)
 find_package(BLAS REQUIRED)
 
+find_package(OpenMP)
+
 if(DEFINED ENV{MKLROOT})
 message("MKLROOT defined")
 ELSE()

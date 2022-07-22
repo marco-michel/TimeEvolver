@@ -9,6 +9,10 @@ target_link_libraries(Helper PUBLIC
     ${Boost_LIBRARIES}
     dl pthread) 
 
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(Helper PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 if(HDF5_FOUND)
     target_link_libraries(Helper PUBLIC
     ${HDF5_LIBRARIES}) 
