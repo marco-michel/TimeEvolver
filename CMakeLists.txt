@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 set (CMAKE_CXX_STANDARD 11)
 enable_language(CXX)
 enable_language(C)
+enable_language(CUDA)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -10,16 +11,19 @@ option (DOWNLOAD_BOOST "Whether or not Boost should be downloaded" OFF)
 
 set(NOSYSTEMBOOST OFF)
 
+find_package(CUDAToolkit)
+
+set(CMAKE_CUDA_RUNTIME_LIBRARY Shared)
 
 if(DOWNLOAD_BOOST)
   project(EXTERNAL NONE)
   include (cmake/CMakeLists.txt)
   return()
 else()
-  project(TimeEvolver)
+  project(TimeEvolver LANGUAGES CXX CUDA)
 endif()
 
-
+add_compile_definitions(USE_CUDA)
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 message("${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")

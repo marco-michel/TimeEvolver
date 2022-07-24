@@ -270,7 +270,7 @@ public:
 
             CUDAstatus = cudaMemcpy(dX, X, n * sizeof(std::complex<double>), cudaMemcpyHostToDevice);
 
-
+            std::cout<< "Running CUDA code" << std::endl;
             alignas(16) std::complex<double> zeroCUDA;
             alignas(16) std::complex<double> oneCUDA; 
             oneCUDA.real(1);

@@ -16,12 +16,17 @@ if(HDF5_FOUND)
     ${HDF5_LIBRARIES}) 
 endif()
 
+
+
+target_link_libraries(Example PUBLIC  ${CUDA_LIBRARIES})
+
 add_executable(SimpleExample simpleExample.cpp)
 set_target_properties(SimpleExample PROPERTIES OUTPUT_NAME "SimpleExample" INSTALL_RPATH_USE_LINK_PATH TRUE)
 target_include_directories(SimpleExample PUBLIC ../core ../helper)
 
-target_link_libraries(SimpleExample PUBLIC Helper TimeEvolver) 
+target_link_libraries(SimpleExample PUBLIC Helper TimeEvolver)
 
+target_link_libraries(SimpleExample PUBLIC  ${CUDA_LIBRARIES})
 
 install(TARGETS Example RUNTIME DESTINATION TimeEvolver/bin/Example)
 install(TARGETS SimpleExample RUNTIME DESTINATION TimeEvolver/bin/Example)

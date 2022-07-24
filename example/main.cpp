@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
 
     //Use HDF output if HDF5 libraries are discovered during compiling
     #ifdef USE_HDF
-    std::string fileNameH5 = "CUDAv1" + obligatoryInfo + furtherInfo + ".h5";
+    std::string fileNameH5 = "ResultBlackHole" + obligatoryInfo + furtherInfo + ".h5";
 
     H5File fileHh(fileNameH5.c_str(), H5F_ACC_TRUNC);
 
@@ -246,7 +246,7 @@ int main(int argc, char* argv[])
 
     for(int j = 0; j != nbObservables; j++)
     {
-        std::string fileNameCSV = "SparseBlasWrapperv1" + obligatoryInfo + furtherInfo + "mode" + std::to_string(j) + ".csv";
+        std::string fileNameCSV = "ResultBlackHole" + obligatoryInfo + furtherInfo + "mode" + std::to_string(j) + ".csv";
         std::ofstream outputfile;
         outputfile.open(fileNameCSV);
         for(int i = 0; i != results->nSamples; i++)
