@@ -63,14 +63,15 @@ public:
 	opTerm createSixPoint(int a, int b, int c, int d, int e, int f, int ca, int cb, int cc, int cd, int ce, int cf, double cof);
 
 
-	
+protected:
+	smatrix* createMatrix(std::vector<opTerm>& op, basicBasis* basis);
 
 
 private:
 	void creationOperator(basisState *in, unsigned int mode, int c);
 	void annihilationOperator(basisState *in, unsigned int mode);
 	void scalarMultiplication(basisState *in, std::complex<double> scalar);
-	smatrix* createMatrix(std::vector<opTerm> &op, basicBasis* basis);
+
 
 };
 
