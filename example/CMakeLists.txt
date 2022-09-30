@@ -17,7 +17,7 @@ if(HDF5_FOUND)
 endif()
 
 add_executable(SimpleExample simpleExample.cpp)
-set_target_properties(SimpleExample PROPERTIES OUTPUT_NAME "SimpleExample" INSTALL_RPATH_USE_LINK_PATH TRUE)
+set_target_properties(SimpleExample PROPERTIES OUTPUT_NAME "simpleExample" INSTALL_RPATH_USE_LINK_PATH TRUE)
 target_include_directories(SimpleExample PUBLIC ../core ../helper)
 
 target_link_libraries(SimpleExample PUBLIC Helper TimeEvolver) 

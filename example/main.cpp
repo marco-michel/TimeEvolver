@@ -247,8 +247,9 @@ int main(int argc, char* argv[])
         std::string fileNameCSV = "ResultBlackHole" + obligatoryInfo + furtherInfo + "mode" + std::to_string(j) + ".csv";
         std::ofstream outputfile;
         outputfile.open(fileNameCSV);
-        for(int i = 0; i != results->nSamples; i++)
+        for(int i = 0; i != (results->nSamples)-1; i++)
             outputfile << nicelySorted[j][i] << ", ";
+        outputfile << nicelySorted[j][(results->nSamples)-1];
         outputfile.close();
     }
 
