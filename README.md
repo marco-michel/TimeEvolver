@@ -133,7 +133,15 @@ If you use the standalone version of the MKL library, which is now part of the o
 ```
 source /opt/intel/oneapi/setvars.sh intel64
 ```
-Note that the variables are only set for the context of your session. For a permanent solution please visit the Intel helppage. 
+Note that the variables are only set for the context of your session. For a permanent solution please visit the Intel helppage.
+
+## Testing
+
+To test if the compilation was successful and the program works as intended please type
+```
+ctest
+```
+after compilation.
 
 # Usage
 
