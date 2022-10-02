@@ -87,10 +87,10 @@ int main()
     for(int j = 0; j != nbObservables; j++)
     {
         std::ofstream outputfile;
-        outputfile.open("output"+std::to_string(j)+".csv");
-        for(int i = 0; i != results->nSamples; i++)
+        outputfile.open("SimpleExampleOutputOccupationNumber"+std::to_string(j)+".csv");
+        for(int i = 0; i != (results->nSamples)-1; i++)
             outputfile << nicelySorted[j][i] << ", ";
-
+        outputfile <<  nicelySorted[j][(results->nSamples)-1];
         outputfile.close();
     }
     
