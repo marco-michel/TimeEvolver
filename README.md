@@ -2,8 +2,12 @@
 
 # Introduction
 
-
 This is the TimeEvolver software package. 
+This software was published in 
+
+M. Michel and S. Zell, *TimeEvolver*: A Program for Time Evolution With Improved Error Bound, [Comput.Phys.Commun. 277 (2022) 10837](https://doi.org/10.1016/j.cpc.2022.108374), [arXiv:2205.15346](https://arxiv.org/abs/2205.15346).
+
+We refer to this paper for a detailed description. 
 
 # Project Structure
 
