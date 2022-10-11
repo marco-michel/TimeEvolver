@@ -1,3 +1,15 @@
 /build
 /doc
 .vscode/
+/.vs
+/GPUCache
+/out/build/x64-Debug
+/VTune Profiler Results/TimeEvolver
+/x64
+*.h5
+*.dll
+*.log
+/TimeEvolver.sln
+/TimeEvolver.vcxproj
+/TimeEvolver.vcxproj.filters
+/TimeEvolver.vcxproj.user
