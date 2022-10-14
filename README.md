@@ -1,4 +1,4 @@
-[![CMake](https://github.com/marco-michel/TimeEvolver/actions/workflows/cmake.yml/badge.svg?branch=main&event=branch_protection_rule)](https://github.com/marco-michel/TimeEvolver/actions/workflows/cmake.yml)
+[![CMakeTests](https://github.com/marco-michel/TimeEvolver/actions/workflows/Testscmake.yml/badge.svg?event=pull_request)](https://github.com/marco-michel/TimeEvolver/actions/workflows/Testscmake.yml)
 
 # Introduction
 
