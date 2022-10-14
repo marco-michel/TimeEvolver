@@ -1,4 +1,4 @@
-![example workflow](https://github.com/marco-michel/TimeEvolver/actions/workflows/cmake.yml/badge.svg)
+[![CMake](https://github.com/marco-michel/TimeEvolver/actions/workflows/cmake.yml/badge.svg?branch=main&event=branch_protection_rule)](https://github.com/marco-michel/TimeEvolver/actions/workflows/cmake.yml)
 
 # Introduction
 
