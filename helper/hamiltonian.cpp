@@ -325,11 +325,9 @@ void Hamiltonian::scalarMultiplication(basisState* in, std::complex<double> scal
 smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 {
 
-	std::complex<double> one(1, 0);
+	const std::complex<double> one(1, 0);
 
 	basisState tmp;
-
-	size_t matrixSize = basis->numberElements*op.size();
 
 	std::map<int, std::complex<double>> perRow;
 	std::map<int, std::complex<double>>::iterator perRowIter;
@@ -344,8 +342,6 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 	{
 
 		std::vector<opTerm>::iterator iter = op.begin(); 
-
-
 
 		perRow.clear();
 
