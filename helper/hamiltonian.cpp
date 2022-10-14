@@ -332,10 +332,10 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 
 	size_t matrixSize = basis->numberElements*op.size();
 
-	std::complex<double>* values;// = new std::complex<double>[matrixSize];
-	size_t* rowIndex;// = new size_t[matrixSize];
-	size_t* columnIndex;// = new size_t[matrixSize];
-	size_t Index = 0;
+	//std::complex<double>* values;// = new std::complex<double>[matrixSize];
+	//size_t* rowIndex;// = new size_t[matrixSize];
+	//size_t* columnIndex;// = new size_t[matrixSize];
+	//size_t Index = 0;
 	std::map<int, std::complex<double>> perRow;
 	std::map<int, std::complex<double>>::iterator perRowIter;
 	std::map<int, std::complex<double>>::iterator pairDoesNotWork;
@@ -414,7 +414,7 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 			//rowIndex[Index] = j;
 			//columnIndex[Index] = perRowIter->first;
 			//values[Index] = perRowIter->second;
-			Index++;
+			//Index++;
 		}
 
 
@@ -422,7 +422,7 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 
 	int M, N;
 	M = N = basis->numberElements;
-	int nz = Index;
+	int nz = valuesVec.size();
 
 	//values = new std::complex<double>[valuesVec.size()];
 	//columnIndex = new size_t[valuesVec.size()];
