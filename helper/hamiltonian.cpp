@@ -327,7 +327,8 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 
 	std::complex<double> one(1, 0);
 
-	basisState* tmp = nullptr;
+	//basisState* tmp = nullptr;
+	basisState tmp;
 
 	size_t matrixSize = basis->numberElements*op.size();
 
@@ -353,7 +354,9 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 		{
 			//tmp = new basisState(basis->basisElements[j], one);
 
-			basisState tmp(basis->basisElements[j], one);
+			//basisState tmp(basis->basisElements[j], one);
+			tmp.b = basis->basisElements[j];
+			tmp.coef = one;
 
 			for (unsigned int i = 0; i != iter->operations.size(); i++) //loop over operations in each term
 			{
