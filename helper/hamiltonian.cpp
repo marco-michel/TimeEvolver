@@ -351,26 +351,28 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 
 		for (; iter != op.end(); iter++) //loop over terms in hamiltonian
 		{
-			tmp = new basisState(basis->basisElements[j], one);
+			//tmp = new basisState(basis->basisElements[j], one);
+
+			basisState tmp(basis->basisElements[j], one);
 
 			for (unsigned int i = 0; i != iter->operations.size(); i++) //loop over operations in each term
 			{
 				if (iter->operations[i] == 1)
 				{
-					creationOperator(tmp, iter->mode[i], iter->capacity[i]);
+					creationOperator(&tmp, iter->mode[i], iter->capacity[i]);
 				}
 				else if (iter->operations[i] == -1)
 				{
-					annihilationOperator(tmp, iter->mode[i]);
+					annihilationOperator(&tmp, iter->mode[i]);
 				}
 			}
 
-			scalarMultiplication(tmp, iter->coef);
+			scalarMultiplication(&tmp, iter->coef);
 
 			bool skip = false;
 			int currentElement = -1;
 			std::unordered_map<basisVector, int, basisVectorHasher>::iterator hashTableIterator;
-			hashTableIterator = basis->hashTable.find(tmp->b);
+			hashTableIterator = basis->hashTable.find(tmp.b);
 			if (hashTableIterator != basis->hashTable.end())
 				currentElement = hashTableIterator->second;
 			else
@@ -381,12 +383,12 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 			{
 				pairDoesNotWork = perRow.find(currentElement);
 				if (pairDoesNotWork == perRow.end())
-					perRow.insert(std::make_pair(currentElement, tmp->coef));
+					perRow.insert(std::make_pair(currentElement, tmp.coef));
 				else
-					pairDoesNotWork->second += tmp->coef;
+					pairDoesNotWork->second += tmp.coef;
 			}
 			skip = false;
-			delete tmp;
+			//delete tmp;
 
 		}
 
