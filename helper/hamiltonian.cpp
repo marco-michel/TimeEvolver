@@ -327,15 +327,10 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 
 	std::complex<double> one(1, 0);
 
-	//basisState* tmp = nullptr;
 	basisState tmp;
 
 	size_t matrixSize = basis->numberElements*op.size();
 
-	//std::complex<double>* values;// = new std::complex<double>[matrixSize];
-	//size_t* rowIndex;// = new size_t[matrixSize];
-	//size_t* columnIndex;// = new size_t[matrixSize];
-	//size_t Index = 0;
 	std::map<int, std::complex<double>> perRow;
 	std::map<int, std::complex<double>>::iterator perRowIter;
 	std::map<int, std::complex<double>>::iterator pairDoesNotWork;
@@ -356,9 +351,6 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 
 		for (; iter != op.end(); iter++) //loop over terms in hamiltonian
 		{
-			//tmp = new basisState(basis->basisElements[j], one);
-
-			//basisState tmp(basis->basisElements[j], one);
 			tmp.b = basis->basisElements[j];
 			tmp.coef = one;
 
@@ -395,8 +387,6 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 					pairDoesNotWork->second += tmp.coef;
 			}
 			skip = false;
-			//delete tmp;
-
 		}
 
 		//write row into matrix
@@ -406,15 +396,10 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 			if (std::abs(perRowIter->second) < std::numeric_limits<double>::epsilon()) // no zeros 
 				continue;
 
-
 			rowIndexVec.push_back(j);
 			columnIndexVec.push_back(perRowIter->first);
 			valuesVec.push_back(perRowIter->second);
 
-			//rowIndex[Index] = j;
-			//columnIndex[Index] = perRowIter->first;
-			//values[Index] = perRowIter->second;
-			//Index++;
 		}
 
 
@@ -424,24 +409,8 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 	M = N = basis->numberElements;
 	int nz = valuesVec.size();
 
-	//values = new std::complex<double>[valuesVec.size()];
-	//columnIndex = new size_t[valuesVec.size()];
-	//rowIndex = new size_t[valuesVec.size()];
-	/*
-	for (int i = 0; i != valuesVec.size(); i++)
-	{
-		values[i] = valuesVec[i];
-		columnIndex[i] = columnIndexVec[i];
-		rowIndex[i] = rowIndexVec[i];
-	}
-	*/
-
-	//smatrix* A = new smatrix(values, columnIndex, rowIndex, nz, N, M);
 	smatrix* A = new smatrix(valuesVec.data(), columnIndexVec.data(), rowIndexVec.data(), nz, N, M);
 
-	//delete[] rowIndex;
-	//delete[] columnIndex;
-	//delete[] values;
 
 	return A;
 }
