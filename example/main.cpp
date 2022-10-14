@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
     std::cout << "Creating Hamiltonian matrix..." << std::endl;
     smatrix* hamMatrix;
     ham.createHamiltonMatrix(hamMatrix, &basis);
-    hamMatrix->dumpHDF5("newHam.h5");
+
     //Create matrices for observables
     std::cout << "Creating observables..." << std::endl;
     smatrix** observables;
