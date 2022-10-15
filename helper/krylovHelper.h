@@ -38,14 +38,14 @@ class typedParameter : public parameter
 public:
 	typedParameter(const std::string& name, const T& data) : parameter(name), para_data(data) {}
 
-	std::string getData()
+	std::string getData() //write to string
 	{
 		std::ostringstream oss;
 		oss << std::setprecision(10) << para_data;
 		return oss.str();
 	}
 
-	int getBasicDataType()
+	int getBasicDataType() //Help to decide which datatype is stored in current parameter
 	{
 		if (std::is_same<T, double>::value)
 			return 1;
@@ -57,7 +57,7 @@ public:
 			return -1;
 	}
 
-	double retDouble()
+	double retDouble() 
 	{
 		return (double) para_data;
 	}
@@ -112,6 +112,7 @@ public:
 	void saveResult();
 };
 
+//Helper to outsource writing results to file
 class HDF5Helper
 {
 public: 

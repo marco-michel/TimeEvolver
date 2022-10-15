@@ -10,17 +10,13 @@
 using namespace H5;
 #endif
 
-krylovHelper::krylovHelper()
-{
-}
+krylovHelper::krylovHelper() {}
 
-void krylovHelper::timeEvolve()
-{
-}
+void krylovHelper::timeEvolve() {}
 
-void krylovHelper::saveResult()
-{
-}
+void krylovHelper::saveResult() {}
+
+//--------------------------------------------------------------------------
 
 void HDF5Helper::saveResult()
 {
