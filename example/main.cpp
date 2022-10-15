@@ -7,7 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
-
+#include <memory>
 #include <chrono>
 
 #undef I
@@ -30,6 +30,7 @@ using namespace H5;
 #include "Basis.h"
 #include "hamiltonian.h"
 #include "exampleHamiltonian.h"
+#include "krylovHelper.h"
 
 //INPUT:
 //    int N0; int Nm; int K;
@@ -141,129 +142,37 @@ int main(int argc, char* argv[])
     std::cout << "Number of steps: " << results->n_steps << "    error: " << results->err << std::endl;
     std::cout << "------------------------------------------------------" << std::endl;
     //End of actual time evolution 
+    
 
-    //Create string with information about input parameters
     std::cout << "Writing results to file..." << std::endl;
-    const int nbOutputParameters = 12;
-    std::ostringstream outputnumbers[nbOutputParameters];
-    outputnumbers[0] << std::fixed << std::setprecision(0) << N0;
-    outputnumbers[1] << std::fixed << std::setprecision(0) << Nm;
-    outputnumbers[2] << std::fixed << std::setprecision(0) <<K;
-    outputnumbers[3] << std::fixed << std::setprecision(0) << capacity;
-    outputnumbers[4] << DeltaN;
-    outputnumbers[5] << C0; 
-    outputnumbers[6] << Cm;
-    outputnumbers[7] << std::fixed << std::setprecision(0) << maxT;
-    outputnumbers[8] << tol;
-    outputnumbers[9] << samplingStep;
-    outputnumbers[10] << std::fixed << std::setprecision(0) << m;
-    outputnumbers[11] << fastIntegration;
-    
-    std::string obligatoryInfo = "_N" + outputnumbers[0].str() + "_Nm" + outputnumbers[1].str() + "_K"
-    + outputnumbers[2].str() + "_C" + outputnumbers[3].str();
-    
-    std::string furtherInfo = "_DeltaN" + outputnumbers[4].str() + "_C0" + outputnumbers[5].str() + "_Cm" + outputnumbers[6].str()
-    + "_maxT" + outputnumbers[7].str() + "_tol" + outputnumbers[8].str() + "_samplingStep" + outputnumbers[9].str() + "_m" + outputnumbers[10].str() + "_fastIntegration" + outputnumbers[11].str();   
+    parameter_list parameters;
 
-    //Sort data from time ordering to observable ordering
-    double** nicelySorted = new double*[nbObservables];
-    for(int i = 0; i < nbObservables; ++i)
-        nicelySorted[i] = new double[results->nSamples]; 
-    
-    for (int j = 0; j < nbObservables; j++)
+    parameters.push_back(paraPush("N", N0));
+    parameters.push_back(paraPush("Nm", Nm));
+    parameters.push_back(paraPush("K", K));
+    parameters.push_back(paraPush("C", capacity));
+    parameters.push_back(paraPush("DeltaN", DeltaN));
+    parameters.push_back(paraPush("C0", C0));
+    parameters.push_back(paraPush("Cm", Cm));
+    parameters.push_back(paraPush("maxT", maxT));
+    parameters.push_back(paraPush("tol", tol));
+    parameters.push_back(paraPush("samplingStep", samplingStep));
+    parameters.push_back(paraPush("m", m));
+    parameters.push_back(paraPush("fastIntegration", fastIntegration));
+
+    observable_list obsus;
+    for (int i = 0; i != nbObservables; i++)
+        obsus.push_back(obsPush("mode" + std::to_string(i), obsType::sparseMatrix));
+
+    HDF5Helper miau(results, parameters, obsus, "ResultBlackHole");
+    miau.saveResult();
+
+    for (int i = 0; i < nbObservables; i++)
     {
-        for (unsigned int i = 0; i < results->nSamples; i++)
-        {
-            nicelySorted[j][i] = (results->sampling->values + nbObservables * i + j)->real();
-        }
-    }
-
-    //Use HDF output if HDF5 libraries are discovered during compiling
-    #ifdef USE_HDF
-    std::string fileNameH5 = "ResultBlackHole" + obligatoryInfo + furtherInfo + ".h5";
-
-    H5File fileHh(fileNameH5.c_str(), H5F_ACC_TRUNC);
-
-    hsize_t dims[1] = { 1 };
-    
-    
-    for (int j = 0; j < nbObservables; j++)
-    {
-        int NX = results->nSamples;
-        const int RANK = 1;
-        hsize_t dimsf[RANK];
-        dimsf[0] = NX;
-        DataSpace dataspace( RANK, dimsf );
-        FloatType datatype( PredType::NATIVE_DOUBLE );
-        datatype.setOrder( H5T_ORDER_LE );
-		std::string modeNumber = "mode" + std::to_string(j);
-        DataSet dataset = fileHh.createDataSet(modeNumber.c_str(), datatype,
-                                              dataspace );
-        dataset.write( nicelySorted[j], PredType::NATIVE_DOUBLE );
-
-        
-        //write all parameters as attributes to file
-        
-        DataSpace** attr_dataspace = new DataSpace*[nbOutputParameters];
-        Attribute** attributes = new Attribute*[nbOutputParameters];
-        
-        for (int i = 0; i < nbOutputParameters; ++i)
-        {
-            attr_dataspace[i] = new DataSpace (1, dims );
-            attributes[i] = new Attribute();
-        }
-        
-        *attributes[0] = dataset.createAttribute( "DeltaN", PredType::NATIVE_DOUBLE, *attr_dataspace[0]); attributes[0]->write(PredType::NATIVE_DOUBLE, &DeltaN);
-        *attributes[1] = dataset.createAttribute( "C0", PredType::NATIVE_DOUBLE, *attr_dataspace[1]); attributes[1]->write(PredType::NATIVE_DOUBLE, &C0);
-        *attributes[2] = dataset.createAttribute( "Cm", PredType::NATIVE_DOUBLE, *attr_dataspace[2]); attributes[2]->write(PredType::NATIVE_DOUBLE, &Cm);
-        *attributes[3] = dataset.createAttribute( "MaxT", PredType::NATIVE_DOUBLE, *attr_dataspace[3]); attributes[3]->write(PredType::NATIVE_DOUBLE, &maxT);
-        *attributes[4] = dataset.createAttribute( "Tolerance", PredType::NATIVE_DOUBLE, *attr_dataspace[4]); attributes[4]->write(PredType::NATIVE_DOUBLE, &tol);
-        *attributes[5] = dataset.createAttribute( "SamplingStep", PredType::NATIVE_DOUBLE, *attr_dataspace[5]); attributes[5]->write(PredType::NATIVE_DOUBLE, &samplingStep);
-        *attributes[6] = dataset.createAttribute( "N0", PredType::NATIVE_INT, *attr_dataspace[6]); attributes[6]->write(PredType::NATIVE_INT, &N0);
-        *attributes[7] = dataset.createAttribute( "Nm", PredType::NATIVE_INT, *attr_dataspace[7]); attributes[7]->write(PredType::NATIVE_INT, &Nm);
-        *attributes[8] = dataset.createAttribute( "K", PredType::NATIVE_INT, *attr_dataspace[8]); attributes[8]->write(PredType::NATIVE_INT, &K);
-        *attributes[9] = dataset.createAttribute( "Capacity", PredType::NATIVE_INT, *attr_dataspace[9]); attributes[9]->write(PredType::NATIVE_INT, &capacity);
-        *attributes[10] = dataset.createAttribute( "m", PredType::NATIVE_INT, *attr_dataspace[10]); attributes[10]->write(PredType::NATIVE_INT, &m);
-        *attributes[11] = dataset.createAttribute( "fastIntegration", PredType::NATIVE_INT, *attr_dataspace[11]); attributes[11]->write(PredType::NATIVE_INT, &fastIntegration);
-        
-        for (int i = 0; i < nbOutputParameters; ++i)
-        {
-            delete attr_dataspace[i];
-            delete attributes[i];
-        }
-
-
-        delete[] attr_dataspace;
-        delete[] attributes;
-        dataset.close();
-
-    }
-    //If not write data to simple csv files
-    #else
-
-
-    for(int j = 0; j != nbObservables; j++)
-    {
-        std::string fileNameCSV = "ResultBlackHole" + obligatoryInfo + furtherInfo + "mode" + std::to_string(j) + ".csv";
-        std::ofstream outputfile;
-        outputfile.open(fileNameCSV);
-        for(int i = 0; i != (results->nSamples)-1; i++)
-            outputfile << nicelySorted[j][i] << ", ";
-        outputfile << nicelySorted[j][(results->nSamples)-1];
-        outputfile.close();
-    }
-
-    #endif
-    //end write obserables to file
-
-
-    //clean up
-	for (int i = 0; i < nbObservables; i++)
-    {
-		delete[] nicelySorted[i];
         delete observables[i];
     }
-    delete[] nicelySorted; delete results; delete hamMatrix; delete[] vec; delete[] observables;
-    
+
+    delete results; delete hamMatrix; delete[] vec; delete[] observables;
+
     return 0;
 }
