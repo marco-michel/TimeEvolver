@@ -85,7 +85,6 @@ public:
 	{
 		return name;
 	}
-	std::string getData() {}
 	obsType getType()
 	{
 		return type;
