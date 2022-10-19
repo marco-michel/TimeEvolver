@@ -10,6 +10,19 @@
 using namespace H5;
 #endif
 
+//--------------------------------------------------------------------------
+//Class Parameter
+
+
+std::string parameter::getName()
+{
+    return p_name;
+}
+
+
+//--------------------------------------------------------------------------
+//Class krylovHelper
+
 krylovHelper::krylovHelper() {}
 
 void krylovHelper::timeEvolve() {}
@@ -17,6 +30,7 @@ void krylovHelper::timeEvolve() {}
 void krylovHelper::saveResult() {}
 
 //--------------------------------------------------------------------------
+//Class HDF5Helper
 
 void HDF5Helper::saveResult()
 {
@@ -26,6 +40,7 @@ void HDF5Helper::saveResult()
     parameter_list::iterator paraIter;
     observable_list::iterator obsIter;
 
+    //Create string with parameter and its value
     for (paraIter = para_list.begin(); paraIter != para_list.end(); paraIter++)
         outputFileName += "_" + (*paraIter)->getName() + (*paraIter)->getData();
 
@@ -105,7 +120,6 @@ void HDF5Helper::saveResult()
 void HDF5Helper::writeAttributes() 
 {
     //write all parameters as attributes to file
-
     hsize_t dims[1] = { 1 };
 
     DataSpace** attr_dataspace = new DataSpace * [nbOutputParameters];
@@ -121,6 +135,7 @@ void HDF5Helper::writeAttributes()
     int counter = 0;
     for (paraIter = para_list.begin(); paraIter != para_list.end(); paraIter++, counter++)
     {
+        //BasisDataType = 1: float/double, BasisDataType = 1: int, BasisDataType = 3: bool
         if ((*paraIter)->getBasicDataType() == 1)
         {
             double paraValue = (*paraIter)->retDouble();

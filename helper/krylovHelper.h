@@ -13,7 +13,7 @@ using namespace H5;
 #endif
 
 
-
+//parent class
 class parameter
 {
 public:
@@ -23,15 +23,13 @@ public:
 	virtual int getBasicDataType() = 0;
 	virtual double retDouble() = 0;
 	virtual int retInt() = 0;
-	std::string getName()
-	{
-		return p_name;
-	}
+	std::string getName();
 
 private:
 	std::string p_name;
 };
 
+//parameter class for different data types
 template <typename T>
 class typedParameter : public parameter
 {
@@ -41,7 +39,7 @@ public:
 	std::string getData() //write to string
 	{
 		std::ostringstream oss;
-		oss << std::setprecision(10) << para_data;
+		oss << std::setprecision(10) << para_data; //set amount of digits in the output string
 		return oss.str();
 	}
 
@@ -72,7 +70,7 @@ private:
 };
 
 
-typedef std::vector< std::shared_ptr<parameter> > parameter_list;
+typedef std::vector< std::shared_ptr<parameter> > parameter_list; //shorten notation.
 
 #define paraPush(nm, ...) std::make_shared<typedParameter<decltype(__VA_ARGS__)>>(nm, __VA_ARGS__) //macro for easier insertion
 
