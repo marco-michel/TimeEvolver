@@ -2,6 +2,8 @@
 #include <memory>
 #include <iomanip>
 #include <type_traits>
+#include <fstream>
+#include <sstream>
 #include <iostream>
 
 #include "krylovHelper.h"
@@ -52,7 +54,7 @@ void outputHelper::saveResult()
 
 
     //Use HDF output if HDF5 libraries are discovered during compiling
-#ifdef USE_HDF
+#ifdef USE_HDF6
 
     outputFileName += ".h5";
     H5File fileHh(outputFileName.c_str(), H5F_ACC_TRUNC);
