@@ -5,10 +5,10 @@
 #include <iomanip>
 
 #include "krylovTimeEvolver.h"
+#include "krylovHelper.h"
 
 #ifdef USE_HDF
 #include <H5Cpp.h>
-#include "krylovHelper.h"
 using namespace H5;
 #endif
 
@@ -121,9 +121,8 @@ private:
 	unsigned int nbObservables; unsigned int nbOutputParameters;
 #ifdef USE_HDF
 	DataSet dataset;
-#endif
-
 	void writeAttributes();
+#endif
 };
 
 

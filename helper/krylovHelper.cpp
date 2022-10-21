@@ -4,9 +4,11 @@
 #include <type_traits>
 #include <iostream>
 
+#include "krylovHelper.h"
+
+
 #ifdef USE_HDF
 #include <H5Cpp.h>
-#include "krylovHelper.h"
 using namespace H5;
 #endif
 
@@ -117,6 +119,8 @@ void HDF5Helper::saveResult()
 
 }
 
+#ifdef USE_HDF
+
 void HDF5Helper::writeAttributes() 
 {
     //write all parameters as attributes to file
@@ -158,3 +162,4 @@ void HDF5Helper::writeAttributes()
     delete[] attributes;
 }
 
+#endif
