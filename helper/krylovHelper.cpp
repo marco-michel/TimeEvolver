@@ -54,7 +54,7 @@ void outputHelper::saveResult()
 
 
     //Use HDF output if HDF5 libraries are discovered during compiling
-#ifdef USE_HDF6
+#ifdef USE_HDF
 
     outputFileName += ".h5";
     H5File fileHh(outputFileName.c_str(), H5F_ACC_TRUNC);
