@@ -37,13 +37,6 @@ void HDF5Helper::saveResult()
     for (paraIter = para_list.begin(); paraIter != para_list.end(); paraIter++)
         outputFileName += "_" + (*paraIter)->getName() + (*paraIter)->getData();
 
-    std::cout << outputFileName << std::endl;
-
-    for (obsIter = obs_list.begin(); obsIter != obs_list.end(); obsIter++)
-        std::cout << (*obsIter)->getName() << std::endl;
-
-
-
     //Sort data from time ordering to observable ordering
     double** nicelySorted = new double* [nbObservables];
     for (int i = 0; i < nbObservables; ++i)
