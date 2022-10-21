@@ -23,15 +23,6 @@ std::string parameter::getName()
 
 
 //--------------------------------------------------------------------------
-//Class krylovHelper
-
-krylovHelper::krylovHelper() {}
-
-void krylovHelper::timeEvolve() {}
-
-void krylovHelper::saveResult() {}
-
-//--------------------------------------------------------------------------
 //Class HDF5Helper
 
 void HDF5Helper::saveResult()

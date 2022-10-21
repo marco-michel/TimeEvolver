@@ -100,14 +100,6 @@ typedef std::vector< std::shared_ptr<observable> > observable_list;
 
 //------------------------------------------------------------------------------------------------
 
-class krylovHelper  //not used currently
-{
-public:
-
-	krylovHelper();
-	void timeEvolve();
-	void saveResult();
-};
 
 //Helper to outsource writing results to file
 class HDF5Helper
