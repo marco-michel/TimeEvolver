@@ -102,10 +102,10 @@ typedef std::vector< std::shared_ptr<observable> > observable_list;
 
 
 //Helper to outsource writing results to file
-class HDF5Helper
+class outputHelper
 {
 public: 
-	HDF5Helper(krylovReturn* res, const parameter_list& para, const observable_list& obs, const std::string& name) : results(res), para_list(para), obs_list(obs), fileName(name) { nbObservables = obs_list.size(); nbOutputParameters = para_list.size(); }
+	outputHelper(krylovReturn* res, const parameter_list& para, const observable_list& obs, const std::string& name) : results(res), para_list(para), obs_list(obs), fileName(name) { nbObservables = obs_list.size(); nbOutputParameters = para_list.size(); }
 	void saveResult();
 
 private:

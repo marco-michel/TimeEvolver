@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
     for (int i = 0; i != nbObservables; i++)
         obsus.push_back(obsPush("mode" + std::to_string(i), obsType::sparseMatrix));
 
-    HDF5Helper fileHelper(results, parameters, obsus, "ResultBlackHole");
+    outputHelper fileHelper(results, parameters, obsus, "ResultBlackHole");
     fileHelper.saveResult();
 
     for (int i = 0; i < nbObservables; i++)

@@ -25,7 +25,7 @@ std::string parameter::getName()
 //--------------------------------------------------------------------------
 //Class HDF5Helper
 
-void HDF5Helper::saveResult()
+void outputHelper::saveResult()
 {
 
     std::string outputFileName = fileName;
@@ -105,7 +105,7 @@ void HDF5Helper::saveResult()
 
 #ifdef USE_HDF
 
-void HDF5Helper::writeAttributes() 
+void outputHelper::writeAttributes() 
 {
     //write all parameters as attributes to file
     hsize_t dims[1] = { 1 };
