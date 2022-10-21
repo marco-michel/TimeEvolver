@@ -25,7 +25,7 @@ std::string parameter::getName()
 
 
 //--------------------------------------------------------------------------
-//Class HDF5Helper
+//Class outputHelper
 
 void outputHelper::saveResult()
 {
