@@ -20,9 +20,9 @@ public:
 	parameter(const std::string& name) : p_name(name) {}
 	virtual ~parameter() {}
 	virtual std::string getData() = 0;
-	virtual int getBasicDataType() = 0;
-	virtual double retDouble() = 0;
-	virtual int retInt() = 0;
+	virtual bool isDouble() = 0;
+	virtual bool isInt() = 0;
+	virtual bool isBool() = 0;
 	std::string getName();
 
 private:
@@ -43,26 +43,25 @@ public:
 		return oss.str();
 	}
 
-	int getBasicDataType() //Help to decide which datatype is stored in current parameter
+	bool isDouble()
 	{
-		if (std::is_same<T, double>::value)
-			return 1;
-		else if (std::is_same<T, int>::value)
-			return 2;
-		else if (std::is_same<T, bool>::value)
-			return 3;
-		else
-			return -1;
+		return std::is_same<T, double>::value;
+	}
+	
+	bool isInt()
+	{
+		return std::is_same<T, int>::value;
+	}
+	
+	bool isBool()
+	{
+		return std::is_same<T, bool>::value;
 	}
 
-	double retDouble() 
+	
+	T getValue() 
 	{
-		return (double) para_data;
-	}
-
-	int retInt()
-	{
-		return (int)para_data;
+		return para_data;
 	}
 
 private:

@@ -125,15 +125,18 @@ void outputHelper::writeAttributes()
     int counter = 0;
     for (paraIter = para_list.begin(); paraIter != para_list.end(); paraIter++, counter++)
     {
-        //BasisDataType = 1: float/double, BasisDataType = 1: int, BasisDataType = 3: bool
-        if ((*paraIter)->getBasicDataType() == 1)
+        if ((*paraIter)->isDouble())
         {
-            double paraValue = (*paraIter)->retDouble();
+    	     double paraValue = dynamic_cast<typedParameter<double>&>(*(*paraIter)).getValue();
             *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_DOUBLE, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_DOUBLE, &paraValue);
         }
-        else if ((*paraIter)->getBasicDataType() == 2 || (*paraIter)->getBasicDataType() == 3)
+        else if ((*paraIter)->isInt())
         {
-            int paraValue = (*paraIter)->retInt();
+            int paraValue = dynamic_cast<typedParameter<int>&>(*(*paraIter)).getValue();
+            *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_INT, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_INT, &paraValue);
+        } else if ((*paraIter)->isBool()) 
+        {
+            int paraValue = dynamic_cast<typedParameter<bool>&>(*(*paraIter)).getValue();
             *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_INT, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_INT, &paraValue);
         }
     }
