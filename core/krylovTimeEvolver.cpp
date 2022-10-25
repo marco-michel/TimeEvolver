@@ -699,3 +699,15 @@ std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double
 	return tmpintKernelExp;
 
 }
+
+
+std::string krylovBasicObservable::retName()
+{
+	return obs_name;
+}
+
+obsType krylovBasicObservable::retType()
+{
+	return type;
+}
+

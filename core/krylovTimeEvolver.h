@@ -10,7 +10,55 @@
 
 #include <cmath>
 #include <complex>
+#include <memory>
+
 #include "matrixDataTypes.h"
+
+
+enum obsType {VOID_TYPE_OBS, VECTOR_TYPE_OBS, SPARSE_MATRIX_TYPE_OBS, MATRIX_TYPE_OBS };
+
+class krylovBasicObservable
+{
+public:
+    krylovBasicObservable(const std::string& name) : obs_name(name) {}
+    ~krylovBasicObservable() {}
+    virtual double expectation(std::complex<double> vec) = 0;
+    obsType retType();
+    std::string retName();
+
+protected:
+    obsType type;
+    std::string obs_name;
+};
+
+class krylovVectorObservable : public krylovBasicObservable
+{
+public:
+    krylovVectorObservable(const std::string& name, std::complex<double>* obs);
+    double expectation(std::complex<double> vec);
+
+private:
+    std::unique_ptr<std::complex<double>> obs;
+};
+
+class krylovSpMatrixObservable : public krylovBasicObservable
+{
+public:
+    krylovSpMatrixObservable(const std::string& name, smatrix* obs);
+    double expectation(std::complex<double> vec);
+
+private:
+    std::unique_ptr<smatrix> obs;
+};
+
+class krylovMatrixObservable : public krylovBasicObservable
+{
+    krylovMatrixObservable(const std::string& name, matrix* obs);
+    double expectation(std::complex<double> vec);
+
+private:
+    std::unique_ptr<matrix> obs;
+};
 
 struct krylovReturn
 {
