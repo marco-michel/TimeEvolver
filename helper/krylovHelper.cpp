@@ -52,6 +52,7 @@ void outputHelper::saveResult()
         }
     }
 
+    obsIter = obs_list.begin();
 
     //Use HDF output if HDF5 libraries are discovered during compiling
 #ifdef USE_HDF
@@ -59,7 +60,8 @@ void outputHelper::saveResult()
     outputFileName += ".h5";
     H5File fileHh(outputFileName.c_str(), H5F_ACC_TRUNC);
 
-    for (int j = 0; j < nbObservables; j++)
+
+    for (int j = 0; j < nbObservables && obsIter != obs_list.end(); j++)
     {
         int NX = results->nSamples;
         const int RANK = 1;
@@ -68,21 +70,22 @@ void outputHelper::saveResult()
         DataSpace dataspace(RANK, dimsf);
         FloatType datatype(PredType::NATIVE_DOUBLE);
         datatype.setOrder(H5T_ORDER_LE);
-        std::string modeNumber = "mode" + std::to_string(j);
-        dataset = fileHh.createDataSet(modeNumber.c_str(), datatype, dataspace);
+        std::string observableName = (*obsIter)->getName();
+        dataset = fileHh.createDataSet(observableName.c_str(), datatype, dataspace);
         dataset.write(nicelySorted[j], PredType::NATIVE_DOUBLE);
 
         writeAttributes();
 
         dataset.close();
+        obsIter++;
 
     }
     //If not write data to simple csv files
 #else
 
-    for (int j = 0; j != nbObservables; j++)
+    for (int j = 0; j != nbObservables && obsIter != obs_list.end(); j++)
     {
-        std::string fileNameCSV = outputFileName + "mode" + std::to_string(j) + ".csv";
+        std::string fileNameCSV = outputFileName + (*obsIter)->getName() + ".csv";
         std::ofstream outputfile;
         outputfile.open(fileNameCSV);
         for (int i = 0; i != (results->nSamples) - 1; i++)
