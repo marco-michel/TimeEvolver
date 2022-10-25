@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
 
     observable_list obsus;
     for (int i = 0; i != nbObservables; i++)
-        obsus.push_back(obsPush("mode" + std::to_string(i), obsType::sparseMatrix));
+        obsus.push_back(obsPush("mode" + std::to_string(i), obsType::SPARSE_MATRIX_TYPE_OBS));
 
     outputHelper fileHelper(results, parameters, obsus, "ResultBlackHole");
     fileHelper.saveResult();
