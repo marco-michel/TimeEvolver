@@ -811,3 +811,8 @@ double krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
 	return observall.real();
 
 }
+
+//this would not be necessary with C++17
+
+constexpr std::complex<double> krylovBasicObservable::zero;
+constexpr std::complex<double> krylovBasicObservable::one;
