@@ -22,20 +22,25 @@ class krylovBasicObservable
 public:
     krylovBasicObservable(const std::string& name) : obs_name(name) {}
     ~krylovBasicObservable() {}
-    virtual double expectation(std::complex<double> vec) = 0;
+    virtual double expectation(std::complex<double>* vec, int len) = 0;
     obsType retType();
     std::string retName();
+
+    static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
+    static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
 
 protected:
     obsType type;
     std::string obs_name;
+    size_t dim;
+    sparse_matrix_t* ObsOpt;
 };
 
 class krylovVectorObservable : public krylovBasicObservable
 {
 public:
     krylovVectorObservable(const std::string& name, std::complex<double>* obs);
-    double expectation(std::complex<double> vec);
+    double expectation(std::complex<double>* vec, int len);
 
 private:
     std::unique_ptr<std::complex<double>> obs;
@@ -45,16 +50,19 @@ class krylovSpMatrixObservable : public krylovBasicObservable
 {
 public:
     krylovSpMatrixObservable(const std::string& name, smatrix* obs);
-    double expectation(std::complex<double> vec);
+    ~krylovSpMatrixObservable();
+    double expectation(std::complex<double>* vec, int len);
 
 private:
     std::unique_ptr<smatrix> obs;
+    matrix_descr descriptorObs;
+    std::complex<double>* tmpBlasVec;
 };
 
 class krylovMatrixObservable : public krylovBasicObservable
 {
     krylovMatrixObservable(const std::string& name, matrix* obs);
-    double expectation(std::complex<double> vec);
+    double expectation(std::complex<double>* vec, int len);
 
 private:
     std::unique_ptr<matrix> obs;
@@ -106,6 +114,7 @@ class krylovTimeEvolver
 {
 public:
     krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm= true, bool fastIntegration = false);
+    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
@@ -117,6 +126,7 @@ protected:
     int findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
     void destroyOptimizeInput();
     void sample();
+    void sample_ex();
     bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
 
@@ -163,4 +173,8 @@ protected:
     static constexpr std::complex<double> one = std::complex<double>(1.0,0.0);
     static constexpr std::complex<double> zero = std::complex<double>(0.0,0.0);
     std::complex<double>* e_1;
+
+    //New observables
+    bool obsComputeExpectation;
+    std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
 };
