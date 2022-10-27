@@ -22,7 +22,7 @@ class krylovBasicObservable
 public:
     krylovBasicObservable(const std::string& name) : obs_name(name), dim(0), type(VOID_TYPE_OBS) {}
     ~krylovBasicObservable() {}
-    virtual double expectation(std::complex<double>* vec, int len) = 0;
+    virtual std::complex<double> expectation(std::complex<double>* vec, int len) = 0; 
     obsType retType();
     std::string retName();
 
@@ -39,10 +39,10 @@ class krylovVectorObservable : public krylovBasicObservable
 {
 public:
     krylovVectorObservable(const std::string& name, std::complex<double>* obs, size_t len);
-    double expectation(std::complex<double>* vec, int len);
+    std::complex<double> expectation(std::complex<double>* vec, int len);
 
 private:
-    std::unique_ptr<std::complex<double>> obs;
+    std::unique_ptr<std::complex<double>[]> obs;
 };
 
 class krylovSpMatrixObservable : public krylovBasicObservable
@@ -50,7 +50,7 @@ class krylovSpMatrixObservable : public krylovBasicObservable
 public:
     krylovSpMatrixObservable(const std::string& name, smatrix* obs);
     ~krylovSpMatrixObservable();
-    double expectation(std::complex<double>* vec, int len);
+    std::complex<double> expectation(std::complex<double>* vec, int len);
 
 private:
     std::unique_ptr<smatrix> obs;
@@ -63,7 +63,7 @@ class krylovMatrixObservable : public krylovBasicObservable
 {
     krylovMatrixObservable(const std::string& name, matrix* obs);
     ~krylovMatrixObservable();
-    double expectation(std::complex<double>* vec, int len);
+    std::complex<double> expectation(std::complex<double>* vec, int len);
 
 private:
     std::unique_ptr<matrix> obs;

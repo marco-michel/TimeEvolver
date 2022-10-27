@@ -173,10 +173,7 @@ void krylovTimeEvolver::sample_ex()
 		cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples * Hsize, 1);
 	else
 	{
-		std::complex<double> observall;
-
 		int i = 0;
-
 		for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
 		{
 			*(samplings->values + i + index_samples * nbObservables) = (*obsIter)->expectation(sampledState, Hsize);
@@ -777,7 +774,7 @@ krylovMatrixObservable::~krylovMatrixObservable()
 		delete[] tmpBlasVec;
 }
 
-double krylovMatrixObservable::expectation(std::complex<double>* vec, int len) //requires testing
+std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* vec, int len) //requires testing
 {
 	if (len != dim)
 	{
@@ -787,7 +784,7 @@ double krylovMatrixObservable::expectation(std::complex<double>* vec, int len) /
 	std::complex<double> observall;
 	cblas_zgemv(CblasColMajor, CblasNoTrans, dim, dim, &one, obs->values, dim, vec, 1, &zero, tmpBlasVec, 1);
 	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
-	return observall.real();
+	return observall;
 }
 
 krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, smatrix* obser) : krylovBasicObservable(name)
@@ -822,7 +819,7 @@ krylovSpMatrixObservable::~krylovSpMatrixObservable()
 	}
 }
 
-double krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
+std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
 {
 
 	if (len != dim)
@@ -838,7 +835,7 @@ double krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
 
 	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
 
-	return observall.real();
+	return observall;
 
 }
 
@@ -851,11 +848,11 @@ krylovVectorObservable::krylovVectorObservable(const std::string& name, std::com
 {
 	dim = len;
 	type = VECTOR_TYPE_OBS;
-	obs = std::make_unique<std::complex<double>>(len);
+	obs = std::make_unique<std::complex<double>[]>(len);
 	cblas_zcopy(dim, obser, 1, obs.get(), 1);
 }
 
-double krylovVectorObservable::expectation(std::complex<double>* vec, int len)
+std::complex<double> krylovVectorObservable::expectation(std::complex<double>* vec, int len)
 {
 	if (len != dim)
 	{
@@ -864,5 +861,8 @@ double krylovVectorObservable::expectation(std::complex<double>* vec, int len)
 	}
 	std::complex<double> observall;
 	cblas_zdotc_sub(len, vec, 1, obs.get(), 1, &observall);
-	return std::norm(observall); //returns the squared magnitued
+	std::complex<double> observallreturn;
+	observallreturn.imag(0);
+	observallreturn.real(std::norm(observall));
+	return observallreturn; //returns the squared magnitued
 }
