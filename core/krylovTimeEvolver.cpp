@@ -760,6 +760,36 @@ obsType krylovBasicObservable::retType()
 }
 
 
+krylovMatrixObservable::krylovMatrixObservable(const std::string& name, matrix* obser) : krylovBasicObservable(name)
+{
+	dim = obser->m;
+	type = MATRIX_TYPE_OBS;
+	if(dim > 0)
+		tmpBlasVec = new std::complex<double>[dim];
+
+	obs = std::make_unique<matrix>(*obser);
+
+}
+
+krylovMatrixObservable::~krylovMatrixObservable()
+{
+	if (dim > 0)
+		delete[] tmpBlasVec;
+}
+
+double krylovMatrixObservable::expectation(std::complex<double>* vec, int len) //requires testing
+{
+	if (len != dim)
+	{
+		std::cerr << "Incompatible dimensions" << std::endl;
+		exit(1);
+	}
+	std::complex<double> observall;
+	cblas_zgemv(CblasColMajor, CblasNoTrans, dim, dim, &one, obs->values, dim, vec, 1, &zero, tmpBlasVec, 1);
+	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
+	return observall.real();
+}
+
 krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, smatrix* obser) : krylovBasicObservable(name)
 {
 	dim = obser->m;
@@ -816,3 +846,23 @@ double krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
 
 constexpr std::complex<double> krylovBasicObservable::zero;
 constexpr std::complex<double> krylovBasicObservable::one;
+
+krylovVectorObservable::krylovVectorObservable(const std::string& name, std::complex<double>* obser, size_t len) : krylovBasicObservable(name)
+{
+	dim = len;
+	type = VECTOR_TYPE_OBS;
+	obs = std::make_unique<std::complex<double>>(len);
+	cblas_zcopy(dim, obser, 1, obs.get(), 1);
+}
+
+double krylovVectorObservable::expectation(std::complex<double>* vec, int len)
+{
+	if (len != dim)
+	{
+		std::cerr << "Incompatible dimensions" << std::endl;
+		exit(1);
+	}
+	std::complex<double> observall;
+	cblas_zdotc_sub(len, vec, 1, obs.get(), 1, &observall);
+	return std::norm(observall); //returns the squared magnitued
+}

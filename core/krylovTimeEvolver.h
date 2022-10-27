@@ -20,7 +20,7 @@ enum obsType {VOID_TYPE_OBS, VECTOR_TYPE_OBS, SPARSE_MATRIX_TYPE_OBS, MATRIX_TYP
 class krylovBasicObservable
 {
 public:
-    krylovBasicObservable(const std::string& name) : obs_name(name) {}
+    krylovBasicObservable(const std::string& name) : obs_name(name), dim(0), type(VOID_TYPE_OBS) {}
     ~krylovBasicObservable() {}
     virtual double expectation(std::complex<double>* vec, int len) = 0;
     obsType retType();
@@ -33,13 +33,12 @@ protected:
     obsType type;
     std::string obs_name;
     size_t dim;
-    sparse_matrix_t* ObsOpt;
 };
 
 class krylovVectorObservable : public krylovBasicObservable
 {
 public:
-    krylovVectorObservable(const std::string& name, std::complex<double>* obs);
+    krylovVectorObservable(const std::string& name, std::complex<double>* obs, size_t len);
     double expectation(std::complex<double>* vec, int len);
 
 private:
@@ -57,15 +56,18 @@ private:
     std::unique_ptr<smatrix> obs;
     matrix_descr descriptorObs;
     std::complex<double>* tmpBlasVec;
+    sparse_matrix_t* ObsOpt;
 };
 
 class krylovMatrixObservable : public krylovBasicObservable
 {
     krylovMatrixObservable(const std::string& name, matrix* obs);
+    ~krylovMatrixObservable();
     double expectation(std::complex<double>* vec, int len);
 
 private:
     std::unique_ptr<matrix> obs;
+    std::complex<double>* tmpBlasVec;
 };
 
 struct krylovReturn
