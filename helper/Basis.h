@@ -267,7 +267,7 @@ class basis : public basicBasis
 {
 public:
 
-
+	basis(int N, int K, int nbQudits, int capacity, int quant);
 	basis(int N, int K, int nbQudits, int capacity);
 
 
