@@ -131,7 +131,17 @@ int main(int argc, char* argv[])
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus, true, fastIntegration);
+    std::vector<std::unique_ptr<krylovBasicObservable>> awu;
+
+    for (int i = 0; i != basis.numberModes; i++)
+    {
+        awu.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), observables[i]));
+    }
+    
+
+    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(awu), hamMatrix, imaginaryMinus, true, fastIntegration);
+
+    //krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus, true, fastIntegration);
     krylovReturn* results = timeEvolver.timeEvolve();
     
     auto end = std::chrono::high_resolution_clock::now();

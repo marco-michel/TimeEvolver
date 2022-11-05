@@ -99,6 +99,16 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
     e_1 = new std::complex<double>[m];
     e_1[0].real(1);
 
+	obsComputeExpectation = false;
+
+}
+
+krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration) :
+	krylovTimeEvolver(t, Hsize, v, samplingStep, tol, mm, nullptr, observables.size(), Ham, expFactor, checkNorm, fastIntegration)
+{
+	obsComputeExpectation = true; //overwrite if we call this constructor
+	obsVector = std::move(observables);
+	//obsVector = observables;
 }
 
 /**
@@ -119,7 +129,7 @@ krylovTimeEvolver::~krylovTimeEvolver()
     delete samplings;
     if(HamOpt != nullptr)
         delete HamOpt;
-    if(HamOpt != nullptr)
+    if(ObsOpt != nullptr)
     {
         for (int i = 0; i != nbObservables; i++)
             delete ObsOpt[i];
@@ -136,19 +146,40 @@ constexpr std::complex<double> krylovTimeEvolver::zero;
  */
 void krylovTimeEvolver::sample()
 {
-    if (nbObservables == 0)
-        cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples*Hsize, 1);
-    else
-    {
-        std::complex<double> observall;
-        for (int i = 0; i < nbObservables; i++)
-        {
-            mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE,one,*ObsOpt[i],descriptorObs,sampledState,zero,tmpBlasVec);
-            cblas_zdotc_sub(Hsize, sampledState, 1, tmpBlasVec, 1, &observall);
-            *(samplings->values + i + index_samples * nbObservables) = observall.real();
-        }
-    }
-    index_samples++;
+
+	if (obsComputeExpectation)
+		sample_ex();
+	else
+	{
+		if (nbObservables == 0)
+			cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples * Hsize, 1);
+		else
+		{
+			std::complex<double> observall;
+			for (int i = 0; i < nbObservables; i++)
+			{
+				mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, one, *ObsOpt[i], descriptorObs, sampledState, zero, tmpBlasVec);
+				cblas_zdotc_sub(Hsize, sampledState, 1, tmpBlasVec, 1, &observall);
+				*(samplings->values + i + index_samples * nbObservables) = observall.real();
+			}
+		}
+		index_samples++;
+	}
+}
+
+void krylovTimeEvolver::sample_ex()
+{
+	if (nbObservables == 0)
+		cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples * Hsize, 1);
+	else
+	{
+		int i = 0;
+		for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
+		{
+			*(samplings->values + i + index_samples * nbObservables) = (*obsIter)->expectation(sampledState, Hsize);
+		}
+	}
+	index_samples++;
 }
 
 /**
@@ -158,12 +189,18 @@ void krylovTimeEvolver::destroyOptimizeInput()
 {
     if(HamOpt != nullptr)
         mkl_sparse_destroy(*HamOpt);
-    if(nbObservables > 0)
-    {
-        for(int i = 0; i != nbObservables; i++)
-            mkl_sparse_destroy(*ObsOpt[i]);
-    }
+
+	if (!obsComputeExpectation)
+	{
+		if (nbObservables > 0)
+		{
+			for (int i = 0; i != nbObservables; i++)
+				mkl_sparse_destroy(*ObsOpt[i]);
+		}
+	}
 }
+
+
 
 /**
  * Brings input parameters in form needed for mkl-routines that perform operations on large matrices and vectors
@@ -177,9 +214,6 @@ void krylovTimeEvolver::optimizeInput()
     matrix_descr type; type.type = SPARSE_MATRIX_TYPE_GENERAL;
     
     HamOpt = new sparse_matrix_t;
-    ObsOpt = new sparse_matrix_t*[nbObservables];
-    for (int i = 0; i != nbObservables; i++)
-        ObsOpt[i] = new sparse_matrix_t;
     
     if (Ham->numValues != 0)
         mklStatus = mkl_sparse_z_create_coo(HamOpt, SPARSE_INDEX_BASE_ZERO, Ham->m, Ham->n, Ham->numValues, Ham->rowIndex, Ham->columns, Ham->values);
@@ -189,17 +223,28 @@ void krylovTimeEvolver::optimizeInput()
     mklStatus = mkl_sparse_set_mv_hint(*HamOpt, SPARSE_OPERATION_NON_TRANSPOSE, type, (size_t)std::llabs(std::llround(m*t)));
     mklStatus = mkl_sparse_set_memory_hint(*HamOpt, SPARSE_MEMORY_AGGRESSIVE);
     mklStatus = mkl_sparse_optimize(*HamOpt);
-    
-    for (int i = 0; i != nbObservables; i++)
-    {
-        mklStatus = mkl_sparse_z_create_coo(ObsOpt[i], SPARSE_INDEX_BASE_ZERO, observables[i]->m, observables[i]->n, observables[i]->numValues, observables[i]->rowIndex, observables[i]->columns, observables[i]->values);
-        if(mklStatus != SPARSE_STATUS_SUCCESS)
-        {
-            std::cerr << "Could not process Matrix representation of observable " << i << ". Empty matrices can not be processed" << std::endl;
-            exit(1);
-        }
-    }
+
+	ObsOpt = nullptr;
+
+	if (!obsComputeExpectation)
+	{
+		ObsOpt = new sparse_matrix_t * [nbObservables];
+		for (int i = 0; i != nbObservables; i++)
+			ObsOpt[i] = new sparse_matrix_t;
+
+		for (int i = 0; i != nbObservables; i++)
+		{
+			mklStatus = mkl_sparse_z_create_coo(ObsOpt[i], SPARSE_INDEX_BASE_ZERO, observables[i]->m, observables[i]->n, observables[i]->numValues, observables[i]->rowIndex, observables[i]->columns, observables[i]->values);
+			if (mklStatus != SPARSE_STATUS_SUCCESS)
+			{
+				std::cerr << "Could not process Matrix representation of observable " << i << ". Empty matrices can not be processed" << std::endl;
+				exit(1);
+			}
+		}
+	}
 }
+
+
 
 /**
  * Given a Krylov subspace, this function finds out how far (i.e. for what time step) one can use it without exceeding the prescribed error bound. To this end, it computes an error bound for different possible time steps. This function only operates in the Krylov subspace, i.e. with vectors and matrices of dimension m
@@ -698,4 +743,126 @@ std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double
 
 	return tmpintKernelExp;
 
+}
+
+
+std::string krylovBasicObservable::retName()
+{
+	return obs_name;
+}
+
+obsType krylovBasicObservable::retType()
+{
+	return type;
+}
+
+
+krylovMatrixObservable::krylovMatrixObservable(const std::string& name, matrix* obser) : krylovBasicObservable(name)
+{
+	dim = obser->m;
+	type = MATRIX_TYPE_OBS;
+	if(dim > 0)
+		tmpBlasVec = new std::complex<double>[dim];
+
+	obs = std::make_unique<matrix>(*obser);
+
+}
+
+krylovMatrixObservable::~krylovMatrixObservable()
+{
+	if (dim > 0)
+		delete[] tmpBlasVec;
+}
+
+std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* vec, int len) //requires testing
+{
+	if (len != dim)
+	{
+		std::cerr << "Incompatible dimensions" << std::endl;
+		exit(1);
+	}
+	std::complex<double> observall;
+	cblas_zgemv(CblasColMajor, CblasNoTrans, dim, dim, &one, obs->values, dim, vec, 1, &zero, tmpBlasVec, 1);
+	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
+	return observall;
+}
+
+krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, smatrix* obser) : krylovBasicObservable(name)
+{
+	dim = obser->m;
+	type = SPARSE_MATRIX_TYPE_OBS;
+	obs = std::make_unique<smatrix>(*obser); //make owned copy (I don't know if that's the best way)
+
+
+	tmpBlasVec = new std::complex<double>[dim];
+
+	descriptorObs.diag = SPARSE_DIAG_NON_UNIT;
+	descriptorObs.type = SPARSE_MATRIX_TYPE_GENERAL;
+	ObsOpt = new sparse_matrix_t;
+
+	sparse_status_t mklStatus;
+
+	mklStatus = mkl_sparse_z_create_coo(ObsOpt, SPARSE_INDEX_BASE_ZERO, obs->m, obs->n, obs->numValues, obs->rowIndex, obs->columns, obs->values);
+
+	if (mklStatus != SPARSE_STATUS_SUCCESS)
+	{
+		std::cerr << "Could not process Matrix representation of observable " << ". Empty matrices can not be processed" << std::endl;
+		exit(1);
+	}
+}
+
+krylovSpMatrixObservable::~krylovSpMatrixObservable()
+{
+	if (dim > 0)
+	{
+		delete[] tmpBlasVec;
+	}
+}
+
+std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
+{
+
+	if (len != dim)
+	{
+		std::cerr << "Incompatible dimensions" << std::endl;
+		exit(1);
+	}
+
+	sparse_status_t mklStatus;
+	std::complex<double> observall;
+
+	mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, one, *ObsOpt, descriptorObs, vec, zero, tmpBlasVec);
+
+	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
+
+	return observall;
+
+}
+
+//this would not be necessary with C++17
+
+constexpr std::complex<double> krylovBasicObservable::zero;
+constexpr std::complex<double> krylovBasicObservable::one;
+
+krylovVectorObservable::krylovVectorObservable(const std::string& name, std::complex<double>* obser, size_t len) : krylovBasicObservable(name)
+{
+	dim = len;
+	type = VECTOR_TYPE_OBS;
+	obs = std::make_unique<std::complex<double>[]>(len);
+	cblas_zcopy(dim, obser, 1, obs.get(), 1);
+}
+
+std::complex<double> krylovVectorObservable::expectation(std::complex<double>* vec, int len)
+{
+	if (len != dim)
+	{
+		std::cerr << "Incompatible dimensions" << std::endl;
+		exit(1);
+	}
+	std::complex<double> observall;
+	cblas_zdotc_sub(len, vec, 1, obs.get(), 1, &observall);
+	std::complex<double> observallreturn;
+	observallreturn.imag(0);
+	observallreturn.real(std::norm(observall));
+	return observallreturn; //returns the squared magnitued
 }
