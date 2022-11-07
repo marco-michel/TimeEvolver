@@ -83,7 +83,7 @@ void outputHelper::saveResult()
     //If not write data to simple csv files
 #else
 
-    for (int j = 0; j != nbObservables && obsIter != obs_list.end(); j++)
+    for (int j = 0; j != nbObservables && obsIter != obs_list.end(); j++, obsIter++)
     {
         std::string fileNameCSV = outputFileName + (*obsIter)->getName() + ".csv";
         std::ofstream outputfile;
