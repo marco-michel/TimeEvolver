@@ -54,6 +54,7 @@ basis::basis(int N, int K, int nbQudits, int capacity, int quant)
 		int NEff = (int) std::ceil(N/quant);
 		int capacityEff = (int) std::ceil(capacity/quant);
 		basisSize = std::pow(capacityEff + 1, nbQudits)*nchoosekSmart(NEff + K - 1 - nbQudits, NEff);
+		basisSize = std::min(1500000,std::abs(basisSize+1));
 	}
 	b.reserve(basisSize);
 
