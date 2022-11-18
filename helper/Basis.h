@@ -56,10 +56,17 @@ struct basisVector
 			std::cerr << "basisvector too small" << std::endl;
 			exit(12);
 		}
-
-		length = le;
-		e = new int[le]();
-		e[pos] = 1;
+		if (le > 0)
+		{
+			length = le;
+			e = new int[le]();
+			e[pos] = 1;
+		}
+		else
+		{
+			length = 0;
+			e = nullptr;
+		}
 	}
 	
 	/**
@@ -90,10 +97,13 @@ struct basisVector
 	 */
 	void zeros(int n)
 	{
-		if (length != 0)
-			delete[] e;
-		length = n;
-		e = new int[n];
+		if (n > 0)
+		{
+			if (length != 0)
+				delete[] e;
+			length = n;
+			e = new int[n];
+		}
 		zeros();
 	}
 
@@ -130,11 +140,19 @@ struct basisVector
 	 */
 	basisVector(const basisVector &old_obj)
 	{
-		length = old_obj.length;
-		e = new int[length];
-		for (unsigned int i = 0; i != length; i++)
+		if (old_obj.length > 0)
 		{
-			e[i] = old_obj.e[i];
+			length = old_obj.length;
+			e = new int[length];
+			for (unsigned int i = 0; i != length; i++)
+			{
+				e[i] = old_obj.e[i];
+			}
+		}
+		else
+		{
+			e = nullptr;
+			length = 0;
 		}
 	}
 
