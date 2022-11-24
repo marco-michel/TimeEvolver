@@ -116,7 +116,7 @@ class krylovTimeEvolver
 {
 public:
     krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm= true, bool fastIntegration = false);
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false);
+    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false, bool progressBar = false);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
@@ -131,6 +131,7 @@ protected:
     void sample_ex();
     bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
+    void printProgress(float prog);
 
     std::complex<double>* expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH);
 
@@ -141,7 +142,7 @@ protected:
     smatrix** observables; int nbObservables;
     smatrix* Ham;
     std::complex<double> expFactor;
-    bool checkNorm, fastIntegration;
+    bool checkNorm, fastIntegration, progressBar;
     
     //Determined by input data
     size_t n_samples;
@@ -175,6 +176,7 @@ protected:
     static constexpr std::complex<double> one = std::complex<double>(1.0,0.0);
     static constexpr std::complex<double> zero = std::complex<double>(0.0,0.0);
     std::complex<double>* e_1;
+    static const int pBarWidth = 70;
 
     //New observables
     bool obsComputeExpectation;

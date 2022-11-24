@@ -48,7 +48,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
     }
     
     this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m  = std::min<size_t>(m, Hsize);
-	this->observables = observables; this->nbObservables = nbObservables; this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration;
+	this->observables = observables; this->nbObservables = nbObservables; this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration; this->progressBar = false;
     ObsOpt = nullptr; HamOpt = nullptr;
 
 	matrixNorm = Ham->norm1();
@@ -103,10 +103,11 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 }
 
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration) :
+krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration, bool progressBar) :
 	krylovTimeEvolver(t, Hsize, v, samplingStep, tol, mm, nullptr, observables.size(), Ham, expFactor, checkNorm, fastIntegration)
 {
 	obsComputeExpectation = true; //overwrite if we call this constructor
+	this->progressBar = progressBar;
 	obsVector = std::move(observables);
 	//obsVector = observables;
 }
@@ -146,6 +147,11 @@ constexpr std::complex<double> krylovTimeEvolver::zero;
  */
 void krylovTimeEvolver::sample()
 {
+	if (progressBar)
+	{
+		float prog = static_cast<float>(index_samples) / n_samples;
+		printProgress(prog);
+	}
 
 	if (obsComputeExpectation)
 		sample_ex();
@@ -718,6 +724,19 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	
 	successful = successful && success;
 	return ret;
+}
+
+void krylovTimeEvolver::printProgress(float prog)
+{
+	std::cout << "[";
+	int pos = pBarWidth * prog;
+	for (int i = 0; i < pBarWidth; ++i)
+	{
+		if (i <= pos) std::cout << "|";
+		else std::cout << " ";
+	}
+	std::cout << "] " << int(prog * 100.0) << " %\r";
+	std::cout.flush();
 }
 
 

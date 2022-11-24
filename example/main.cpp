@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
     }
     
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(awu), hamMatrix, imaginaryMinus, true, fastIntegration);
+    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(awu), hamMatrix, imaginaryMinus, true, fastIntegration, true);
 
     //krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus, true, fastIntegration);
     krylovReturn* results = timeEvolver.timeEvolve();
