@@ -139,6 +139,19 @@ source /opt/intel/oneapi/setvars.sh intel64
 ```
 Note that the variables are only set for the context of your session. For a permanent solution please visit the Intel helppage.
 
+### Windows with WSL
+
+In the following we provide a short guideline to install Windows Subsystems for Linux (WSL). For details please see the official WSL documentation. Note that WSL is only available on Windows 10 version 2004 and higher or Windows 11. Open a powershell command terminal and type
+```
+wsl --install
+```
+to install WSL. A restart is usually required after this step. To install for example ``Ubuntu`` type in a powershell or command prompt
+```
+wsl --install -d ubuntu
+```
+Note that there are many other distributions to choose from as well as newer versions of ubuntu. After installations you need to choose a user name and password. A Linux command terminal can be opened via the corresponding app Windows creates automatically (named after your distributions) or typing the name of the distribution in another terminal. 
+
+
 ## Testing
 
 To test if the compilation was successful and the program works as intended please type
