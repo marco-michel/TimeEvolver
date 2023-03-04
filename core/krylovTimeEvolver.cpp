@@ -153,36 +153,24 @@ void krylovTimeEvolver::sample()
 		printProgress(prog);
 	}
 
-	if (obsComputeExpectation)
-		sample_ex();
-	else
-	{
-		if (nbObservables == 0)
-			cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples * Hsize, 1);
-		else
-		{
-			std::complex<double> observall;
-			for (int i = 0; i < nbObservables; i++)
-			{
-				mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, one, *ObsOpt[i], descriptorObs, sampledState, zero, tmpBlasVec);
-				cblas_zdotc_sub(Hsize, sampledState, 1, tmpBlasVec, 1, &observall);
-				*(samplings->values + i + index_samples * nbObservables) = observall.real();
-			}
-		}
-		index_samples++;
-	}
-}
-
-void krylovTimeEvolver::sample_ex()
-{
 	if (nbObservables == 0)
 		cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples * Hsize, 1);
-	else
+	else if (obsComputeExpectation)
 	{
 		int i = 0;
 		for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
 		{
 			*(samplings->values + i + index_samples * nbObservables) = (*obsIter)->expectation(sampledState, Hsize);
+		}
+	}
+	else
+	{
+		std::complex<double> observall;
+		for (int i = 0; i < nbObservables; i++)
+		{
+			mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, one, *ObsOpt[i], descriptorObs, sampledState, zero, tmpBlasVec);
+			cblas_zdotc_sub(Hsize, sampledState, 1, tmpBlasVec, 1, &observall);
+			*(samplings->values + i + index_samples * nbObservables) = observall.real();
 		}
 	}
 	index_samples++;
