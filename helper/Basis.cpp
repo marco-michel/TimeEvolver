@@ -27,20 +27,44 @@ void basis::createHashTable()
  * @param nbQudits The number of modes which have a fixed maximal occupation number (K-nbQuits modes will have no limit on their occupation number)
  * @param capacity The maximal occupation number for those modes which have a limit on their occupation number
  */ 
-basis::basis(int N, int K, int nbQudits, int capacity)
+basis::basis(int N, int K, int nbQudits, int capacity) : 
+	basis(N,K,nbQudits,capacity,1) {}
+
+/**
+ * Creates a set of basis states. For some modes there is a fixed maximal occupation number whereas there is no such restriction for others.
+ * @param N The total number of particles
+ * @param K The total number of modes
+ * @param nbQudits The number of modes which have a fixed maximal occupation number (K-nbQuits modes will have no limit on their occupation number)
+ * @param capacity The maximal occupation number for those modes which have a limit on their occupation number
+ * @param quant The smallest difference in occupation number in any of the modes, expect the first one (e.g. 2 means that all modes but the first one can only have even occupation numbers)
+ */ 
+basis::basis(int N, int K, int nbQudits, int capacity, int quant)
 {
 
 	numberModes = K;
 
 	std::vector<basisVector> b;
-	int basisSize = std::pow(capacity + 1, nbQudits)*nchoosekSmart(N + K - 1 - nbQudits, N);
+	int basisSize = 2;
+	/*
+	if (quant == 1)
+	{
+		basisSize = std::pow(capacity + 1, nbQudits)*nchoosekSmart(N + K - 1 - nbQudits, N);
+	}
+	else
+	{
+		int NEff = (int) std::ceil(N/quant);
+		int capacityEff = (int) std::ceil(capacity/quant);
+		basisSize = std::pow(capacityEff + 1, nbQudits)*nchoosekSmart(NEff + K - 1 - nbQudits, NEff);
+		basisSize = std::min(1500000,std::abs(basisSize+1));
+	}
 	b.reserve(basisSize);
-
+	*/
 	basisVector test = basisVector(K);
 
 	std::vector<basisVector> oldStates(1);
 	oldStates[0] = test;
 	std::vector<basisVector> newStates(basisSize);
+	//std::vector<basisVector> newStates;
 	for (unsigned int i = 0; i != newStates.size(); i++)
 		newStates[i] = test;
 
@@ -68,7 +92,7 @@ basis::basis(int N, int K, int nbQudits, int capacity)
 				upperBoundary = N - occuNumber;
 			}
 
-			for (int occ = 1; occ <= upperBoundary; occ++)
+			for (int occ = quant; occ <= upperBoundary; occ=occ+quant)
 			{
 				newState = oldStates[l];
 				newState.e[k-1] = occ;
