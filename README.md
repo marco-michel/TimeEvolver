@@ -52,12 +52,11 @@ Note: If you install Intel MKL via the package manager you will be asked if you 
 **In order for ``TimeEvolver`` to work properly, Boost version 1.75 and newer is required. Currently, however, most distributions ship packages of the boost library of version 1.74 and older. If your machine does not have at least version 1.75, we offer several solutions (including an automatic download and compilation of the Boost-library), which are described in section "Installation"**.
 
 ## Mac
-
-The MKL library is not supported on ARM processors used in newer Apple products. Therefore, ``TimeEvolver`` currently only works on older x86 based machines.
+The ``TimeEvolver`` is unfortunately not supported on newer Apple products. After the development of the first version Apple switched from x86 Intel processors to in-house developed ARM processors. The ``TimeEvolver`` relies on the Intel MKL library for various numerical tasks, specifically (sparse) BLAS. This library, however, is not available for non-x86 systems.
 
 ## Windows 
 
-There are several ways to compile ``TimeEvolver`` on Windows. The easiest option is to use WSL (Windows Subsystem for Linux), where you can install a virtual Ubuntu machine and then follow the instructions described above. 
+There are several ways to compile ``TimeEvolver`` on Windows. The easiest option is to use WSL (Windows Subsystem for Linux), where you can install a virtual Ubuntu machine and then follow the instructions described above. We provide a short guide to install WSL below. 
 
 A second option is to download binary libraries with the help of the ``vcpk`` package manager. BOOST and HDF5 can be obtained for Windows 64bit OS via
 ```
@@ -149,7 +148,7 @@ to install WSL. A restart is usually required after this step. To install for ex
 ```
 wsl --install -d ubuntu
 ```
-Note that there are many other distributions to choose from as well as newer versions of ubuntu. After installations you need to choose a user name and password. A Linux command terminal can be opened via the corresponding app Windows creates automatically (named after your distributions) or typing the name of the distribution in another terminal. 
+Note that there are many other distributions to choose from as well as newer versions of ubuntu. We again refer to the official documentation for more information. After installations you need to choose a user name and password. A Linux command terminal can be opened via the corresponding app Windows creates automatically (named after your distributions) or typing the name of the distribution in another terminal. 
 
 
 ## Testing
