@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 - 2022-03-07
+
+### Added
+- New `krylovBasicObservable` class to extend types of observables (vector, sparseMatrix, denseMatrix)
+- `krylovTimeEvolver` can relay computation of expectation value to observable `krylovBasicObservable` instance 
+- Occupation number in `basis` can be restricted, e.g. only even numbers
+- Progressbar
+
+### Changed
+- No memory reservation in basis creation
+
+
 ## 1.3.0 - 2022-10-25
 
 ### Added
