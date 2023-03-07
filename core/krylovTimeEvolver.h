@@ -93,14 +93,16 @@ more than 1 digit means failure: 10 (computation of error may be  spoiled due to
             exit(1);
         }
         evolvedState = new std::complex<double>[Hsize];
-        if(nbSamples > 0)
+        if (nbSamples > 0)
         {
-            if(nbObservables == 0)
+            if (nbObservables == 0)
                 sampling = new matrix(Hsize, nbSamples);
             else {
                 sampling = new matrix(nbObservables, nbSamples);
             }
         }
+        else
+            sampling = nullptr;
     }
 
 	~krylovReturn()
