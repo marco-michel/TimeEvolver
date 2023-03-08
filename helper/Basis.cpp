@@ -45,26 +45,13 @@ basis::basis(int N, int K, int nbQudits, int capacity, int quant)
 
 	std::vector<basisVector> b;
 	int basisSize = 2;
-	/*
-	if (quant == 1)
-	{
-		basisSize = std::pow(capacity + 1, nbQudits)*nchoosekSmart(N + K - 1 - nbQudits, N);
-	}
-	else
-	{
-		int NEff = (int) std::ceil(N/quant);
-		int capacityEff = (int) std::ceil(capacity/quant);
-		basisSize = std::pow(capacityEff + 1, nbQudits)*nchoosekSmart(NEff + K - 1 - nbQudits, NEff);
-		basisSize = std::min(1500000,std::abs(basisSize+1));
-	}
-	b.reserve(basisSize);
-	*/
+
 	basisVector test = basisVector(K);
 
 	std::vector<basisVector> oldStates(1);
 	oldStates[0] = test;
 	std::vector<basisVector> newStates(basisSize);
-	//std::vector<basisVector> newStates;
+
 	for (unsigned int i = 0; i != newStates.size(); i++)
 		newStates[i] = test;
 
