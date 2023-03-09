@@ -109,7 +109,6 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	obsComputeExpectation = true; //overwrite if we call this constructor
 	this->progressBar = progressBar;
 	obsVector = std::move(observables);
-	//obsVector = observables;
 }
 
 /**
