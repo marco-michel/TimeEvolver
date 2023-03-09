@@ -75,7 +75,6 @@ typedef std::vector< std::shared_ptr<parameter> > parameter_list; //shorten nota
 
 //------------------------------------------------------------------------------------------------
 
-enum obsType { vector, sparseMatrix, matrix }; 
 class observable  //intended to be extened to something similar as the parameter list
 {
 public:
