@@ -212,8 +212,8 @@ void krylovTimeEvolver::optimizeInput()
     if (Ham->numValues != 0)
         mklStatus = mkl_sparse_z_create_coo(HamOpt, SPARSE_INDEX_BASE_ZERO, Ham->m, Ham->n, Ham->numValues, Ham->rowIndex, Ham->columns, Ham->values);
     
-    //mklStatus = mkl_sparse_convert_csr(*HamOpt, SPARSE_OPERATION_NON_TRANSPOSE, HamOpt);
-    //mklStatus = mkl_sparse_order(*HamOpt);
+    mklStatus = mkl_sparse_convert_csr(*HamOpt, SPARSE_OPERATION_NON_TRANSPOSE, HamOpt);
+    mklStatus = mkl_sparse_order(*HamOpt);
     mklStatus = mkl_sparse_set_mv_hint(*HamOpt, SPARSE_OPERATION_NON_TRANSPOSE, type, (size_t)std::llabs(std::llround(m*t)));
     mklStatus = mkl_sparse_set_memory_hint(*HamOpt, SPARSE_MEMORY_AGGRESSIVE);
     mklStatus = mkl_sparse_optimize(*HamOpt);
