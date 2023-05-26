@@ -104,9 +104,71 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 }
 
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration, bool progressBar) :
-	krylovTimeEvolver(t, Hsize, v, samplingStep, tol, mm, nullptr, observables.size(), Ham, expFactor, checkNorm, fastIntegration)
-{
+krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration, bool progressBar){
+
+	if (Hsize == 0)
+	{
+		std::cerr << "Invalid Hilbertspace dimension" << std::endl;
+		exit(1);
+	}
+
+	this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m = std::min<size_t>(m, Hsize);
+	this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration; this->progressBar = false; this->nbObservables = observables.size();
+	ObsOpt = nullptr; HamOpt = nullptr;
+
+
+	matrixNorm = Ham->norm1();
+
+	if (fastIntegration)//Use Gauss integration
+	{
+		integrationMethodLong = 0;
+		integrationMethodShort = 1;
+	}
+	else//Use double exponential integration
+	{
+		integrationMethodLong = integrationMethodShort = 2;
+	}
+
+	//Numerical integration terminates if error*L1 < termination
+	termination = 1e-3;
+
+	//number of sampling steps
+	n_samples = (size_t)floor(t / samplingStep) + 1;
+
+	if (nbObservables == 0)
+		samplings = new matrix(Hsize, n_samples);
+	else
+		samplings = new matrix(nbObservables, n_samples);
+
+	//The state at the current time
+	currentVec = new std::complex<double>[Hsize];
+	cblas_zcopy(Hsize, v, 1, currentVec, 1);
+	//The state to be sampled
+	sampledState = new std::complex<double>[Hsize];
+	cblas_zcopy(Hsize, v, 1, sampledState, 1);
+	//A temporary vector of size Hsize
+	tmpBlasVec = new std::complex<double>[Hsize];
+	//Two temporary vectors of size m
+	tmpKrylovVec1 = new std::complex<double>[m];
+	tmpKrylovVec2 = new std::complex<double>[m];
+	tmpintKernelExp = new std::complex<double>[m];
+	tmpintKernelExp1 = new std::complex<double>[m];
+	tmpintKernelExp2 = new std::complex<double>[m];
+	tmpintKernelExp3 = new std::complex<double>[m];
+	tmpintKernelT = new std::complex<double>[m];
+
+	descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
+	descriptor.diag = SPARSE_DIAG_NON_UNIT;
+	descriptorObs.diag = SPARSE_DIAG_NON_UNIT;
+	descriptorObs.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+	index_samples = 0;
+	e_1 = new std::complex<double>[m];
+	e_1[0].real(1);
+
+	obsComputeExpectation = false;
+
+
 	obsComputeExpectation = true; //overwrite if we call this constructor
 	this->progressBar = progressBar;
 	obsVector = std::move(observables);
