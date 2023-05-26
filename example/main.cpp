@@ -31,6 +31,7 @@ using namespace H5;
 #include "hamiltonian.h"
 #include "exampleHamiltonian.h"
 #include "krylovHelper.h"
+#include "krylovObservables.h"
 
 //INPUT:
 //    int N0; int Nm; int K;
