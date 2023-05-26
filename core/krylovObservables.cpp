@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <complex>
+#include <memory>
 
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
