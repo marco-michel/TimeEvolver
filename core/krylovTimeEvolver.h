@@ -86,10 +86,11 @@ protected:
     //Input date
     double t; size_t Hsize;
     double samplingStep; double tol; size_t m;
-    smatrix** observables; int nbObservables;
+    int nbObservables;
     smatrix* Ham;
     std::complex<double> expFactor;
     bool checkNorm, fastIntegration, progressBar;
+    std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
     
     //Determined by input data
     size_t n_samples;
@@ -101,10 +102,8 @@ protected:
     double termination;
     
     //variables for mkl-library
-    sparse_matrix_t** ObsOpt;
     sparse_matrix_t* HamOpt;
     matrix_descr descriptor;
-    matrix_descr descriptorObs;
     
     //temporary variables shared by different functions
     std::complex<double>* currentVec;
@@ -124,8 +123,4 @@ protected:
     static constexpr std::complex<double> zero = std::complex<double>(0.0,0.0);
     std::complex<double>* e_1;
     static const int pBarWidth = 70;
-
-    //New observables
-    bool obsComputeExpectation;
-    std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
 };
