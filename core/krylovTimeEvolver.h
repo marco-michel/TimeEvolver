@@ -73,7 +73,10 @@ public:
     matrix* samplings;
 
     //options
-    bool suppressWarnings;
+
+    void set_suppressWarnings(bool s);
+    void set_expFactor(std::complex<double> exp);
+
     
 protected:
     void optimizeInput();
@@ -83,6 +86,7 @@ protected:
     bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
     void printProgress(float prog);
+
 
     std::complex<double>* expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH);
 
@@ -94,7 +98,7 @@ protected:
     smatrix* Ham;
     std::complex<double> expFactor;
     std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
-    bool checkNorm, fastIntegration, progressBar;
+    bool checkNorm, fastIntegration, progressBar, suppressWarnings;
     
     //Determined by input data
     size_t n_samples;
