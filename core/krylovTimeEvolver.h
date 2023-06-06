@@ -65,11 +65,15 @@ class krylovTimeEvolver
 public:
     krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm= true, bool fastIntegration = false);
     krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false, bool progressBar = false);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
     //sampled values of observables
     matrix* samplings;
+
+    //options
+    bool suppressWarnings;
     
 protected:
     void optimizeInput();
@@ -89,8 +93,8 @@ protected:
     int nbObservables;
     smatrix* Ham;
     std::complex<double> expFactor;
-    bool checkNorm, fastIntegration, progressBar;
     std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
+    bool checkNorm, fastIntegration, progressBar;
     
     //Determined by input data
     size_t n_samples;

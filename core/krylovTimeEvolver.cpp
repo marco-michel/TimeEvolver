@@ -125,7 +125,12 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	e_1[0].real(1);
 
 	obsVector = std::move(observables);
+	suppressWarnings = false;
 }
+
+
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, smatrix* Ham) : krylovTimeEvolver(t, Ham->m, v, samplingStep, 1e-6, 40, std::move(observables), Ham, 
+	std::complex<double>(0.0,-1.0), true, false, false){}
 
 /**
 * Destructor
@@ -351,7 +356,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		}
 	}
 
-	if (fastIntegration)
+	if (fastIntegration && !suppressWarnings)
 		std::cout << "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result." << std::endl;
     
     //Time of current state
@@ -431,7 +436,9 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			V = Vtmp;
 			m = m_hbd;
 
-			std::cout << "***Lucky breakdown at Krylov dimension " << m	<< " *** " << std::endl;
+			if (!suppressWarnings) {
+				std::cout << "***Lucky breakdown at Krylov dimension " << m << " *** " << std::endl;
+			}
 			statusCode = 1;
 		}
 		//Finally diagonalize Hessenberg matrix H (since it will be exponentiated many times)
@@ -506,8 +513,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         {
             if (std::abs(nrm - 1) > tol)
             {
-                std::cerr << "CRITICAL WARNING: Norm of state vector is not inside specified tolerance." << std::endl;
-				std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
+				if (!suppressWarnings) {
+					std::cerr << "CRITICAL WARNING: Norm of state vector is not inside specified tolerance." << std::endl;
+					std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
+				}
 				nbErrors++;
 				statusCode = 30;
             }
@@ -517,7 +526,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 	//Output of potential errors
 	numericalErrorEstimateTotal = numericalErrorEstimate * n_steps; //Rough estimate of total round-of error
-	if (nbErrRoundOff != 0)
+	if (nbErrRoundOff != 0 && !suppressWarnings)
 	{
 		std::cerr << "CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in " << nbErrRoundOff << " Krylov spaces." << std::endl;
 		std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
@@ -529,7 +538,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		nbErrors++;
 		statusCode = 10;
 	}
-	if (nbErrInt != 0)
+	if (nbErrInt != 0 && !suppressWarnings)
 	{
 		std::cerr << "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " << nbErrInt << " Krylov spaces." << std::endl;
 		std::cerr << "THE DESIRED ERROR BOUND MAY BE VIOLATED." << std::endl;
@@ -539,7 +548,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	}
 	if (numericalErrorEstimateTotal > err && nbErrRoundOff == 0) //No need to output warning twice. Only relevant for very simple systems for which 1 Krylov space is sufficient /  lucky breakdown
 	{
-		if (numericalErrorEstimateTotal > tol)
+		if (numericalErrorEstimateTotal > tol && !suppressWarnings)
 		{
 			std::cerr << "CRITICAL WARNING: The numerical error estimate " << numericalErrorEstimateTotal << " was larger than the requested tolerance " << tol << std::endl;
 			std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
@@ -548,14 +557,16 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		}
 		else
 		{
-			std::cout << "Info: Analytic error " << err << " was smaller than the estimate of the numerical error " << numericalErrorEstimateTotal << "." << std::endl;
-			std::cout << "The computed error is not accurate." << std::endl;
+			if (!suppressWarnings) {
+				std::cout << "Info: Analytic error " << err << " was smaller than the estimate of the numerical error " << numericalErrorEstimateTotal << "." << std::endl;
+				std::cout << "The computed error is not accurate." << std::endl;
+			}
 			if (statusCode != 1) //Don't overwrite Lucky breakdown status
 				statusCode = 2;
 		}
 	}
 
-	if (nbErrors > 1)
+	if (nbErrors > 1 && !suppressWarnings)
 	{
 		std::cerr << "There were multiple critical warnings raised during evaluation. Please see ouput above for further details." << std::endl;
 		statusCode = 100;
