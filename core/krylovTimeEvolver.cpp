@@ -77,15 +77,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 	matrixNorm = Ham->norm1();
 
-	if (fastIntegration)//Use Gauss integration
-	{
-		integrationMethodLong = 0;
-		integrationMethodShort = 1;
-	}
-	else//Use double exponential integration
-	{
-		integrationMethodLong = integrationMethodShort = 2;
-	}
+
 
 	//Numerical integration terminates if error*L1 < termination
 	termination = 1e-3;
@@ -117,8 +109,6 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 	descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
 	descriptor.diag = SPARSE_DIAG_NON_UNIT;
-	//descriptorObs.diag = SPARSE_DIAG_NON_UNIT;
-	//descriptorObs.type = SPARSE_MATRIX_TYPE_GENERAL;
 
 	index_samples = 0;
 	e_1 = new std::complex<double>[m];
@@ -345,6 +335,16 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	int N_SUBSTEPS = 50;
 	//After each time step, the optimal step size is computed. To avoid substep reduction because of a too small number of substeps, the optimal step size is multiplied by this number
 	double INITIAL_STEP_FRACTION = 0.97;
+
+	if (fastIntegration)//Use Gauss integration
+	{
+		integrationMethodLong = 0;
+		integrationMethodShort = 1;
+	}
+	else//Use double exponential integration
+	{
+		integrationMethodLong = integrationMethodShort = 2;
+	}
 
 	optimizeInput();
 	if (checkNorm) 
