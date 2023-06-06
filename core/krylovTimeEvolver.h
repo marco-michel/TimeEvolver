@@ -73,9 +73,9 @@ public:
     matrix* samplings;
 
     //options
-
-    void set_suppressWarnings(bool s);
-    void set_expFactor(std::complex<double> exp);
+    bool checkNorm, fastIntegration, progressBar, suppressWarnings;
+    std::complex<double> expFactor;
+    double tol; size_t m;
 
     
 protected:
@@ -93,12 +93,11 @@ protected:
     
     //Input date
     double t; size_t Hsize;
-    double samplingStep; double tol; size_t m;
+    double samplingStep; 
     int nbObservables;
     smatrix* Ham;
-    std::complex<double> expFactor;
     std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
-    bool checkNorm, fastIntegration, progressBar, suppressWarnings;
+
     
     //Determined by input data
     size_t n_samples;

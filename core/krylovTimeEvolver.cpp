@@ -189,16 +189,6 @@ void krylovTimeEvolver::destroyOptimizeInput()
 }
 
 
-
-void krylovTimeEvolver::set_suppressWarnings(bool s)
-{
-	suppressWarnings = s;
-}
-
-void krylovTimeEvolver::set_expFactor(std::complex<double> exp){
-	expFactor = exp;
-}
-
 /**
  * Brings input parameters in form needed for mkl-routines that perform operations on large matrices and vectors
  */
