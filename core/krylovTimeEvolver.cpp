@@ -736,11 +736,22 @@ std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double
 	
 	//Exponenting scaled eigenvalues
 	cblas_zdscal(m, t, tmpintKernelExp1, 1);
+#ifdef USE_MKL
 	vzExp(m, tmpintKernelExp1, tmpintKernelExp2);
-
+#else
+	for (int i = 0; i < m; i++) {
+		tmpintKernelExp2[i] = std::exp(tmpintKernelExp1[i]);
+	}
+#endif
 	//Rotate basis back to Kyrlovspace
 	cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1, &zero, tmpintKernelT, 1);
+#ifdef USE_MKL
 	vzMul(m, tmpintKernelExp2, tmpintKernelT, tmpintKernelExp3);
+#else
+	for (int i = 0; i < m; i++) {
+		tmpintKernelExp3[i] = tmpintKernelT[i] * tmpintKernelExp2[i];
+	}
+#endif
 	cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
 		tmpintKernelExp3, 1, &zero, tmpintKernelExp, 1);
 
