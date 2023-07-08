@@ -138,14 +138,14 @@ int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::com
     sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, alpha, *MKLSparseMatrix,
         descriptor, in, zero, out);
     return (int) mklStatus;
-#else  //Absolutetly not recommended, please install a optimized sparse BLAS library for reasonable performance
+#else  //not recommended, very slow,  please install an optimized sparse BLAS library for reasonable performance
     for (size_t i = 0; i != n; i++)
         out[i] = 0;
     for (size_t i = 0; i < numValues; i++) {
         out[rowIndex[i]] += alpha * values[i] * in[columns[i]];
     }
-#endif
     return 0;
+#endif
 }
 
 int smatrix::initialize() {
