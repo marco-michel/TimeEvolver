@@ -15,12 +15,6 @@
 #include <algorithm>
 #include <iostream>
 
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-#include <mkl.h>
-#include <mkl_spblas.h>
-
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
 
@@ -79,7 +73,8 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 	matrixNorm = Ham->norm1();
 
-
+	//NEW TEST
+	Ham->initialize();
 
 	//Numerical integration terminates if error*L1 < termination
 	termination = 1e-3;
@@ -174,16 +169,18 @@ void krylovTimeEvolver::sample()
 /**
  * Destroys variables created in krylovTimeEvolver::optimizeInput
  */
+/*
 void krylovTimeEvolver::destroyOptimizeInput()
 {
     if(HamOpt != nullptr)
         mkl_sparse_destroy(*HamOpt);
 }
-
+*/
 
 /**
  * Brings input parameters in form needed for mkl-routines that perform operations on large matrices and vectors
  */
+/*
 void krylovTimeEvolver::optimizeInput()
 {
     if (Ham == nullptr)
@@ -203,7 +200,7 @@ void krylovTimeEvolver::optimizeInput()
     mklStatus = mkl_sparse_set_memory_hint(*HamOpt, SPARSE_MEMORY_AGGRESSIVE);
     mklStatus = mkl_sparse_optimize(*HamOpt);
 }
-
+*/
 
 
 /**
@@ -348,7 +345,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		integrationMethodLong = integrationMethodShort = 2;
 	}
 
-	optimizeInput();
+	//optimizeInput();
 	if (checkNorm) 
 	{
 		if (std::abs(cblas_dznrm2(Hsize, currentVec, 1) - 1.0) > tol) {
@@ -490,7 +487,13 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
             //Determine state at t_sampling in the following
             cblas_zcopy(m, eigenvalues, 1, tmpKrylovVec1, 1);
             cblas_zdscal(m, (t_sampling - t_now), tmpKrylovVec1, 1);
+#ifdef USE_MKL
             vzExp(m, tmpKrylovVec1,tmpKrylovVec2);
+#else
+			for (int i = 0; i != m; i++) {
+				tmpKrylovVec2[i] = std::exp(tmpKrylovVec1[i]);
+			}
+#endif
             //Now temp1 is no longer needed and can be reused
             cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, schurvector, m, e_1, 1, &zero, tmpKrylovVec1, 1);
             for(size_t i = 0; i != m; i++)
@@ -592,7 +595,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
     delete[] schurvector;
     delete V;
     delete H;
-    destroyOptimizeInput();
+    //destroyOptimizeInput();
 
     return ret;
 }
@@ -612,8 +615,14 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
 	cblas_zcopy(Hsize, currentVec, 1, VRet->values, 1);
 
 	for (size_t j = 0; j <= m - 1; j++) {
-		sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, expFactor, *HamOpt,
-				descriptor, (VRet->values) + j * Hsize, zero, tmpBlasVec);
+
+		Ham->spMV(expFactor, (VRet->values) + j * Hsize, tmpBlasVec);
+
+		//sparse_status_t mklStatus2 = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, expFactor, *HamOpt, descriptor, (VRet->values) + j * Hsize, zero, tmpBlasVec);
+
+
+
+		sparse_status_t mklStatus = SPARSE_STATUS_SUCCESS;
         if(SPARSE_STATUS_SUCCESS != mklStatus)
         {
             std::cerr << "MKL error " << mklStatus << std::endl;

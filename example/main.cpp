@@ -10,12 +10,12 @@
 #include <memory>
 #include <chrono>
 
-#undef I
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
+//#undef I
+//#define MKL_Complex16 std::complex<double>
+//#define MKL_INT size_t
 
-#include <mkl_types.h>
-#include <mkl.h>
+//#include <mkl_types.h>
+//#include <mkl.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     
     int nbObservables = 2*K + 2;
 
-    mkl_set_num_threads(numThreads);
+    //mkl_set_num_threads(numThreads);
     //end determine parameters
 
 
