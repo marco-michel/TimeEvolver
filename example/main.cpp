@@ -33,6 +33,8 @@ using namespace H5;
 #include "krylovHelper.h"
 #include "krylovObservables.h"
 
+using namespace TE;
+
 //INPUT:
 //    int N0; int Nm; int K;
 //  double C0; double Cm

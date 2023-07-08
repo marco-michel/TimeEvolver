@@ -12,10 +12,10 @@
 #include "mkl.h"
 #include "mkl_spblas.h"
 
-
-
 #include "matrixDataTypes.h"
 #include "Basis.h"
+
+using namespace TE;
 
 /**
  * Represents one term in the Hamiltonian

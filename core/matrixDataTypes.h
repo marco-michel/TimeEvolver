@@ -5,225 +5,226 @@
 #include <vector>
 #include <algorithm>
 
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-//#include <mkl.h>
-//#include <mkl_spblas.h>
 
 #ifdef USE_HDF
     #include <H5Cpp.h>
     using namespace H5;
 #endif
 
-//Matrix class
-class matrix
-{
-public:
-	std::complex<double>* values;
-	size_t n, m;
-	size_t numValues;
+    //Define namespace for matrices and vector classes
+    namespace TE {
 
-    matrix(size_t nn, size_t mm)
-	{
-        n = nn; m = mm;
-        numValues = n * m;
-        if (nn * mm > 0)
-            values = new std::complex<double>[n * m];
-        else
-            values = nullptr;
-	}
-
-	~matrix()
-	{
-        if(n*m >0)
+        //Matrix class
+        class matrix
         {
-            delete[] values;
-        }
-	}
+        public:
+            std::complex<double>* values;
+            size_t n, m;
+            size_t numValues;
+
+            matrix(size_t nn, size_t mm)
+            {
+                n = nn; m = mm;
+                numValues = n * m;
+                if (nn * mm > 0)
+                    values = new std::complex<double>[n * m];
+                else
+                    values = nullptr;
+            }
+
+            ~matrix()
+            {
+                if (n * m > 0)
+                {
+                    delete[] values;
+                }
+            }
 #ifdef USE_HDF 
-    int dumpHDF5(std::string filename)
-    {
-        double* realPart = new double[numValues];
-        double* imagPart = new double[numValues];
-        
-        for (unsigned int i = 0; i != numValues; i++)
-        {
-            realPart[i] = values[i].real();
-            imagPart[i] = values[i].imag();
-        }
-        
-        std::string fileNameH5 = filename;
-        H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
-        size_t NX = numValues;
-        const int RANK = 1;
-        hsize_t dimsf[RANK];
-        dimsf[0] = NX;
-        DataSpace dataspace( RANK, dimsf );
-        FloatType datatype( PredType::NATIVE_DOUBLE );
-        datatype.setOrder( H5T_ORDER_LE );
-        DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
-                                                dataspace );
-        dataset1.write(realPart, PredType::NATIVE_DOUBLE );
-        DataSet dataset2 = fileHh.createDataSet("valuesImagPart", datatype,
-                                                dataspace );
-        dataset2.write(imagPart, PredType::NATIVE_DOUBLE );
-        
-        delete[] realPart;
-        delete[] imagPart;
-        
-        return 0;
-    }
+            int dumpHDF5(std::string filename)
+            {
+                double* realPart = new double[numValues];
+                double* imagPart = new double[numValues];
+
+                for (unsigned int i = 0; i != numValues; i++)
+                {
+                    realPart[i] = values[i].real();
+                    imagPart[i] = values[i].imag();
+                }
+
+                std::string fileNameH5 = filename;
+                H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
+                size_t NX = numValues;
+                const int RANK = 1;
+                hsize_t dimsf[RANK];
+                dimsf[0] = NX;
+                DataSpace dataspace(RANK, dimsf);
+                FloatType datatype(PredType::NATIVE_DOUBLE);
+                datatype.setOrder(H5T_ORDER_LE);
+                DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
+                    dataspace);
+                dataset1.write(realPart, PredType::NATIVE_DOUBLE);
+                DataSet dataset2 = fileHh.createDataSet("valuesImagPart", datatype,
+                    dataspace);
+                dataset2.write(imagPart, PredType::NATIVE_DOUBLE);
+
+                delete[] realPart;
+                delete[] imagPart;
+
+                return 0;
+            }
 #endif    
-};
+        };
 
-//Vector class
-class vector
-{
-public:
-	std::complex<double>* values;
-	size_t length;
-
-	vector(unsigned int n)
-	{
-		length = n;
-		values = new std::complex<double>[length];
-	}
-
-	~vector()
-	{
-		delete[] values;
-	}
-};
-
-
-//Sparse matrix class
-class smatrix
-{
-public:
-	std::complex<double>* values;
-	size_t* columns;
-	size_t* rowIndex;
-	size_t numValues;
-    size_t n, m;
-	bool sym, hermitian;
-    bool upperTri;
-
-	smatrix()
-	{
-		sym = hermitian = upperTri = false;
-		rowIndex = columns = nullptr;
-		values = nullptr;
-		m = n = 0;
-		numValues = 0;
-	}
-
-    double norm1()
-    {
-        std::vector<double> colVal(n);
-        std::vector<double>::iterator result;
-
-        for(unsigned int i = 0; i != numValues; i++)
+        /*
+        //Vector class
+        class vector
         {
-            colVal[columns[i]] += std::abs(values[i]);
-        }
-        
-        result = std::max_element(colVal.begin(),colVal.end());
-        return *result;
-    }
+        public:
+            std::complex<double>* values;
+            size_t length;
 
-    double normInf()
-    {
-        std::vector<double> rowVal(m);
-        std::vector<double>::iterator result;
+            vector(unsigned int n)
+            {
+                length = n;
+                values = new std::complex<double>[length];
+            }
 
-        for(unsigned int i = 0; i != numValues; i++)
+            ~vector()
+            {
+                delete[] values;
+            }
+        };
+        */
+
+        //Sparse matrix class
+        class smatrix
         {
-            rowVal[rowIndex[i]] += std::abs(values[i]);
-        }
+        public:
+            std::complex<double>* values;
+            size_t* columns;
+            size_t* rowIndex;
+            size_t numValues;
+            size_t n, m;
+            bool sym, hermitian;
+            bool upperTri;
 
-        result = std::max_element(rowVal.begin(),rowVal.end());
-        return *result;
-    }
+            smatrix()
+            {
+                sym = hermitian = upperTri = false;
+                rowIndex = columns = nullptr;
+                values = nullptr;
+                m = n = 0;
+                numValues = 0;
+            }
+
+            double norm1()
+            {
+                std::vector<double> colVal(n);
+                std::vector<double>::iterator result;
+
+                for (unsigned int i = 0; i != numValues; i++)
+                {
+                    colVal[columns[i]] += std::abs(values[i]);
+                }
+
+                result = std::max_element(colVal.begin(), colVal.end());
+                return *result;
+            }
+
+            double normInf()
+            {
+                std::vector<double> rowVal(m);
+                std::vector<double>::iterator result;
+
+                for (unsigned int i = 0; i != numValues; i++)
+                {
+                    rowVal[rowIndex[i]] += std::abs(values[i]);
+                }
+
+                result = std::max_element(rowVal.begin(), rowVal.end());
+                return *result;
+            }
 
 
-	smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm)
-	{
-		numValues = nbV; n = nn; m = mm;
-		sym = hermitian = upperTri = false;
-		columns = new size_t[nbV];
-		rowIndex = new size_t[nbV];
-		values = new std::complex<double>[nbV];
+            smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm)
+            {
+                numValues = nbV; n = nn; m = mm;
+                sym = hermitian = upperTri = false;
+                columns = new size_t[nbV];
+                rowIndex = new size_t[nbV];
+                values = new std::complex<double>[nbV];
 
-		for (unsigned int i = 0; i != nbV; i++)
-		{
-			values[i] = val[i];
-			columns[i] = col[i];
-			rowIndex[i] = row[i];
-		}
-	}
+                for (unsigned int i = 0; i != nbV; i++)
+                {
+                    values[i] = val[i];
+                    columns[i] = col[i];
+                    rowIndex[i] = row[i];
+                }
+            }
 
 #ifdef USE_HDF
-    int dumpHDF5(std::string fileName)
-    {
-        
-        double* realPart = new double[numValues];
-        double* imagPart = new double[numValues];
-        
-        for (unsigned int i = 0; i != numValues; i++)
-        {
-            realPart[i] = values[i].real();
-            imagPart[i] = values[i].imag();
-        }
-        
-        size_t mExport = (size_t)m;
-        std::string fileNameH5 = fileName;
-        H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
-        int NX = numValues;
-        const int RANK = 1;
-        hsize_t dimsf[RANK];
-        hsize_t dimsatt[RANK];
-        dimsf[0] = NX;
-        dimsatt[0] = 1;
-        DataSpace dataspace( RANK, dimsf );
-        FloatType datatype( PredType::NATIVE_DOUBLE );
+            int dumpHDF5(std::string fileName)
+            {
 
-        DataSpace dataspace2(RANK, dimsatt);
+                double* realPart = new double[numValues];
+                double* imagPart = new double[numValues];
 
-        datatype.setOrder( H5T_ORDER_LE );
-        DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
-                                               dataspace );
-        dataset1.write(realPart, PredType::NATIVE_DOUBLE );
-        DataSet dataset2 = fileHh.createDataSet("valuesImagPart", datatype,
-                                               dataspace );
-        dataset2.write(imagPart, PredType::NATIVE_DOUBLE );
-        
-        IntType datatypeInt( PredType::NATIVE_HSIZE);
-        datatypeInt.setOrder(H5T_ORDER_LE );
-        DataSet dataset3 = fileHh.createDataSet("columIndex", datatypeInt,
-                                               dataspace );
-        dataset3.write(columns, PredType::NATIVE_HSIZE );
-        DataSet dataset4 = fileHh.createDataSet("rowIndex", datatypeInt,
-                                                dataspace );
-        dataset4.write(rowIndex, PredType::NATIVE_HSIZE );
+                for (unsigned int i = 0; i != numValues; i++)
+                {
+                    realPart[i] = values[i].real();
+                    imagPart[i] = values[i].imag();
+                }
 
-        DataSet dataset5 = fileHh.createDataSet("dimension", datatypeInt, dataspace2);
-        dataset5.write(&mExport, PredType::NATIVE_HSIZE);
-        
-        delete[] realPart;
-        delete[] imagPart;
-        
-        return 0;
-    }
+                size_t mExport = (size_t)m;
+                std::string fileNameH5 = fileName;
+                H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
+                int NX = numValues;
+                const int RANK = 1;
+                hsize_t dimsf[RANK];
+                hsize_t dimsatt[RANK];
+                dimsf[0] = NX;
+                dimsatt[0] = 1;
+                DataSpace dataspace(RANK, dimsf);
+                FloatType datatype(PredType::NATIVE_DOUBLE);
+
+                DataSpace dataspace2(RANK, dimsatt);
+
+                datatype.setOrder(H5T_ORDER_LE);
+                DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
+                    dataspace);
+                dataset1.write(realPart, PredType::NATIVE_DOUBLE);
+                DataSet dataset2 = fileHh.createDataSet("valuesImagPart", datatype,
+                    dataspace);
+                dataset2.write(imagPart, PredType::NATIVE_DOUBLE);
+
+                IntType datatypeInt(PredType::NATIVE_HSIZE);
+                datatypeInt.setOrder(H5T_ORDER_LE);
+                DataSet dataset3 = fileHh.createDataSet("columIndex", datatypeInt,
+                    dataspace);
+                dataset3.write(columns, PredType::NATIVE_HSIZE);
+                DataSet dataset4 = fileHh.createDataSet("rowIndex", datatypeInt,
+                    dataspace);
+                dataset4.write(rowIndex, PredType::NATIVE_HSIZE);
+
+                DataSet dataset5 = fileHh.createDataSet("dimension", datatypeInt, dataspace2);
+                dataset5.write(&mExport, PredType::NATIVE_HSIZE);
+
+                delete[] realPart;
+                delete[] imagPart;
+
+                return 0;
+            }
 #endif
-	~smatrix()
-	{
-		if (n > 1 || m > 1)
-		{
-			delete[] rowIndex;
-			delete[] values;
-            delete[] columns;
-		}
-	}
+            ~smatrix()
+            {
+                if (n > 1 || m > 1)
+                {
+                    delete[] rowIndex;
+                    delete[] values;
+                    delete[] columns;
+                }
+            }
 
-};
+        };
+
+    }

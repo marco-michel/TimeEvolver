@@ -12,7 +12,7 @@
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
 
-
+using namespace TE;
 
 
 std::string krylovBasicObservable::retName()

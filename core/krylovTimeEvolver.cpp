@@ -24,6 +24,8 @@
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
 
+using namespace TE;
+
 /**
  * Legacy constructor with raw sparse matrix argument as observables 
  * All data required for the numerical time evolution is needed.
@@ -604,7 +606,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
  * @param mRet Returns the actual size of the Krylov subspace (important in case of lucky breakdown)
  * @return false, is no lucky breakdown has occured; true if lucky breakdown has occured
  */
-bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *VRet, double *hRet, size_t *mRet) {
+bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::matrix *VRet, double *hRet, size_t *mRet) {
 	double normy = 0.;
 	std::complex<double> negativeH;
 	cblas_zcopy(Hsize, currentVec, 1, VRet->values, 1);

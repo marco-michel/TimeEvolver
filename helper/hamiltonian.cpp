@@ -6,6 +6,7 @@
 #include "hamiltonian.h"
 #include "Basis.h"
 
+using namespace TE;
 
 /**
  * Creates the kinetic terms

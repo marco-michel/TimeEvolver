@@ -18,7 +18,7 @@
 
 struct krylovReturn
 {
-    matrix* sampling;
+    TE::matrix* sampling;
     std::complex<double>* evolvedState;
     double err;
     size_t n_steps;
@@ -42,9 +42,9 @@ more than 1 digit means failure: 10 (computation of error may be  spoiled due to
         if (nbSamples > 0)
         {
             if (nbObservables == 0)
-                sampling = new matrix(Hsize, nbSamples);
+                sampling = new TE::matrix(Hsize, nbSamples);
             else {
-                sampling = new matrix(nbObservables, nbSamples);
+                sampling = new TE::matrix(nbObservables, nbSamples);
             }
         }
         else
@@ -70,7 +70,7 @@ public:
     ~krylovTimeEvolver();
 
     //sampled values of observables
-    matrix* samplings;
+    TE::matrix* samplings;
 
     //options
     bool checkNorm, fastIntegration, progressBar, suppressWarnings;
@@ -83,7 +83,7 @@ protected:
     int findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
     void destroyOptimizeInput();
     void sample();
-    bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
+    bool arnoldiAlgorithm(double tolRate, TE::matrix* H, TE::matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
     void printProgress(float prog);
 
@@ -95,7 +95,7 @@ protected:
     double t; size_t Hsize;
     double samplingStep; 
     int nbObservables;
-    smatrix* Ham;
+    TE::smatrix* Ham;
     std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
 
     
