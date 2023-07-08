@@ -574,16 +574,13 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
 
 	for (size_t j = 0; j <= m - 1; j++) {
 
-		Ham->spMV(expFactor, (VRet->values) + j * Hsize, tmpBlasVec);
+		int spStatus = Ham->spMV(expFactor, (VRet->values) + j * Hsize, tmpBlasVec);
 
 		//sparse_status_t mklStatus2 = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, expFactor, *HamOpt, descriptor, (VRet->values) + j * Hsize, zero, tmpBlasVec);
 
-
-
-		sparse_status_t mklStatus = SPARSE_STATUS_SUCCESS;
-        if(SPARSE_STATUS_SUCCESS != mklStatus)
+        if(spStatus != 0)
         {
-            std::cerr << "MKL error " << mklStatus << std::endl;
+            std::cerr << "spMV error " << std::endl;
             exit(1);
         }
 		if (j != 0) {

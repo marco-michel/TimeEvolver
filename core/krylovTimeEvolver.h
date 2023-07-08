@@ -6,6 +6,12 @@
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
 #include <mkl.h>
+#elif defined USE_OPENBLAS
+#include <cblas.h>
+#include <complex>
+#define lapack_complex_float std::complex<float>
+#define lapack_complex_double std::complex<double>
+#include <lapacke.h>
 #endif
 
 #include <cmath>

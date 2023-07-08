@@ -1,9 +1,13 @@
 #pragma once
 
+#include <complex>
 
 #ifdef USE_MKL
 #include <mkl.h>
 #include <mkl_spblas.h>
+#elif defined USE_OPENBLAS
+#include <cblas.h>
+//#include <lapacke.h>
 #endif
 
 #include "matrixDataTypes.h"

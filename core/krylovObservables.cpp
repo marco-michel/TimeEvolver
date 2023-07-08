@@ -3,11 +3,14 @@
 #include <complex>
 #include <memory>
 
+#ifdef USE_MKL
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
-
 #include <mkl.h>
-#include <mkl_spblas.h>
+#elif defined USE_OPENBLAS
+#include <cblas.h>
+//#include <lapacke.h>
+#endif
 
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"

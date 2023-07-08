@@ -5,13 +5,6 @@
 #include <string>
 #include <complex>
 
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-#include "mkl_types.h"
-#include "mkl.h"
-#include "mkl_spblas.h"
-
 #include "matrixDataTypes.h"
 #include "Basis.h"
 
