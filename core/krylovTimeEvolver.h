@@ -79,9 +79,7 @@ public:
 
     
 protected:
-    void optimizeInput();
     int findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
-    void destroyOptimizeInput();
     void sample();
     bool arnoldiAlgorithm(double tolRate, TE::matrix* H, TE::matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
@@ -107,10 +105,6 @@ protected:
     boost::math::quadrature::tanh_sinh<double> integ;
     int integrationMethodLong, integrationMethodShort;
     double termination;
-    
-    //variables for mkl-library
-    sparse_matrix_t* HamOpt;
-    matrix_descr descriptor;
     
     //temporary variables shared by different functions
     std::complex<double>* currentVec;

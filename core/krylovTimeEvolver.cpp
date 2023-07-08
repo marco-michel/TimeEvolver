@@ -69,7 +69,6 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 	this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m = std::min<size_t>(mm, Hsize); this->progressBar = progressBar;
 	this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration; this->nbObservables = observables.size();
-	HamOpt = nullptr;
 
 	matrixNorm = Ham->norm1();
 
@@ -104,9 +103,6 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	tmpintKernelExp3 = new std::complex<double>[m];
 	tmpintKernelT = new std::complex<double>[m];
 
-	descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
-	descriptor.diag = SPARSE_DIAG_NON_UNIT;
-
 	index_samples = 0;
 	e_1 = new std::complex<double>[m];
 	e_1[0].real(1);
@@ -135,8 +131,6 @@ krylovTimeEvolver::~krylovTimeEvolver()
 	delete[] tmpintKernelExp3;
 	delete[] tmpintKernelT;
     delete samplings;
-    if(HamOpt != nullptr)
-        delete HamOpt;
     delete[] e_1;
 }
 
@@ -165,42 +159,6 @@ void krylovTimeEvolver::sample()
 	}
 	index_samples++;
 }
-
-/**
- * Destroys variables created in krylovTimeEvolver::optimizeInput
- */
-/*
-void krylovTimeEvolver::destroyOptimizeInput()
-{
-    if(HamOpt != nullptr)
-        mkl_sparse_destroy(*HamOpt);
-}
-*/
-
-/**
- * Brings input parameters in form needed for mkl-routines that perform operations on large matrices and vectors
- */
-/*
-void krylovTimeEvolver::optimizeInput()
-{
-    if (Ham == nullptr)
-        return;
-    
-    sparse_status_t mklStatus;
-	matrix_descr type; type.type = SPARSE_MATRIX_TYPE_GENERAL; type.diag = SPARSE_DIAG_NON_UNIT;
-    
-    HamOpt = new sparse_matrix_t;
-    
-    if (Ham->numValues != 0)
-        mklStatus = mkl_sparse_z_create_coo(HamOpt, SPARSE_INDEX_BASE_ZERO, Ham->m, Ham->n, Ham->numValues, Ham->rowIndex, Ham->columns, Ham->values);
-    
-    mklStatus = mkl_sparse_convert_csr(*HamOpt, SPARSE_OPERATION_NON_TRANSPOSE, HamOpt);
-    mklStatus = mkl_sparse_order(*HamOpt);
-    mklStatus = mkl_sparse_set_mv_hint(*HamOpt, SPARSE_OPERATION_NON_TRANSPOSE, type, (size_t)std::llabs(std::llround(m*t)));
-    mklStatus = mkl_sparse_set_memory_hint(*HamOpt, SPARSE_MEMORY_AGGRESSIVE);
-    mklStatus = mkl_sparse_optimize(*HamOpt);
-}
-*/
 
 
 /**
