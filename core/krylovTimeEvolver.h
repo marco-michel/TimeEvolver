@@ -11,64 +11,11 @@
 #include <cmath>
 #include <complex>
 #include <memory>
+#include <thread>
 
 #include "matrixDataTypes.h"
+#include "krylovObservables.h"
 
-
-enum obsType {VOID_TYPE_OBS, VECTOR_TYPE_OBS, SPARSE_MATRIX_TYPE_OBS, MATRIX_TYPE_OBS };
-
-class krylovBasicObservable
-{
-public:
-    krylovBasicObservable(const std::string& name) : obs_name(name), dim(0), type(VOID_TYPE_OBS) {}
-    ~krylovBasicObservable() {}
-    virtual std::complex<double> expectation(std::complex<double>* vec, int len) = 0; 
-    obsType retType();
-    std::string retName();
-
-    static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
-    static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
-
-protected:
-    obsType type;
-    std::string obs_name;
-    size_t dim;
-};
-
-class krylovVectorObservable : public krylovBasicObservable
-{
-public:
-    krylovVectorObservable(const std::string& name, std::complex<double>* obs, size_t len);
-    std::complex<double> expectation(std::complex<double>* vec, int len);
-
-private:
-    std::unique_ptr<std::complex<double>[]> obs;
-};
-
-class krylovSpMatrixObservable : public krylovBasicObservable
-{
-public:
-    krylovSpMatrixObservable(const std::string& name, smatrix* obs);
-    ~krylovSpMatrixObservable();
-    std::complex<double> expectation(std::complex<double>* vec, int len);
-
-private:
-    std::unique_ptr<smatrix> obs;
-    matrix_descr descriptorObs;
-    std::complex<double>* tmpBlasVec;
-    sparse_matrix_t* ObsOpt;
-};
-
-class [[deprecated("Dense matrix observables are not fully tested yet. Please use with care.")]] krylovMatrixObservable : public krylovBasicObservable
-{
-    krylovMatrixObservable(const std::string& name, matrix* obs);
-    ~krylovMatrixObservable();
-    std::complex<double> expectation(std::complex<double>* vec, int len);
-
-private:
-    std::unique_ptr<matrix> obs;
-    std::complex<double>* tmpBlasVec;
-};
 
 struct krylovReturn
 {
@@ -119,11 +66,18 @@ class krylovTimeEvolver
 public:
     krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm= true, bool fastIntegration = false);
     krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false, bool progressBar = false);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
     //sampled values of observables
     matrix* samplings;
+
+    //options
+    bool checkNorm, fastIntegration, progressBar, suppressWarnings;
+    std::complex<double> expFactor;
+    double tol; size_t m;
+
     
 protected:
     void optimizeInput();
@@ -133,17 +87,21 @@ protected:
     bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
     void printProgress(float prog);
+    void progressBarThread();
+
 
     std::complex<double>* expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH);
 
     
     //Input date
     double t; size_t Hsize;
-    double samplingStep; double tol; size_t m;
-    smatrix** observables; int nbObservables;
+    double samplingStep; 
+    int nbObservables;
     smatrix* Ham;
-    std::complex<double> expFactor;
-    bool checkNorm, fastIntegration, progressBar;
+    std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
+
+    //Printing and Logging
+    std::thread pBThread;
     
     //Determined by input data
     size_t n_samples;
@@ -155,10 +113,8 @@ protected:
     double termination;
     
     //variables for mkl-library
-    sparse_matrix_t** ObsOpt;
     sparse_matrix_t* HamOpt;
     matrix_descr descriptor;
-    matrix_descr descriptorObs;
     
     //temporary variables shared by different functions
     std::complex<double>* currentVec;
@@ -178,8 +134,4 @@ protected:
     static constexpr std::complex<double> zero = std::complex<double>(0.0,0.0);
     std::complex<double>* e_1;
     static const int pBarWidth = 70;
-
-    //New observables
-    bool obsComputeExpectation;
-    std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
 };

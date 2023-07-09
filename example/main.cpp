@@ -31,6 +31,7 @@ using namespace H5;
 #include "hamiltonian.h"
 #include "exampleHamiltonian.h"
 #include "krylovHelper.h"
+#include "krylovObservables.h"
 
 //INPUT:
 //    int N0; int Nm; int K;
@@ -131,17 +132,16 @@ int main(int argc, char* argv[])
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    std::vector<std::unique_ptr<krylovBasicObservable>> awu;
+    std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
 
     for (int i = 0; i != basis.numberModes; i++)
     {
-        awu.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), observables[i]));
+        observableList.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), observables[i]));
     }
     
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(awu), hamMatrix, imaginaryMinus, true, fastIntegration, true);
+    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(observableList), hamMatrix, imaginaryMinus, true, fastIntegration, true);
 
-    //krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus, true, fastIntegration);
     krylovReturn* results = timeEvolver.timeEvolve();
     
     auto end = std::chrono::high_resolution_clock::now();
