@@ -11,6 +11,7 @@
 #include <cmath>
 #include <complex>
 #include <memory>
+#include <thread>
 
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
@@ -86,6 +87,7 @@ protected:
     bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
     void printProgress(float prog);
+    void progressBarThread();
 
 
     std::complex<double>* expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH);
@@ -98,6 +100,8 @@ protected:
     smatrix* Ham;
     std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
 
+    //Printing and Logging
+    std::thread pBThread;
     
     //Determined by input data
     size_t n_samples;

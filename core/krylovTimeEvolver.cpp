@@ -14,6 +14,7 @@
 #include <limits>
 #include <algorithm>
 #include <iostream>
+#include <thread>
 
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
@@ -151,11 +152,6 @@ constexpr std::complex<double> krylovTimeEvolver::zero;
  */
 void krylovTimeEvolver::sample()
 {
-	if (progressBar)
-	{
-		float prog = static_cast<float>(index_samples) / n_samples;
-		printProgress(prog);
-	}
 	if (nbObservables == 0)
 		cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples * Hsize, 1);
 	else 
@@ -347,7 +343,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	}
 
 	optimizeInput();
-	if (checkNorm) 
+	if (checkNorm)
 	{
 		if (std::abs(cblas_dznrm2(Hsize, currentVec, 1) - 1.0) > tol) {
 			std::cerr << "Norm error in initial vector" << std::endl;
@@ -357,8 +353,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 	if (fastIntegration && !suppressWarnings)
 		std::cout << "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result." << std::endl;
-    
-    //Time of current state
+
+	//Time of current state
 	double t_now = 0.;
 	//Number of steps so far
 	int n_steps = 0;
@@ -376,10 +372,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Total esimate of round-off errors
 	double numericalErrorEstimateTotal = 0;
 
-    //Flag indicating if a lucky breakdown has occured
-    bool dummy_hbd = false;
-    //In case of lucky breakdown, size of Krylov space
-    size_t m_hbd;
+	//Flag indicating if a lucky breakdown has occured
+	bool dummy_hbd = false;
+	//In case of lucky breakdown, size of Krylov space
+	size_t m_hbd;
 	//Track if an error occured within timeEvolve(). A value unequal 0 indicates that numerical result likely violates error bound.
 	int statusCode = 0;
 	//Monitoring if something went wrong in findSubstep
@@ -391,20 +387,26 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	int nbErrors = 0;
 
 
-    //Hessenberg matrix
-	matrix *H = new matrix(m, m);
+	//Hessenberg matrix
+	matrix* H = new matrix(m, m);
 	//Corresponding transformation matrix
-	matrix *V = new matrix(Hsize, m);
+	matrix* V = new matrix(Hsize, m);
 	//The (m+1,m) element of Hessenberg matrix (needed for computation of error)
 	double h = 0;
 	//Eigenvalues of Hessenberg matrix
-	std::complex<double> *eigenvalues = new std::complex<double>[m];
+	std::complex<double>* eigenvalues = new std::complex<double>[m];
 	//Eigenvectors of Hessenberg matrix
-	std::complex<double> *schurvector = new std::complex<double>[m * m];
+	std::complex<double>* schurvector = new std::complex<double>[m * m];
 
 	//Record observables for initial state
 	sample();
 
+	//Start progressBar thread
+	if (progressBar == true)
+	{
+		pBThread = std::thread(&krylovTimeEvolver::progressBarThread, this);
+		//pBThread.detach();
+	}
     //Main loop
     while (index_samples < n_samples)
     {
@@ -522,6 +524,9 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         }
         
     }
+
+	if (progressBar)
+		pBThread.join();
 
 	//Output of potential errors
 	numericalErrorEstimateTotal = numericalErrorEstimate * n_steps; //Rough estimate of total round-of error
@@ -710,6 +715,25 @@ void krylovTimeEvolver::printProgress(float prog)
 	}
 	std::cout << "] " << int(prog * 100.0) << " %\r";
 	std::cout.flush();
+}
+
+
+/**
+ProgressBar thread
+*/
+void krylovTimeEvolver::progressBarThread()
+{
+	float prog;
+	while (true) {
+		prog = static_cast<float>(index_samples) / n_samples;
+		printProgress(prog);
+		if (prog == 1) {
+			printProgress(prog);
+			break;
+		}
+	}
+	std::cout << "\n shutting down thread" << std::endl;
+	return;
 }
 
 
