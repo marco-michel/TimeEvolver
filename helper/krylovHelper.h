@@ -68,9 +68,7 @@ private:
 	T para_data;
 };
 
-
 typedef std::vector< std::shared_ptr<parameter> > parameter_list; //shorten notation.
-
 #define paraPush(nm, ...) std::make_shared<typedParameter<decltype(__VA_ARGS__)>>(nm, __VA_ARGS__) //macro for easier insertion
 
 //------------------------------------------------------------------------------------------------
@@ -93,7 +91,6 @@ private:
 };
 
 typedef std::vector< std::shared_ptr<observable> > observable_list;
-
 #define obsPush(nm, ...) std::make_shared<observable>(nm, __VA_ARGS__) //macro for easier insertion
 
 //------------------------------------------------------------------------------------------------
