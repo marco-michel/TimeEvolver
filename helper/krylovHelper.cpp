@@ -41,10 +41,10 @@ void outputHelper::saveResult()
 
     //Sort data from time ordering to observable ordering
     double** nicelySorted = new double* [nbObservables];
-    for (int i = 0; i < nbObservables; ++i)
+    for (unsigned int i = 0; i < nbObservables; ++i)
         nicelySorted[i] = new double[results->nSamples];
 
-    for (int j = 0; j < nbObservables; j++)
+    for (unsigned int j = 0; j < nbObservables; j++)
     {
         for (unsigned int i = 0; i < results->nSamples; i++)
         {
@@ -61,9 +61,9 @@ void outputHelper::saveResult()
     H5File fileHh(outputFileName.c_str(), H5F_ACC_TRUNC);
 
 
-    for (int j = 0; j < nbObservables && obsIter != obs_list.end(); j++)
+    for (unsigned int j = 0; j < nbObservables && obsIter != obs_list.end(); j++)
     {
-        int NX = results->nSamples;
+        int NX = (int) results->nSamples;
         const int RANK = 1;
         hsize_t dimsf[RANK];
         dimsf[0] = NX;
@@ -99,7 +99,7 @@ void outputHelper::saveResult()
 
 
     //clean up
-    for (int i = 0; i < nbObservables; i++)
+    for (unsigned int i = 0; i < nbObservables; i++)
     {
         delete[] nicelySorted[i];
     }
@@ -118,7 +118,7 @@ void outputHelper::writeAttributes()
     DataSpace** attr_dataspace = new DataSpace * [nbOutputParameters];
     Attribute** attributes = new Attribute * [nbOutputParameters];
 
-    for (int i = 0; i < nbOutputParameters; ++i)
+    for (unsigned int i = 0; i < nbOutputParameters; ++i)
     {
         attr_dataspace[i] = new DataSpace(1, dims);
         attributes[i] = new Attribute();
@@ -144,7 +144,7 @@ void outputHelper::writeAttributes()
         }
     }
 
-    for (int i = 0; i < nbOutputParameters; ++i)
+    for (unsigned int i = 0; i < nbOutputParameters; ++i)
     {
         delete attr_dataspace[i];
         delete attributes[i];

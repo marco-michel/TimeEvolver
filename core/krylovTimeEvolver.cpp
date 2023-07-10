@@ -68,7 +68,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	}
 
 	this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m = std::min<size_t>(mm, Hsize); this->progressBar = progressBar;
-	this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration; this->nbObservables = observables.size();
+	this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration; this->nbObservables = (int) observables.size();
 
 	matrixNorm = Ham->norm1();
 
@@ -398,7 +398,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			statusCode = 1;
 		}
 		//Finally diagonalize Hessenberg matrix H (since it will be exponentiated many times)
-		int infocheck = LAPACKE_zhseqr(LAPACK_COL_MAJOR, 'S', 'I', m, 1, m,
+		int infocheck = LAPACKE_zhseqr(LAPACK_COL_MAJOR, 'S', 'I', m, (size_t) 1, m,
 				H->values, m, eigenvalues, schurvector, m);
 		if (infocheck != 0) 
 		{
@@ -538,11 +538,11 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
     //Return result
 	krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, statusCode);
     cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
-    unsigned int nbResults;
+    size_t nbResults;
     if (nbObservables != 0)
-        nbResults = n_samples*nbObservables;
+        nbResults = n_samples * nbObservables;
     else
-        nbResults = n_samples *Hsize;
+        nbResults = n_samples * Hsize;
     cblas_zcopy(nbResults, samplings->values, 1, ret->sampling->values, 1);
     ret->n_steps = n_steps;
     ret->err = err;
@@ -668,7 +668,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 void krylovTimeEvolver::printProgress(float prog)
 {
 	std::cout << "[";
-	int pos = pBarWidth * prog;
+	int pos = (int) (pBarWidth * prog);
 	for (int i = 0; i < pBarWidth; ++i)
 	{
 		if (i <= pos) std::cout << "|";

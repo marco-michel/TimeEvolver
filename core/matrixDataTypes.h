@@ -3,6 +3,7 @@
 #include <complex>
 #include <string>
 #include <vector>
+#include <iostream>
 #include <algorithm>
 
 
@@ -30,10 +31,9 @@
         class matrix
         {
         public:
-            std::complex<double>* values;
             size_t n, m;
+            std::complex<double>* values;
             size_t numValues;
-
             matrix(size_t nn, size_t mm);
             ~matrix();
 #ifdef USE_HDF 
@@ -50,6 +50,10 @@
             size_t length;
 
             vector(unsigned int n){
+                if (n == 0) {
+                    std::cerr << "Empty vectors are not supported." << std::endl;
+                    exit(1);
+                }
                 length = n;
                 values = new std::complex<double>[length];
             }
