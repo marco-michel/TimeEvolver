@@ -589,7 +589,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
     cblas_zcopy(nbResults, samplings->values, 1, ret->sampling->values, 1);
     ret->n_steps = n_steps;
     ret->err = err;
-    ret->dim = m;
+    ret->dim = Hsize;
+	ret->krylovDim = m;
     ret->nSamples = n_samples;
     
     delete[] eigenvalues;
