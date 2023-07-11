@@ -142,6 +142,7 @@ krylovTimeEvolver::~krylovTimeEvolver()
     if(HamOpt != nullptr)
         delete HamOpt;
     delete[] e_1;
+	obsVector.clear();
 }
 
 constexpr std::complex<double> krylovTimeEvolver::one;

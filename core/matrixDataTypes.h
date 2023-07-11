@@ -163,6 +163,20 @@ public:
 		}
 	}
 
+    smatrix(const smatrix &old_obj) {
+        numValues = old_obj.numValues; n = old_obj.n; m = old_obj.m;
+        sym = old_obj.sym; hermitian = old_obj.hermitian; upperTri = old_obj.upperTri;
+        columns = new size_t[numValues];
+        rowIndex = new size_t[numValues];
+        values = new std::complex<double>[numValues];
+
+        for (unsigned int i = 0; i != numValues; i++) {
+            values[i] = old_obj.values[i];
+            columns[i] = old_obj.columns[i];
+            rowIndex[i] = old_obj.rowIndex[i];
+        }
+    }
+
 #ifdef USE_HDF
     int dumpHDF5(std::string fileName)
     {
