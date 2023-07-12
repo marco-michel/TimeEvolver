@@ -61,10 +61,11 @@ public:
 private:
     std::unique_ptr<smatrix> obs;
     std::complex<double>* tmpBlasVec;
+    /*
 #ifdef USE_MKL
     sparse_matrix_t* ObsOpt;
     matrix_descr descriptorObs;
-#endif
+#endif*/
 };
 
 

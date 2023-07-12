@@ -75,8 +75,8 @@ krylovSpMatrixObservable::~krylovSpMatrixObservable()
 	{
 		delete[] tmpBlasVec;
 	}
-	sparse_status_t mklStatus = mkl_sparse_destroy(*ObsOpt);
-	delete ObsOpt;
+	//sparse_status_t mklStatus = mkl_sparse_destroy(*ObsOpt);
+	//delete ObsOpt;
 }
 
 std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
