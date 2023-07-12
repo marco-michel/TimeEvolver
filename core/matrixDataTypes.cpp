@@ -250,3 +250,5 @@ smatrix::~smatrix()
     }
 #endif
 }
+
+

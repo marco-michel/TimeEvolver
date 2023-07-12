@@ -18,6 +18,7 @@
 
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
+#include <krylovHelper.h>
 
 using namespace TE;
 
@@ -452,13 +453,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
             //Determine state at t_sampling in the following
             cblas_zcopy(m, eigenvalues, 1, tmpKrylovVec1, 1);
             cblas_zdscal(m, (t_sampling - t_now), tmpKrylovVec1, 1);
-#ifdef USE_MKL
-            vzExp(m, tmpKrylovVec1,tmpKrylovVec2);
-#else
-			for (int i = 0; i != m; i++) {
-				tmpKrylovVec2[i] = std::exp(tmpKrylovVec1[i]);
-			}
-#endif
+			expV(m, tmpKrylovVec1, tmpKrylovVec2);
+
             //Now temp1 is no longer needed and can be reused
             cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, schurvector, m, e_1, 1, &zero, tmpKrylovVec1, 1);
             for(size_t i = 0; i != m; i++)
@@ -721,22 +717,12 @@ std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double
 	
 	//Exponenting scaled eigenvalues
 	cblas_zdscal(m, t, tmpintKernelExp1, 1);
-#ifdef USE_MKL
-	vzExp(m, tmpintKernelExp1, tmpintKernelExp2);
-#else
-	for (int i = 0; i < m; i++) {
-		tmpintKernelExp2[i] = std::exp(tmpintKernelExp1[i]);
-	}
-#endif
+	expV(m, tmpintKernelExp1, tmpintKernelExp2);
+
+	
 	//Rotate basis back to Kyrlovspace
 	cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1, &zero, tmpintKernelT, 1);
-#ifdef USE_MKL
-	vzMul(m, tmpintKernelExp2, tmpintKernelT, tmpintKernelExp3);
-#else
-	for (int i = 0; i < m; i++) {
-		tmpintKernelExp3[i] = tmpintKernelT[i] * tmpintKernelExp2[i];
-	}
-#endif
+	mulV(m, tmpintKernelExp2, tmpintKernelT, tmpintKernelExp3);
 	cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
 		tmpintKernelExp3, 1, &zero, tmpintKernelExp, 1);
 

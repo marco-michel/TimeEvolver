@@ -41,7 +41,7 @@
 #endif    
         };
 
-        
+
         //Vector class
         class vector
         {
@@ -49,7 +49,7 @@
             std::complex<double>* values;
             size_t length;
 
-            vector(unsigned int n){
+            vector(unsigned int n) {
                 if (n == 0) {
                     std::cerr << "Empty vectors are not supported." << std::endl;
                     exit(1);
@@ -58,13 +58,13 @@
                 values = new std::complex<double>[length];
             }
 
-            ~vector(){
+            ~vector() {
                 delete[] values;
             }
             //implicit conversion operator to pointer
-            operator std::complex<double>*() const { return NULL; }
+            operator std::complex<double>* () const { return NULL; }
         };
-        
+
 
         //Sparse matrix class
         class smatrix
@@ -94,7 +94,7 @@
 
             static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
             static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
-            
+
 #ifdef USE_MKL
             //variables for mkl-library
             sparse_matrix_t* MKLSparseMatrix;
@@ -102,19 +102,19 @@
 #endif
 
 
-    smatrix(const smatrix &old_obj) {
-        numValues = old_obj.numValues; n = old_obj.n; m = old_obj.m;
-        sym = old_obj.sym; hermitian = old_obj.hermitian; upperTri = old_obj.upperTri;
-        columns = new size_t[numValues];
-        rowIndex = new size_t[numValues];
-        values = new std::complex<double>[numValues];
+            smatrix(const smatrix& old_obj) {
+                numValues = old_obj.numValues; n = old_obj.n; m = old_obj.m;
+                sym = old_obj.sym; hermitian = old_obj.hermitian; upperTri = old_obj.upperTri;
+                columns = new size_t[numValues];
+                rowIndex = new size_t[numValues];
+                values = new std::complex<double>[numValues];
 
-        for (unsigned int i = 0; i != numValues; i++) {
-            values[i] = old_obj.values[i];
-            columns[i] = old_obj.columns[i];
-            rowIndex[i] = old_obj.rowIndex[i];
-        }
-    }
+                for (unsigned int i = 0; i != numValues; i++) {
+                    values[i] = old_obj.values[i];
+                    columns[i] = old_obj.columns[i];
+                    rowIndex[i] = old_obj.rowIndex[i];
+                }
+            }
 
 #ifdef USE_HDF
             int dumpHDF5(std::string fileName);
@@ -123,4 +123,30 @@
 
         };
 
+
     }
+        
+    //Wrapper for element-wise vector operations: exp
+    inline void expV(size_t len, std::complex<double>* x, std::complex<double>* y)
+    {
+#ifdef USE_MKL
+        vzExp(len, x, y);
+#else
+        for (size_t i = 0; i < len; i++) {
+            y[i] = std::exp(x[i]);
+        }
+#endif
+    }
+
+    //Wrapper for element-wise vector operations: multiplication
+    inline void mulV(size_t len, std::complex<double>* a, std::complex<double>* b, std::complex<double>* y) {
+#ifdef USE_MKL
+        vzMul(len, a, b, y);
+#else
+        for (size_t i = 0; i < len; i++) {
+            y[i] = b[i] * a[i];
+        }
+#endif
+    }
+
+    
