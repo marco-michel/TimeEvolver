@@ -22,7 +22,7 @@ class krylovBasicObservable
 {
 public:
     krylovBasicObservable(const std::string& name) : obs_name(name), dim(0), type(VOID_TYPE_OBS) {}
-    ~krylovBasicObservable() {}
+    virtual ~krylovBasicObservable() {}
     virtual std::complex<double> expectation(std::complex<double>* vec, int len) = 0;
     obsType retType();
     std::string retName();
@@ -42,6 +42,7 @@ class krylovVectorObservable : public krylovBasicObservable
 {
 public:
     krylovVectorObservable(const std::string& name, std::complex<double>* obs, size_t len);
+    ~krylovVectorObservable() {}
     std::complex<double> expectation(std::complex<double>* vec, int len);
 
 private:
