@@ -72,6 +72,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration; this->nbObservables = (int) observables.size();
 
 	matrixNorm = Ham->norm1();
+	vectorNorm = cblas_dznrm2(Hsize, v, 1);
 
 	//NEW TEST
 	Ham->initialize();
@@ -301,6 +302,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	}
 
 	//optimizeInput();
+	/* //This is useless
 	if (checkNorm) 
 
 	{
@@ -309,6 +311,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			exit(1);
 		}
 	}
+	*/
 
 	if (fastIntegration && !suppressWarnings)
 		std::cout << "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result." << std::endl;
@@ -477,7 +480,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         double nrm = cblas_dznrm2(Hsize, currentVec, 1);
         if (checkNorm)
         {
-            if (std::abs(nrm - 1) > tol)
+            if (std::abs(nrm - vectorNorm) > tol)
             {
 				if (!suppressWarnings) {
 					std::cerr << "CRITICAL WARNING: Norm of state vector is not inside specified tolerance." << std::endl;

@@ -111,6 +111,7 @@ protected:
     //Determined by input data
     size_t n_samples;
     double matrixNorm;
+    double vectorNorm;
 
     //Internal variables
     boost::math::quadrature::tanh_sinh<double> integ;
