@@ -3,16 +3,19 @@
 #include <complex>
 #include <memory>
 
+#ifdef USE_MKL
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
-
 #include <mkl.h>
-#include <mkl_spblas.h>
+#elif defined USE_OPENBLAS
+#include <cblas.h>
+//#include <lapacke.h>
+#endif
 
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
 
-
+using namespace TE;
 
 
 std::string krylovBasicObservable::retName()
@@ -61,23 +64,9 @@ krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, smat
 	dim = obser->m;
 	type = SPARSE_MATRIX_TYPE_OBS;
 	obs = std::make_unique<smatrix>(*obser); //make owned copy (I don't know if that's the best way)
-
+	obs->initialize();
 
 	tmpBlasVec = new std::complex<double>[dim];
-
-	descriptorObs.diag = SPARSE_DIAG_NON_UNIT;
-	descriptorObs.type = SPARSE_MATRIX_TYPE_GENERAL;
-	ObsOpt = new sparse_matrix_t();
-
-	sparse_status_t mklStatus;
-
-	mklStatus = mkl_sparse_z_create_coo(ObsOpt, SPARSE_INDEX_BASE_ZERO, obs->m, obs->n, obs->numValues, obs->rowIndex, obs->columns, obs->values);
-
-	if (mklStatus != SPARSE_STATUS_SUCCESS)
-	{
-		std::cerr << "Could not process Matrix representation of observable " << ". Empty matrices can not be processed" << std::endl;
-		exit(1);
-	}
 }
 
 krylovSpMatrixObservable::~krylovSpMatrixObservable()
@@ -99,11 +88,8 @@ std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>*
 		exit(1);
 	}
 
-	sparse_status_t mklStatus;
 	std::complex<double> observall;
-
-	mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, one, *ObsOpt, descriptorObs, vec, zero, tmpBlasVec);
-
+	obs->spMV(one, vec, tmpBlasVec);
 	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
 
 	return observall;

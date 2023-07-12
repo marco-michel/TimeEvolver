@@ -10,20 +10,10 @@
 #include <memory>
 #include <chrono>
 
-#undef I
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-#include <mkl_types.h>
-#include <mkl.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#ifdef USE_HDF
-#include <H5Cpp.h>
-using namespace H5;
-#endif
 
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
@@ -32,6 +22,8 @@ using namespace H5;
 #include "exampleHamiltonian.h"
 #include "krylovHelper.h"
 #include "krylovObservables.h"
+
+using namespace TE;
 
 //INPUT:
 //    int N0; int Nm; int K;
@@ -93,7 +85,7 @@ int main(int argc, char* argv[])
     
     int nbObservables = 2*K + 2;
 
-    mkl_set_num_threads(numThreads);
+    //mkl_set_num_threads(numThreads);
     //end determine parameters
 
 

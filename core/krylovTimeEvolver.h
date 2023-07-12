@@ -2,11 +2,17 @@
 
 #include <boost/math/quadrature/tanh_sinh.hpp>
 
+#ifdef USE_MKL
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
-
 #include <mkl.h>
-#include <mkl_spblas.h>
+#elif defined USE_OPENBLAS
+#include <cblas.h>
+#include <complex>
+#define lapack_complex_float std::complex<float>
+#define lapack_complex_double std::complex<double>
+#include <lapacke.h>
+#endif
 
 #include <cmath>
 #include <complex>
@@ -19,7 +25,7 @@
 
 struct krylovReturn
 {
-    matrix* sampling;
+    TE::matrix* sampling;
     std::complex<double>* evolvedState;
     double err;
     size_t n_steps;
@@ -44,9 +50,9 @@ more than 1 digit means failure: 10 (computation of error may be  spoiled due to
         if (nbSamples > 0)
         {
             if (nbObservables == 0)
-                sampling = new matrix(Hsize, nbSamples);
+                sampling = new TE::matrix(Hsize, nbSamples);
             else {
-                sampling = new matrix(nbObservables, nbSamples);
+                sampling = new TE::matrix(nbObservables, nbSamples);
             }
         }
         else
@@ -72,7 +78,7 @@ public:
     ~krylovTimeEvolver();
 
     //sampled values of observables
-    matrix* samplings;
+    TE::matrix* samplings;
 
     //options
     bool checkNorm, fastIntegration, progressBar, suppressWarnings;
@@ -81,11 +87,9 @@ public:
 
     
 protected:
-    void optimizeInput();
     int findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
-    void destroyOptimizeInput();
     void sample();
-    bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
+    bool arnoldiAlgorithm(double tolRate, TE::matrix* H, TE::matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
     void printProgress(float prog);
     void progressBarThread();
@@ -98,7 +102,7 @@ protected:
     double t; size_t Hsize;
     double samplingStep; 
     int nbObservables;
-    smatrix* Ham;
+    TE::smatrix* Ham;
     std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
 
     //Printing and Logging
@@ -112,10 +116,6 @@ protected:
     boost::math::quadrature::tanh_sinh<double> integ;
     int integrationMethodLong, integrationMethodShort;
     double termination;
-    
-    //variables for mkl-library
-    sparse_matrix_t* HamOpt;
-    matrix_descr descriptor;
     
     //temporary variables shared by different functions
     std::complex<double>* currentVec;

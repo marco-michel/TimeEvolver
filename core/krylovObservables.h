@@ -1,11 +1,18 @@
 #pragma once
 
+#include <complex>
 
-
+#ifdef USE_MKL
 #include <mkl.h>
 #include <mkl_spblas.h>
+#elif defined USE_OPENBLAS
+#include <cblas.h>
+//#include <lapacke.h>
+#endif
 
 #include "matrixDataTypes.h"
+
+using namespace TE;
 
 
 
@@ -53,9 +60,11 @@ public:
 
 private:
     std::unique_ptr<smatrix> obs;
-    matrix_descr descriptorObs;
     std::complex<double>* tmpBlasVec;
+#ifdef USE_MKL
     sparse_matrix_t* ObsOpt;
+    matrix_descr descriptorObs;
+#endif
 };
 
 
