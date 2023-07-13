@@ -111,6 +111,9 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	e_1[0].real(1);
 
 	obsVector = std::move(observables);
+	for (auto iter = obsVector.begin(); iter != obsVector.end(); iter++)
+		(*iter)->initializeResultArray(n_samples);
+
 	suppressWarnings = false;
 }
 
@@ -138,8 +141,8 @@ krylovTimeEvolver::~krylovTimeEvolver()
 	obsVector.clear();
 }
 
-constexpr std::complex<double> krylovTimeEvolver::one;
-constexpr std::complex<double> krylovTimeEvolver::zero;
+//constexpr std::complex<double> krylovTimeEvolver::one;
+//constexpr std::complex<double> krylovTimeEvolver::zero;
 
 /**
  * Computes and saves values of observables for current state ('sampledState')
@@ -302,18 +305,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		integrationMethodLong = integrationMethodShort = 2;
 	}
 
-	//optimizeInput();
-	/* //This is useless
-	if (checkNorm) 
-
-	{
-		if (std::abs(cblas_dznrm2(Hsize, currentVec, 1) - 1.0) > tol) {
-			std::cerr << "Norm error in initial vector" << std::endl;
-			exit(1);
-		}
-	}
-	*/
-
 	if (fastIntegration && !suppressWarnings)
 		std::cout << "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result." << std::endl;
 
@@ -360,6 +351,9 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	std::complex<double>* eigenvalues = new std::complex<double>[m];
 	//Eigenvectors of Hessenberg matrix
 	std::complex<double>* schurvector = new std::complex<double>[m * m];
+
+	//Init observable vector before first sample
+	
 
 	//Record observables for initial state
 	sample();

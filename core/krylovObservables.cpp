@@ -23,6 +23,18 @@ std::string krylovBasicObservable::retName()
 	return obs_name;
 }
 
+void krylovBasicObservable::initializeResultArray(size_t size)
+{	
+	numSamples = size;
+	expectationValues = new double[size];
+}
+
+krylovBasicObservable::~krylovBasicObservable()
+{
+	if (numSamples > 0)
+		delete[] expectationValues;
+}
+
 obsType krylovBasicObservable::retType()
 {
 	return type;
@@ -56,6 +68,9 @@ std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* v
 	std::complex<double> observall;
 	cblas_zgemv(CblasColMajor, CblasNoTrans, dim, dim, &one, obs->values, dim, vec, 1, &zero, tmpBlasVec, 1);
 	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
+
+	expectationValues[sampleIndex] = observall.real();
+	sampleIndex++;
 	return observall;
 }
 
@@ -75,8 +90,6 @@ krylovSpMatrixObservable::~krylovSpMatrixObservable()
 	{
 		delete[] tmpBlasVec;
 	}
-	//sparse_status_t mklStatus = mkl_sparse_destroy(*ObsOpt);
-	//delete ObsOpt;
 }
 
 std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
@@ -91,6 +104,8 @@ std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>*
 	std::complex<double> observall;
 	obs->spMV(one, vec, tmpBlasVec);
 	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
+	expectationValues[sampleIndex] = observall.real();
+	sampleIndex++;
 
 	return observall;
 
@@ -121,5 +136,7 @@ std::complex<double> krylovVectorObservable::expectation(std::complex<double>* v
 	std::complex<double> observallreturn;
 	observallreturn.imag(0);
 	observallreturn.real(std::norm(observall));
+	expectationValues[sampleIndex] = observallreturn.real();
+	sampleIndex++;
 	return observallreturn; //returns the squared magnitued
 }

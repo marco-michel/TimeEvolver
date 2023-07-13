@@ -7,7 +7,6 @@
 #include <mkl_spblas.h>
 #elif defined USE_OPENBLAS
 #include <cblas.h>
-//#include <lapacke.h>
 #endif
 
 #include "matrixDataTypes.h"
@@ -21,11 +20,12 @@ enum obsType { VOID_TYPE_OBS, VECTOR_TYPE_OBS, SPARSE_MATRIX_TYPE_OBS, MATRIX_TY
 class krylovBasicObservable
 {
 public:
-    krylovBasicObservable(const std::string& name) : obs_name(name), dim(0), type(VOID_TYPE_OBS) {}
-    virtual ~krylovBasicObservable() {}
+    krylovBasicObservable(const std::string& name) : obs_name(name), dim(0), type(VOID_TYPE_OBS), numSamples(0), sampleIndex(0), expectationValues(nullptr) {}
+    virtual ~krylovBasicObservable();
     virtual std::complex<double> expectation(std::complex<double>* vec, int len) = 0;
     obsType retType();
     std::string retName();
+    void initializeResultArray(size_t size);
 
     static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
     static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
@@ -34,6 +34,9 @@ protected:
     obsType type;
     std::string obs_name;
     size_t dim;
+    size_t numSamples;
+    size_t sampleIndex;
+    double* expectationValues;
 };
 
 
@@ -61,11 +64,6 @@ public:
 private:
     std::unique_ptr<smatrix> obs;
     std::complex<double>* tmpBlasVec;
-    /*
-#ifdef USE_MKL
-    sparse_matrix_t* ObsOpt;
-    matrix_descr descriptorObs;
-#endif*/
 };
 
 
