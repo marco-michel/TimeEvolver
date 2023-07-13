@@ -72,8 +72,8 @@ class krylovTimeEvolver
 {
 public:
     krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm= true, bool fastIntegration = false);
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false, bool progressBar = false);
-    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham);
+    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<krylovBasicObservable*>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false, bool progressBar = false);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<krylovBasicObservable*>  observables, smatrix* Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
@@ -103,7 +103,7 @@ protected:
     double samplingStep; 
     int nbObservables;
     TE::smatrix* Ham;
-    std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
+    std::vector<krylovBasicObservable*>  obsVector;
 
     //Printing and Logging
     std::thread pBThread;

@@ -39,10 +39,10 @@ using namespace TE;
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
  */
 krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int m, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration) :
-krylovTimeEvolver(t, Hsize, v, samplingStep, tol, m, std::vector<std::unique_ptr<krylovBasicObservable>>(), Ham, expFactor, checkNorm, fastIntegration, false) {
+krylovTimeEvolver(t, Hsize, v, samplingStep, tol, m, std::vector<krylovBasicObservable*>(), Ham, expFactor, checkNorm, fastIntegration, false) {
 	this->nbObservables = nbObservables;
 	for (int i = 0; i != nbObservables; i++){
-		obsVector.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), observables[i]));
+		obsVector.push_back(new krylovSpMatrixObservable(std::to_string(i), observables[i]));
 	}
 }
 
@@ -61,7 +61,7 @@ krylovTimeEvolver(t, Hsize, v, samplingStep, tol, m, std::vector<std::unique_ptr
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
  * @param progressBar Whether or not to show a progressbar in the terminal
  */
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration, bool progressBar)
+krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<krylovBasicObservable*>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration, bool progressBar)
 {
 	if (Hsize == 0)
 	{
@@ -110,7 +110,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	e_1 = new std::complex<double>[m];
 	e_1[0].real(1);
 
-	obsVector = std::move(observables);
+	obsVector = observables;
 	for (auto iter = obsVector.begin(); iter != obsVector.end(); iter++)
 		(*iter)->initializeResultArray(n_samples);
 
@@ -118,7 +118,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 }
 
 
-krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, smatrix* Ham) : krylovTimeEvolver(t, Ham->m, v, samplingStep, 1e-6, 40, std::move(observables), Ham, 
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<krylovBasicObservable*> observables, smatrix* Ham) : krylovTimeEvolver(t, Ham->m, v, samplingStep, 1e-6, 40, std::move(observables), Ham, 
 	std::complex<double>(0.0,-1.0), true, false, false){}
 
 /**
