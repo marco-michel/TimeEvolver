@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "krylovHelper.h"
+#include "parameter.h"
 
 
 #ifdef USE_HDF
@@ -18,10 +19,7 @@ using namespace H5;
 //Class Parameter
 
 
-std::string parameter::getName()
-{
-    return p_name;
-}
+
 
 
 //--------------------------------------------------------------------------

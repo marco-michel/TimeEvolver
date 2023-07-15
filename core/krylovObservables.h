@@ -10,9 +10,9 @@
 #endif
 
 #include "matrixDataTypes.h"
+#include "parameter.h"
 
 using namespace TE;
-
 
 
 enum obsType { VOID_TYPE_OBS, VECTOR_TYPE_OBS, SPARSE_MATRIX_TYPE_OBS, MATRIX_TYPE_OBS };
@@ -26,6 +26,8 @@ public:
     obsType retType();
     std::string retName();
     void initializeResultArray(size_t size);
+
+    static void saveResult(const std::vector<krylovBasicObservable*> &obs_list, parameter_list& para, const std::string& name);
 
     static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
     static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);

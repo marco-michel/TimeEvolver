@@ -14,6 +14,8 @@
 
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
+#include "krylovHelper.h"
+
 
 using namespace TE;
 
@@ -28,6 +30,107 @@ void krylovBasicObservable::initializeResultArray(size_t size)
 	numSamples = size;
 	expectationValues = new double[size];
 }
+
+
+
+void krylovBasicObservable::saveResult(const std::vector<krylovBasicObservable*> &obs_list,  parameter_list &para, const std::string &name)
+{
+    std::string outputFileName = name;
+
+    parameter_list::iterator paraIter;
+    std::vector<krylovBasicObservable*>::const_iterator obsIter;
+
+    //Create string with parameter and its value
+    for (paraIter = para.begin(); paraIter != para.end(); paraIter++)
+        outputFileName += "_" + (*paraIter)->getName() + (*paraIter)->getData();
+
+#ifdef USE_HDF
+
+    outputFileName += ".h5";
+    H5File fileHh(outputFileName.c_str(), H5F_ACC_TRUNC);
+    DataSet dataset;
+
+    size_t nbOutputParameters = para.size();
+
+    obsIter = obs_list.begin();
+
+    for (unsigned int j = 0; j < obs_list.size() && obsIter != obs_list.end(); j++)
+    {
+        int NX = (int)(*obsIter)->numSamples;
+        const int RANK = 1;
+        hsize_t dimsf[RANK];
+        dimsf[0] = NX;
+        DataSpace dataspace(RANK, dimsf);
+        FloatType datatype(PredType::NATIVE_DOUBLE);
+        datatype.setOrder(H5T_ORDER_LE);
+        std::string observableName = (*obsIter)->obs_name;
+        dataset = fileHh.createDataSet(observableName.c_str(), datatype, dataspace);
+        dataset.write((*obsIter)->expectationValues, PredType::NATIVE_DOUBLE);
+
+        //write  parameters as attributes to file
+        hsize_t dims[1] = { 1 };
+
+        DataSpace** attr_dataspace = new DataSpace * [nbOutputParameters];
+        Attribute** attributes = new Attribute * [nbOutputParameters];
+
+        for (unsigned int i = 0; i < nbOutputParameters; ++i)
+        {
+            attr_dataspace[i] = new DataSpace(1, dims);
+            attributes[i] = new Attribute();
+        }
+
+        int counter = 0;
+        for (paraIter = para.begin(); paraIter != para.end(); paraIter++, counter++)
+        {
+            if ((*paraIter)->isDouble())
+            {
+                double paraValue = dynamic_cast<typedParameter<double>&>(*(*paraIter)).getValue();
+                *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_DOUBLE, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_DOUBLE, &paraValue);
+            }
+            else if ((*paraIter)->isInt())
+            {
+                int paraValue = dynamic_cast<typedParameter<int>&>(*(*paraIter)).getValue();
+                *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_INT, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_INT, &paraValue);
+            }
+            else if ((*paraIter)->isBool())
+            {
+                int paraValue = dynamic_cast<typedParameter<bool>&>(*(*paraIter)).getValue();
+                *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_INT, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_INT, &paraValue);
+            }
+        }
+
+        for (unsigned int i = 0; i < nbOutputParameters; ++i)
+        {
+            delete attr_dataspace[i];
+            delete attributes[i];
+        }
+
+        delete[] attr_dataspace;
+        delete[] attributes;
+
+        dataset.close();
+        obsIter++;
+
+    }
+    //If not write data to simple csv files
+#else
+
+for (int j = 0; j != nbObservables && obsIter != obs_list.end(); j++, obsIter++)
+{
+    std::string fileNameCSV = outputFileName + (*obsIter)->getName() + ".csv";
+    std::ofstream outputfile;
+    outputfile.open(fileNameCSV);
+    for (int i = 0; i != (results->nSamples) - 1; i++)
+        outputfile << nicelySorted[j][i] << ", ";
+    outputfile << nicelySorted[j][(results->nSamples) - 1];
+    outputfile.close();
+}
+
+#endif
+
+}
+
+
 
 krylovBasicObservable::~krylovBasicObservable()
 {
