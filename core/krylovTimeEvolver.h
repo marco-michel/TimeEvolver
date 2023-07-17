@@ -21,6 +21,7 @@
 
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
+#include "krylovLogger.h"
 
 
 struct krylovReturn
@@ -81,9 +82,11 @@ public:
     TE::matrix* samplings;
 
     //options
-    bool checkNorm, fastIntegration, progressBar, suppressWarnings;
+    bool checkNorm, fastIntegration, progressBar;
     std::complex<double> expFactor;
     double tol; size_t m;
+
+    void changeLogLevel(krylovLogger::loggingLevel level);
 
     
 protected:
@@ -107,6 +110,7 @@ protected:
 
     //Printing and Logging
     std::thread pBThread;
+    krylovLogger logger;
     
     //Determined by input data
     size_t n_samples;

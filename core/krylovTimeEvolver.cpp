@@ -65,7 +65,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 {
 	if (Hsize == 0)
 	{
-		std::cerr << "Invalid Hilbertspace dimension" << std::endl;
+		logger.log_message(krylovLogger::FATAL, "Invalid Hilbertspace dimension");
 		exit(1);
 	}
 
@@ -114,7 +114,6 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	for (auto iter = obsVector.begin(); iter != obsVector.end(); iter++)
 		(*iter)->initializeResultArray(n_samples);
 
-	suppressWarnings = false;
 }
 
 
@@ -162,6 +161,11 @@ void krylovTimeEvolver::sample()
 	index_samples++;
 }
 
+
+void krylovTimeEvolver::changeLogLevel(krylovLogger::loggingLevel level)
+{
+	logger.set_loggingLevel(level);
+}
 
 /**
  * Given a Krylov subspace, this function finds out how far (i.e. for what time step) one can use it without exceeding the prescribed error bound. To this end, it computes an error bound for different possible time steps. This function only operates in the Krylov subspace, i.e. with vectors and matrices of dimension m
@@ -231,7 +235,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 		err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, tolRate, numericalIntegrationSuccessful);
 		if (nbReductions == GO_MAX)
 		{
-			std::cerr << "Error: No small enough time step found to meet tolerance requirements." << std::endl;
+			logger.log_message(krylovLogger::FATAL, "Error: No small enough time step found to meet tolerance requirements.");
 			exit(1);
 		}
 		skipSubsteps = false;
@@ -305,8 +309,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		integrationMethodLong = integrationMethodShort = 2;
 	}
 
-	if (fastIntegration && !suppressWarnings)
-		std::cout << "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result." << std::endl;
+	if (fastIntegration)
+		logger.log_message(krylovLogger::WARNING, "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result.");
 
 	//Time of current state
 	double t_now = 0.;
@@ -394,9 +398,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			V = Vtmp;
 			m = m_hbd;
 
-			if (!suppressWarnings) {
-				std::cout << "***Lucky breakdown at Krylov dimension " << m << " *** " << std::endl;
-			}
+			logger.log_message(krylovLogger::INFO, "***Lucky breakdown at Krylov dimension" + std::to_string(m) + " *** ");
+
 			statusCode = 1;
 		}
 		//Finally diagonalize Hessenberg matrix H (since it will be exponentiated many times)
@@ -404,7 +407,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 				H->values, m, eigenvalues, schurvector, m);
 		if (infocheck != 0) 
 		{
-			std::cerr << "Internal error: LAPACK error " << infocheck << std::endl;
+			logger.log_message(krylovLogger::FATAL, "Internal error: LAPACK error " + infocheck);
 			exit(1);
 		}
 		//END STEP 1
@@ -472,10 +475,9 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         {
             if (std::abs(nrm - vectorNorm) > tol)
             {
-				if (!suppressWarnings) {
-					std::cerr << "CRITICAL WARNING: Norm of state vector is not inside specified tolerance." << std::endl;
-					std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
-				}
+				logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: Norm of state vector is not inside specified tolerance. \n \
+					THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED.");
+
 				nbErrors++;
 				statusCode = 30;
             }
@@ -488,49 +490,49 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 	//Output of potential errors
 	numericalErrorEstimateTotal = numericalErrorEstimate * n_steps; //Rough estimate of total round-of error
-	if (nbErrRoundOff != 0 && !suppressWarnings)
+	if (nbErrRoundOff != 0)
 	{
-		std::cerr << "CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in " << nbErrRoundOff << " Krylov spaces." << std::endl;
-		std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
-		std::cerr << "Restart with bigger error bound or smaller time." << std::endl;
-
-		std::cerr << "The total computed analytic error is: " << err << std::endl;
-		std::cerr << "The total numerical error estimate for all Krylov spaces is " << numericalErrorEstimateTotal << std::endl;
+		logger.log_message(krylovLogger::WARNING, std::string("CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in ") + (nbErrRoundOff + " Krylov spaces.) \n \
+			THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED. \n \
+			Restart with bigger error bound or smaller time."));
+		logger.log_message(krylovLogger::WARNING, "The total computed analytic error is: " + std::to_string(err));
+		logger.log_message(krylovLogger::WARNING, "The total numerical error estimate for all Krylov spaces is " + std::to_string(numericalErrorEstimateTotal));
 
 		nbErrors++;
 		statusCode = 10;
 	}
-	if (nbErrInt != 0 && !suppressWarnings)
+	if (nbErrInt != 0)
 	{
-		std::cerr << "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " << nbErrInt << " Krylov spaces." << std::endl;
-		std::cerr << "THE DESIRED ERROR BOUND MAY BE VIOLATED." << std::endl;
+		logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " + std::to_string(nbErrInt) + " Krylov spaces. \
+			THE DESIRED ERROR BOUND MAY BE VIOLATED.");
 
 		nbErrors++;
 		statusCode = 20;
 	}
 	if (numericalErrorEstimateTotal > err && nbErrRoundOff == 0) //No need to output warning twice. Only relevant for very simple systems for which 1 Krylov space is sufficient /  lucky breakdown
 	{
-		if (numericalErrorEstimateTotal > tol && !suppressWarnings)
+		if (numericalErrorEstimateTotal > tol)
 		{
-			std::cerr << "CRITICAL WARNING: The numerical error estimate " << numericalErrorEstimateTotal << " was larger than the requested tolerance " << tol << std::endl;
-			std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
+			logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: The numerical error estimate " + std::to_string(numericalErrorEstimateTotal) + " was larger than the requested tolerance " + std::to_string(tol) + " \
+				THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED.");
+
 			statusCode = 11;
 			nbErrors++;
 		}
 		else
 		{
-			if (!suppressWarnings) {
-				std::cout << "Info: Analytic error " << err << " was smaller than the estimate of the numerical error " << numericalErrorEstimateTotal << "." << std::endl;
-				std::cout << "The computed error is not accurate." << std::endl;
-			}
+			
+			logger.log_message(krylovLogger::WARNING, "Warning: Analytic error " + std::to_string(err) + " was smaller than the estimate of the numerical error " + std::to_string(numericalErrorEstimateTotal) + ". \
+				The computed error is not accurate.");
+			
 			if (statusCode != 1) //Don't overwrite Lucky breakdown status
 				statusCode = 2;
 		}
 	}
 
-	if (nbErrors > 1 && !suppressWarnings)
+	if (nbErrors > 1)
 	{
-		std::cerr << "There were multiple critical warnings raised during evaluation. Please see ouput above for further details." << std::endl;
+		logger.log_message(krylovLogger::WARNING, "There were multiple critical warnings raised during evaluation. Please see ouput above for further details.");
 		statusCode = 100;
 	}
    
@@ -581,7 +583,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
 
         if(spStatus != 0)
         {
-            std::cerr << "spMV error " << std::endl;
+			logger.log_message(krylovLogger::FATAL, "spMV error ");
             exit(1);
         }
 		if (j != 0) {
@@ -653,8 +655,8 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	}
 	else
 	{
-		std::cerr << "Internal error: No method of integration selected" << std::endl;
-		exit(-1);
+		logger.log_message(krylovLogger::FATAL, "Internal error: No method of integration selected");
+		exit(1);
 	}
 	
 	successful = successful && success;
@@ -694,7 +696,6 @@ void krylovTimeEvolver::progressBarThread()
 			break;
 		}
 	}
-	std::cout << "\n shutting down thread" << std::endl;
 	return;
 }
 

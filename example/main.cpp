@@ -15,6 +15,7 @@
 namespace po = boost::program_options;
 
 
+
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
 #include "Basis.h"
@@ -22,6 +23,7 @@ namespace po = boost::program_options;
 #include "exampleHamiltonian.h"
 #include "krylovHelper.h"
 #include "krylovObservables.h"
+#include "parameter.h"
 
 using namespace TE;
 
@@ -57,12 +59,12 @@ int main(int argc, char* argv[])
         ("Cm", po::value<double>(&Cm)->default_value(1.0), "Coupling in critical sector")
         ("maxT", po::value<double>(&maxT)->default_value(10), "Simulation-time")
 	    ("samplingStep", po::value<double>(&samplingStep)->default_value(0.01), "Time interval of sampling")
-        ("tol", po::value<double>(&tol)->default_value(1.0e-8), "Numerical tolerance")
+        ("tol", po::value<double>(&tol)->default_value(1.0e-22), "Numerical tolerance")
         ("m", po::value<int>(&m)->default_value(40), "Dimension of Krylov-Space")
         ("threads", po::value<int>(&numThreads)->default_value(2), "Number of OpenMP Threads for Intel MKL")
         ("DeltaN", po::value<double>(&DeltaN)->default_value(12), "Distance between critical sectors")
         ("capacity", po::value<int>(&capacity)->default_value(1), "Capacity of cirtial modes")
-        ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(false), "Use faster and less accurate integration")
+        ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(true), "Use faster and less accurate integration")
         ;
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -134,7 +136,12 @@ int main(int argc, char* argv[])
 
     krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observableList, hamMatrix, imaginaryMinus, true, fastIntegration, true);
 
+    timeEvolver.changeLogLevel(krylovLogger::loggingLevel::DEBUG);
+
     krylovReturn* results = timeEvolver.timeEvolve();
+
+    parameter_list owo;
+    krylovBasicObservable::saveResult(observableList, owo, "uwu");
     
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin);

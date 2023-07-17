@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <string>
 #include <iomanip>
 
 #include "krylovTimeEvolver.h"
@@ -11,6 +12,7 @@
 #include <H5Cpp.h>
 using namespace H5;
 #endif
+
 
 
 
@@ -54,5 +56,7 @@ private:
 	void writeAttributes();
 #endif
 };
+
+//------------------------------------------------------------------------------------------------
 
 
