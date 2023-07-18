@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.1 - 2022-04-11
+
+### Fixed
+- Fixed memory leak and memory corruption in smatrix class
+
+### Changed
+- Code layout for observable class
+
+
 ## 1.4.0 - 2022-03-07
 
 ### Added
