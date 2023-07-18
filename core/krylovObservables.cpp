@@ -214,10 +214,6 @@ std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>*
 
 }
 
-//this would not be necessary with C++17
-
-constexpr std::complex<double> krylovBasicObservable::zero;
-constexpr std::complex<double> krylovBasicObservable::one;
 
 krylovVectorObservable::krylovVectorObservable(const std::string& name, std::complex<double>* obser, size_t len) : krylovBasicObservable(name)
 {

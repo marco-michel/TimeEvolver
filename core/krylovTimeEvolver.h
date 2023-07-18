@@ -2,6 +2,7 @@
 
 #include <boost/math/quadrature/tanh_sinh.hpp>
 
+/*
 #ifdef USE_MKL
 #define MKL_Complex16 std::complex<double>
 #define MKL_INT size_t
@@ -13,7 +14,7 @@
 #define lapack_complex_double std::complex<double>
 #include <lapacke.h>
 #endif
-
+*/
 #include <cmath>
 #include <complex>
 #include <memory>
