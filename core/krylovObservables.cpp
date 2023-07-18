@@ -9,7 +9,6 @@
 #include <mkl.h>
 #elif defined USE_OPENBLAS
 #include <cblas.h>
-//#include <lapacke.h>
 #endif
 
 #include "matrixDataTypes.h"

@@ -21,7 +21,6 @@ namespace po = boost::program_options;
 #include "Basis.h"
 #include "hamiltonian.h"
 #include "exampleHamiltonian.h"
-//#include "krylovHelper.h"
 #include "krylovObservables.h"
 #include "parameter.h"
 
@@ -126,11 +125,11 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i != basis.numberModes; i++)
     {
-        observableList.push_back(new krylovSpMatrixObservable(std::to_string(i), observables[i]));
+        observableList.push_back(new krylovSpMatrixObservable("mode" + std::to_string(i), observables[i]));
     }
     
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observableList, hamMatrix, imaginaryMinus, true, fastIntegration, true);
+    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observableList, hamMatrix, imaginaryMinus, fastIntegration, true);
 
     timeEvolver.changeLogLevel(krylovLogger::loggingLevel::DEBUG);
 

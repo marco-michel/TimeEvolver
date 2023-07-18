@@ -20,7 +20,6 @@
 
 #elif defined USE_OPENBLAS
 #include <cblas.h>
-//#include <lapacke.h>
 #endif
 
 
@@ -85,7 +84,6 @@
             smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm);
             ~smatrix();
 
-            //inline int spMV(std::complex<double> alpha, vector* in, vector* out); //future implementation for GPU
             int spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double>* out);
 
             int initialize();

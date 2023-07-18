@@ -70,7 +70,7 @@ private:
 
 
 
-class [[deprecated("Dense matrix observables are not fully tested yet. Please use with care.")]] krylovMatrixObservable : public krylovBasicObservable
+class krylovMatrixObservable : public krylovBasicObservable
 {
     krylovMatrixObservable(const std::string& name, matrix* obs);
     ~krylovMatrixObservable();

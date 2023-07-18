@@ -22,29 +22,6 @@
 
 using namespace TE;
 
-/**
- * Legacy constructor with raw sparse matrix argument as observables 
- * All data required for the numerical time evolution is needed.
- * @param t The time interval over which the state should be time evolved.
- * @param Hsize The size of the full Hilbert space
- * @param v The initial state that should be time evolved
- * @param samplingStep The time interval after which the values of the observables should be determined
- * @param tol The maximal admissible error (norm difference between result of numerical and true time evolution)
- * @param m The size of the Krylov subspaces
- * @param observables The observables that are to be sampled
- * @param nbObservables The number of observables
- * @param Ham The full Hamiltonian
- * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
- * @param checkNorm Whether or not it should be check that the time evolved state has unit norm (default value: true)
- * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
- */
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int m, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration) :
-krylovTimeEvolver(t, Hsize, v, samplingStep, tol, m, std::vector<krylovBasicObservable*>(), Ham, expFactor, checkNorm, fastIntegration, false) {
-	this->nbObservables = nbObservables;
-	for (int i = 0; i != nbObservables; i++){
-		obsVector.push_back(new krylovSpMatrixObservable(std::to_string(i), observables[i]));
-	}
-}
 
 /**
  * All data required for the numerical time evolution is needed.
@@ -57,11 +34,10 @@ krylovTimeEvolver(t, Hsize, v, samplingStep, tol, m, std::vector<krylovBasicObse
  * @param observables The vector of observables that are to be sampled
  * @param Ham The full Hamiltonian
  * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
- * @param checkNorm Whether or not it should be check that the time evolved state has unit norm (default value: true)
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
  * @param progressBar Whether or not to show a progressbar in the terminal
  */
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<krylovBasicObservable*>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration, bool progressBar)
+krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<krylovBasicObservable*>  observables, smatrix* Ham, std::complex<double> expFactor, bool fastIntegration, bool progressBar)
 {
 	if (Hsize == 0)
 	{
@@ -70,12 +46,10 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	}
 
 	this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m = std::min<size_t>(mm, Hsize); this->progressBar = progressBar;
-	this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration; this->nbObservables = (int) observables.size();
+	this->Ham = Ham; this->expFactor = expFactor; this->fastIntegration = fastIntegration; this->nbObservables = (int) observables.size();
 
 	matrixNorm = Ham->norm1();
-	vectorNorm = cblas_dznrm2(Hsize, v, 1);
 
-	//NEW TEST
 	Ham->initialize();
 
 	//Numerical integration terminates if error*L1 < termination
@@ -83,11 +57,6 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 	//number of sampling steps
 	n_samples = (size_t)floor(t / samplingStep) + 1;
-
-	if (nbObservables == 0)
-		samplings = new matrix(Hsize, n_samples);
-	else
-		samplings = new matrix(nbObservables, n_samples);
 
 	//The state at the current time
 	currentVec = new std::complex<double>[Hsize];
@@ -118,7 +87,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 
 
 krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<krylovBasicObservable*> observables, smatrix* Ham) : krylovTimeEvolver(t, Ham->m, v, samplingStep, 1e-6, 40, std::move(observables), Ham, 
-	std::complex<double>(0.0,-1.0), true, false, false){}
+	std::complex<double>(0.0,-1.0), false, false){}
 
 /**
 * Destructor
@@ -135,28 +104,21 @@ krylovTimeEvolver::~krylovTimeEvolver()
 	delete[] tmpintKernelExp2;
 	delete[] tmpintKernelExp3;
 	delete[] tmpintKernelT;
-    delete samplings;
     delete[] e_1;
 	obsVector.clear();
 }
 
-//constexpr std::complex<double> krylovTimeEvolver::one;
-//constexpr std::complex<double> krylovTimeEvolver::zero;
+
 
 /**
  * Computes and saves values of observables for current state ('sampledState')
  */
 void krylovTimeEvolver::sample()
 {
-	if (nbObservables == 0)
-		cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples * Hsize, 1);
-	else 
+	int i = 0;
+	for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
 	{
-		int i = 0;
-		for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
-		{
-			*(samplings->values + i + index_samples * nbObservables) = (*obsIter)->expectation(sampledState, Hsize);
-		}
+		(*obsIter)->expectation(sampledState, Hsize);
 	}
 	index_samples++;
 }
@@ -364,10 +326,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 	//Start progressBar thread
 	if (progressBar == true)
-	{
-		pBThread = std::thread(&krylovTimeEvolver::progressBarThread, this);
-		//pBThread.detach();
-	}
+			pBThread = std::thread(&krylovTimeEvolver::progressBarThread, this);
+	
     //Main loop
     while (index_samples < n_samples)
     {
@@ -468,22 +428,17 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         
         t_now += t_step;
         err += err_step;
-        
-        //As a consistency check, determine if norm of state was preserved
-        double nrm = cblas_dznrm2(Hsize, currentVec, 1);
-        if (checkNorm)
-        {
-            if (std::abs(nrm - vectorNorm) > tol)
-            {
-				logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: Norm of state vector is not inside specified tolerance. \n \
-					THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED.");
-
-				nbErrors++;
-				statusCode = 30;
-            }
-        }
-        
     }
+
+	//As a consistency check, determine if norm of state was preserved
+	if (std::abs(cblas_dznrm2(Hsize, sampledState, 1) - 1.0) > tol)
+	{
+		logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: Norm of state vector is not inside specified tolerance. \n \
+				THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED.");
+		nbErrors++;
+		statusCode = 30;
+	}
+
 
 	if (progressBar)
 		pBThread.join();
@@ -538,25 +493,18 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
    
    
     //Return result
-	krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, statusCode);
+	krylovReturn* ret = new krylovReturn(Hsize, statusCode);
     cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
-    size_t nbResults;
-    if (nbObservables != 0)
-        nbResults = n_samples * nbObservables;
-    else
-        nbResults = n_samples * Hsize;
-    cblas_zcopy(nbResults, samplings->values, 1, ret->sampling->values, 1);
     ret->n_steps = n_steps;
     ret->err = err;
     ret->dim = Hsize;
 	ret->krylovDim = m;
-    ret->nSamples = n_samples;
     
     delete[] eigenvalues;
     delete[] schurvector;
     delete V;
     delete H;
-    //destroyOptimizeInput();
+
 
     return ret;
 }

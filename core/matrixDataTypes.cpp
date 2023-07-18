@@ -2,24 +2,9 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-
-/*
-#ifdef USE_HDF
-#include <H5Cpp.h>
-using namespace H5;
-#endif
-
-#ifdef USE_MKL
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-#include <mkl.h>
-#include <mkl_spblas.h>
-#endif
-*/
+#include <iostream>
 
 #include "matrixDataTypes.h"
-#include <iostream>
 
 using namespace TE;
 

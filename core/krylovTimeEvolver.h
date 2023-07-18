@@ -27,45 +27,26 @@
 
 struct krylovReturn
 {
-    TE::matrix* sampling;
     std::complex<double>* evolvedState;
     double err;
     size_t n_steps;
 	size_t dim;
     size_t krylovDim;
-	size_t nSamples;
     int statusCode;
 
 /* Status code has the following meaning: 
 1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected) 
 more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
  */
-    krylovReturn(unsigned int nbObservables, unsigned int Hsize, unsigned int nbSamples, int status)
+    krylovReturn(unsigned int Hsize, int status)
     {
-        err = 0; n_steps = 0; krylovDim = 0; dim = Hsize; nSamples = nbSamples; statusCode = status;
-        if(nbObservables == 0 && (nSamples * Hsize * sizeof(std::complex<double>) > std::pow(2.,34.)))
-        {
-            std::cerr << "Requested output would be too large" << std::endl;
-            exit(1);
-        }
+        err = 0; n_steps = 0; krylovDim = 0; dim = Hsize; statusCode = status;
         evolvedState = new std::complex<double>[Hsize];
-        if (nbSamples > 0)
-        {
-            if (nbObservables == 0)
-                sampling = new TE::matrix(Hsize, nbSamples);
-            else {
-                sampling = new TE::matrix(nbObservables, nbSamples);
-            }
-        }
-        else
-            sampling = nullptr;
     }
 
 	~krylovReturn()
 	{
             delete[] evolvedState;
-            if (nSamples > 0)
-				delete sampling;
 	}
 };
 
@@ -73,17 +54,16 @@ more than 1 digit means failure: 10 (computation of error may be  spoiled due to
 class krylovTimeEvolver
 {
 public:
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm= true, bool fastIntegration = false);
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<krylovBasicObservable*>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false, bool progressBar = false);
+    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<krylovBasicObservable*>  observables, smatrix* Ham, std::complex<double> expFactor, bool fastIntegration, bool progressBar);
     krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<krylovBasicObservable*>  observables, smatrix* Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
     //sampled values of observables
-    TE::matrix* samplings;
+
 
     //options
-    bool checkNorm, fastIntegration, progressBar;
+    bool fastIntegration, progressBar;
     std::complex<double> expFactor;
     double tol; size_t m;
 
@@ -116,7 +96,6 @@ protected:
     //Determined by input data
     size_t n_samples;
     double matrixNorm;
-    double vectorNorm;
 
     //Internal variables
     boost::math::quadrature::tanh_sinh<double> integ;
