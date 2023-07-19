@@ -124,10 +124,17 @@ smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV
 
 int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double> *out) {
 
-#ifdef USE_MKL
+#if defined USE_MKL
     sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, alpha, *MKLSparseMatrix,
         descriptor, in, zero, out);
     return (int) mklStatus;
+#elif defined USE_ARMADILLO
+    arma::cx_vec ArmadilloVector(in, m, false, true);
+    auto res = alpha * (*ArmadilloSparseMatrix) * ArmadilloVector;
+    for (unsigned int i = 0; i != m; i++)
+        out[i] = res(i);
+    return 0;
+
 #else  //not recommended, very slow,  please install an optimized sparse BLAS library for reasonable performance
     for (size_t i = 0; i != n; i++)
         out[i] = 0;
@@ -159,7 +166,16 @@ int smatrix::initialize() {
     mklStatus = mkl_sparse_set_memory_hint(*MKLSparseMatrix, SPARSE_MEMORY_AGGRESSIVE);
     mklStatus = mkl_sparse_optimize(*MKLSparseMatrix);
     
-    #endif
+ #endif
+    
+#ifdef USE_ARMADILLO
+    ArmadillorowIndex = arma::umat(rowIndex, 1, numValues, false, true);
+    ArmadillocolIndex = arma::umat(columns, 1, numValues, false, true);
+    ArmadillovalueVector = arma::cx_vec(values, numValues, false, true);
+    ArmadilloindexMatrix = arma::join_cols(ArmadillorowIndex, ArmadillocolIndex);
+
+    ArmadilloSparseMatrix = new arma::sp_cx_mat(ArmadilloindexMatrix, ArmadillovalueVector, m, n, true, true);
+#endif
 
     return 0;
 }

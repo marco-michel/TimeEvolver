@@ -6,21 +6,17 @@
 #include <iostream>
 #include <algorithm>
 
+#include "mathHeader.h"
+
 
 #ifdef USE_HDF
     #include <H5Cpp.h>
     using namespace H5;
 #endif
 
-#ifdef USE_MKL
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-#include <mkl.h>
-#include <mkl_spblas.h>
 
-#elif defined USE_OPENBLAS
-#include <cblas.h>
-#endif
+
+
 
 
     //Define namespace for matrices and vector classes
@@ -99,6 +95,14 @@
             matrix_descr descriptor;
 #endif
 
+#ifdef USE_ARMADILLO
+            //variables for armadillo-library
+            arma::sp_cx_mat* ArmadilloSparseMatrix;
+            arma::umat ArmadillorowIndex;
+            arma::umat ArmadillocolIndex;
+            arma::umat ArmadilloindexMatrix;
+            arma::cx_vec ArmadillovalueVector;
+#endif
 
             smatrix(const smatrix& old_obj) {
                 numValues = old_obj.numValues; n = old_obj.n; m = old_obj.m;
