@@ -61,4 +61,4 @@ add_subdirectory(test Test)
 
 add_test(NAME BlackHoleTest COMMAND Test/testBlackHole)
 add_test(NAME BlackHoleTestLB COMMAND Test/testBlackHoleLB)
-#add_test(NAME SimpleExampleTest COMMAND Test/testSimpleExample)
+add_test(NAME SimpleExampleTest COMMAND Test/testSimpleExample)

@@ -54,7 +54,7 @@ int main()
  
     for (int i = 0; i != basis.numberModes; i++)
     {
-        observableList.push_back(std::make_unique<krylovSpMatrixObservable>("mode" + std::to_string(i), std::move(observables[i])));
+        observableList.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), std::move(observables[i])));
     }
 
     //Create initial state with all particles in the first mode (N0, 0)
