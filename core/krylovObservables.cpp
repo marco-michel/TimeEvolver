@@ -23,6 +23,11 @@ std::string krylovBasicObservable::retName()
 	return obs_name;
 }
 
+double* krylovBasicObservable::retexpectationValues()
+{
+    return expectationValues;
+}
+
 void krylovBasicObservable::initializeResultArray(size_t size)
 {	
 	numSamples = size;
@@ -42,15 +47,14 @@ void krylovBasicObservable::saveResult(const std::vector<std::unique_ptr<krylovB
     for (paraIter = para.begin(); paraIter != para.end(); paraIter++)
         outputFileName += "_" + (*paraIter)->getName() + (*paraIter)->getData();
 
-#ifdef USE_HDF
+    obsIter = obs_list.begin();
+    size_t nbOutputParameters = para.size();
 
+
+#ifdef USE_HDF
     outputFileName += ".h5";
     H5File fileHh(outputFileName.c_str(), H5F_ACC_TRUNC);
     DataSet dataset;
-
-    size_t nbOutputParameters = para.size();
-
-    obsIter = obs_list.begin();
 
     for (unsigned int j = 0; j < obs_list.size() && obsIter != obs_list.end(); j++)
     {
@@ -113,14 +117,16 @@ void krylovBasicObservable::saveResult(const std::vector<std::unique_ptr<krylovB
     //If not write data to simple csv files
 #else
 
-for (int j = 0; j != nbObservables && obsIter != obs_list.end(); j++, obsIter++)
+for (; obsIter != obs_list.end(); obsIter++)
 {
-    std::string fileNameCSV = outputFileName + (*obsIter)->getName() + ".csv";
+    std::string fileNameCSV = outputFileName + (*obsIter)->retName() + ".csv";
     std::ofstream outputfile;
     outputfile.open(fileNameCSV);
-    for (int i = 0; i != (results->nSamples) - 1; i++)
-        outputfile << nicelySorted[j][i] << ", ";
-    outputfile << nicelySorted[j][(results->nSamples) - 1];
+
+    
+    for (int i = 0; i != (*obsIter)->numSamples - 1; i++)
+        outputfile << (*obsIter)->expectationValues[i] << ", ";
+    outputfile << (*obsIter)->expectationValues[((*obsIter)->numSamples) - 1];
     outputfile.close();
 }
 

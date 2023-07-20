@@ -49,7 +49,7 @@ more than 1 digit means failure: 10 (computation of error may be  spoiled due to
 class krylovTimeEvolver
 {
 public:
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, std::complex<double> expFactor, bool fastIntegration, bool progressBar);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, std::complex<double> expFactor, bool fastIntegration, bool progressBar);
     krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();

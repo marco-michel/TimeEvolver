@@ -2,9 +2,10 @@
 #include <vector>
 #include <fstream>
 
-#include <matrixDataTypes.h>
-#include <hamiltonian.h>
-#include <krylovTimeEvolver.h>
+#include "matrixDataTypes.h"
+#include "hamiltonian.h"
+#include "krylovTimeEvolver.h"
+#include "krylovObservables.h"
 
 /*Example to simulate two coupled oscillators with Hamiltonian:
  H = E1 * a^dagger a + E2 * b^dagger b + lambda * (a^dagger b + b^dagger a)
@@ -72,46 +73,32 @@ int main()
 
     std::cout << "Finished time evolution..." << std::endl;
 
-    //Sort observables for easier access since observable data for different observables is stored consecutively for each time step in results matrix 
-    //The storage layout of krylovReturn has folowing form: obs1 (t0), obs2(t0), obs1(t1), obs2(t1), ....
-
-/*
-    double** nicelySorted = new double*[nbObservables];
-    for(int i = 0; i < nbObservables; ++i)
-        nicelySorted[i] = new double[results->nSamples]; 
-    
-    for (int j = 0; j < nbObservables; j++)
-    {
-        for (unsigned int i = 0; i < results->nSamples; i++)
-            nicelySorted[j][i] = (results->sampling->values + nbObservables * i + j)->real();
-    }
-*/
     //Write date to csv file
     std::cout << "Writing data to file..." << std::endl;
 
     observableList = std::move(results->observableList);
-    parameter_list parameters;
-    krylovBasicObservable::saveResult(observableList, parameters, "SimpleExampleOutputOccupationNumber");
-/*
-    for(int j = 0; j != nbObservables; j++)
-    {
-        std::ofstream outputfile;
-        outputfile.open("SimpleExampleOutputOccupationNumber"+std::to_string(j)+".csv");
-        for(int i = 0; i != (results->nSamples)-1; i++)
-            outputfile << nicelySorted[j][i] << ", ";
-        outputfile <<  nicelySorted[j][(results->nSamples)-1];
-        outputfile.close();
-    }
-    
 
-    //clean up
-	for (int i = 0; i < nbObservables; i++)
-    {
-		delete[] nicelySorted[i];
-        delete observables[i];
-    }
-    delete[] nicelySorted; delete results; delete hamMatrix; delete[] vec; delete[] observables;
-*/
+    std::vector<std::unique_ptr<krylovBasicObservable>>::const_iterator obsIter;
+
+
+    obsIter = observableList.begin();
+
+
+
+   std::string outputFileName = "SimpleExampleOutputOccupationNumber";
+
+   for (; obsIter != observableList.end(); obsIter++)
+   {
+       std::string fileNameCSV = outputFileName + (*obsIter)->retName() + ".csv";
+       std::ofstream outputfile;
+       outputfile.open(fileNameCSV);
+       double* exptVal = (*obsIter)->retexpectationValues();
+       for (int i = 0; i != (*obsIter)->numSamples - 1; i++)
+           outputfile << exptVal[i] << ", ";
+       outputfile << exptVal[((*obsIter)->numSamples) - 1];
+       outputfile.close();
+   }
+
 
 delete[] vec; delete results;
     return 0;

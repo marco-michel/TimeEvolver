@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
     }
   
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(observableList), std::move(hamMatrix), imaginaryMinus, fastIntegration, true);
+    krylovTimeEvolver timeEvolver(maxT, vec, samplingStep, tol, m, std::move(observableList), std::move(hamMatrix), imaginaryMinus, fastIntegration, true);
 
     timeEvolver.changeLogLevel(krylovLogger::loggingLevel::DEBUG);
 
