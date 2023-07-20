@@ -15,7 +15,6 @@
 
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
-#include <krylovHelper.h>
 
 using namespace TE;
 
