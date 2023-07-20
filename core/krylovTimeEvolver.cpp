@@ -8,12 +8,9 @@
 #include <boost/math/quadrature/tanh_sinh.hpp>
 #include <boost/math/quadrature/gauss.hpp> 
 
-#include <cstdlib>
-#include <cmath>
 #include <complex>
 #include <limits>
 #include <algorithm>
-#include <iostream>
 #include <thread>
 
 #include "matrixDataTypes.h"

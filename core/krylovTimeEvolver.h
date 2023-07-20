@@ -9,7 +9,6 @@
 
 
 #include <vector>
-#include <cmath>
 #include <complex>
 #include <memory>
 #include <thread>

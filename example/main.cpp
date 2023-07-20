@@ -1,12 +1,7 @@
 #include <unordered_map>
 #include <complex>
 #include <iostream>
-#include <stdexcept>
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
-#include <cmath>
 #include <memory>
 #include <chrono>
 
@@ -40,9 +35,9 @@ int main(int argc, char* argv[])
     int K; 
     double C0; double Cm;
     double maxT; double samplingStep;
-    double tol; int m; int numThreads;
-     double DeltaN; int capacity; 
-     bool fastIntegration;
+    double tol; int m;
+    double DeltaN; int capacity; 
+    bool fastIntegration;
     
     po::options_description desc("Allowed options");
     po::variables_map vm;
@@ -60,7 +55,6 @@ int main(int argc, char* argv[])
 	    ("samplingStep", po::value<double>(&samplingStep)->default_value(0.01), "Time interval of sampling")
         ("tol", po::value<double>(&tol)->default_value(1.0e-6), "Numerical tolerance")
         ("m", po::value<int>(&m)->default_value(40), "Dimension of Krylov-Space")
-        ("threads", po::value<int>(&numThreads)->default_value(2), "Number of OpenMP Threads for Intel MKL")
         ("DeltaN", po::value<double>(&DeltaN)->default_value(12), "Distance between critical sectors")
         ("capacity", po::value<int>(&capacity)->default_value(1), "Capacity of cirtial modes")
         ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(false), "Use faster and less accurate integration")

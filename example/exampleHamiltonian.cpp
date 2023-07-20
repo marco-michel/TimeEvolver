@@ -1,5 +1,3 @@
-#include <cmath>
-
 #include "exampleHamiltonian.h"
 #include "Basis.h"
 
