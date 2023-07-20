@@ -143,14 +143,14 @@ obsType krylovBasicObservable::retType()
 }
 
 
-krylovMatrixObservable::krylovMatrixObservable(const std::string& name, matrix* obser) : krylovBasicObservable(name)
+krylovMatrixObservable::krylovMatrixObservable(const std::string& name, std::unique_ptr<matrix> obser) : krylovBasicObservable(name)
 {
 	dim = obser->m;
 	type = MATRIX_TYPE_OBS;
 	if (dim > 0)
 		tmpBlasVec = new std::complex<double>[dim];
 
-	obs = std::make_unique<matrix>(*obser);
+	obs = std::move(obser);
 
 }
 
@@ -181,11 +181,11 @@ std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* v
 	return observall;
 }
 
-krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, smatrix* obser) : krylovBasicObservable(name)
+krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, std::unique_ptr<smatrix> obser) : krylovBasicObservable(name)
 {
 	dim = obser->m;
 	type = SPARSE_MATRIX_TYPE_OBS;
-	obs = std::make_unique<smatrix>(*obser); //make owned copy (I don't know if that's the best way)
+	obs = std::move(obser); 
 	obs->initialize();
 
 	tmpBlasVec = new std::complex<double>[dim];

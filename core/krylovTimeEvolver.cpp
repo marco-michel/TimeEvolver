@@ -37,7 +37,7 @@ using namespace TE;
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
  * @param progressBar Whether or not to show a progressbar in the terminal
  */
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool fastIntegration, bool progressBar)
+krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, std::complex<double> expFactor, bool fastIntegration, bool progressBar)
 {
 	if (Hsize == 0)
 	{
@@ -46,7 +46,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	}
 
 	this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m = std::min<size_t>(mm, Hsize); this->progressBar = progressBar;
-	this->Ham = Ham; this->expFactor = expFactor; this->fastIntegration = fastIntegration; this->nbObservables = (int) observables.size();
+	this->Ham = std::move(HamIn); this->expFactor = expFactor; this->fastIntegration = fastIntegration; this->nbObservables = (int) observables.size();
 
 	matrixNorm = Ham->norm1();
 
@@ -86,7 +86,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 }
 
 
-krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, smatrix* Ham) : krylovTimeEvolver(t, Ham->m, v, samplingStep, 1e-6, 40, std::move(observables), Ham,
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham) : krylovTimeEvolver(t, Ham->m, v, samplingStep, 1e-6, 40, std::move(observables), std::move(Ham),
 	std::complex<double>(0.0,-1.0), false, false){}
 
 /**

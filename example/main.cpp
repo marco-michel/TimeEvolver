@@ -52,8 +52,8 @@ int main(int argc, char* argv[])
         desc.add_options()
         ("help", "produce help message")
         ("N0", po::value<int>(&N0)->default_value(20), "Number of particles in control sector")
-        ("Nm", po::value<int>(&Nm)->default_value(2), "Number of particles in critical sector")
-        ("K", po::value<int>(&K)->default_value(4), "Number of modes in critical sector")
+        ("Nm", po::value<int>(&Nm)->default_value(3), "Number of particles in critical sector")
+        ("K", po::value<int>(&K)->default_value(6), "Number of modes in critical sector")
         ("C0", po::value<double>(&C0)->default_value(1.0), "Coupling in control sector")
         ("Cm", po::value<double>(&Cm)->default_value(1.0), "Coupling in critical sector")
         ("maxT", po::value<double>(&maxT)->default_value(10), "Simulation-time")
@@ -99,13 +99,13 @@ int main(int argc, char* argv[])
     
    //Create Hamiltonian matrix
     std::cout << "Creating Hamiltonian matrix..." << std::endl;
-    smatrix* hamMatrix;
-    ham.createHamiltonMatrix(hamMatrix, &basis);
-
+    std::unique_ptr<smatrix> hamMatrix = ham.createHamiltonMatrix(&basis);
+    
+   
     //Create matrices for observables
     std::cout << "Creating observables..." << std::endl;
-    smatrix** observables;
-    ham.createObservables(observables, &basis);
+    std::vector<std::unique_ptr<smatrix>> observables = ham.createNumberOperatorObservables(&basis);
+   
 
     //Create initial state
     basisVector init = ham.createInitState();
@@ -122,14 +122,14 @@ int main(int argc, char* argv[])
     auto begin = std::chrono::high_resolution_clock::now();
 
     std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
-
+ 
     for (int i = 0; i != basis.numberModes; i++)
     {
-        observableList.push_back(std::make_unique<krylovSpMatrixObservable>("mode" + std::to_string(i), observables[i]));
+        observableList.push_back(std::make_unique<krylovSpMatrixObservable>("mode" + std::to_string(i), std::move(observables[i])));
     }
-    
+  
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(observableList), hamMatrix, imaginaryMinus, fastIntegration, true);
+    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(observableList), std::move(hamMatrix), imaginaryMinus, fastIntegration, true);
 
     timeEvolver.changeLogLevel(krylovLogger::loggingLevel::DEBUG);
 
@@ -167,12 +167,7 @@ int main(int argc, char* argv[])
 
     krylovBasicObservable::saveResult(observableList, parameters, "ResultBlackHole");
 
-    for (int i = 0; i < nbObservables; i++)
-    {
-        delete observables[i];
-    }
-
-    delete results; delete hamMatrix; delete[] vec; delete[] observables;
+    delete results; delete[] vec;
 
     return 0;
 }

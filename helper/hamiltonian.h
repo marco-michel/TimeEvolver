@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <complex>
+#include <memory>
 
 #include "matrixDataTypes.h"
 #include "Basis.h"
@@ -43,8 +44,8 @@ public:
 	Hamiltonian();
 
 	std::string toString();
-	void createHamiltonMatrix(smatrix* &out, basicBasis *basis);
-	void createObservables(smatrix** &out, basicBasis *basis);	
+	std::unique_ptr<smatrix> createHamiltonMatrix(basicBasis *basis);
+	std::vector<std::unique_ptr<smatrix>> createNumberOperatorObservables(basicBasis *basis);
 
 	std::vector<opTerm> createKineticTerms(std::vector<int> modes, double gap);
 
@@ -57,7 +58,7 @@ public:
 
 
 protected:
-	smatrix* createMatrix(std::vector<opTerm>& op, basicBasis* basis);
+	std::unique_ptr<smatrix> createMatrix(std::vector<opTerm>& op, basicBasis* basis);
 
 
 private:

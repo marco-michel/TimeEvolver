@@ -59,7 +59,7 @@ private:
 class krylovSpMatrixObservable : public krylovBasicObservable
 {
 public:
-    krylovSpMatrixObservable(const std::string& name, smatrix* obs);
+    krylovSpMatrixObservable(const std::string& name, std::unique_ptr<smatrix> obs);
     ~krylovSpMatrixObservable();
     std::complex<double> expectation(std::complex<double>* vec, int len);
 
@@ -72,7 +72,7 @@ private:
 
 class krylovMatrixObservable : public krylovBasicObservable
 {
-    krylovMatrixObservable(const std::string& name, matrix* obs);
+    krylovMatrixObservable(const std::string& name, std::unique_ptr<matrix> obs);
     ~krylovMatrixObservable();
     std::complex<double> expectation(std::complex<double>* vec, int len);
 
