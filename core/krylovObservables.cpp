@@ -13,7 +13,6 @@
 
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
-#include "krylovHelper.h"
 
 
 using namespace TE;

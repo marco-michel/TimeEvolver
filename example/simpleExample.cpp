@@ -44,12 +44,17 @@ int main()
 
     //Create matrix representation of HamiltonianOperator
     std::cout << "Creating Hamiltonian matrix..." << std::endl;
-    smatrix* hamMatrix;
-    hamiltonian.createHamiltonMatrix(hamMatrix, &basis);
+    std::unique_ptr<smatrix> hamMatrix = hamiltonian.createHamiltonMatrix(&basis);
     //Create matrices for number Operators
     std::cout << "Creating observables..." << std::endl;
-    smatrix** observables;
-    hamiltonian.createObservables(observables, &basis);
+    std::vector<std::unique_ptr<smatrix>> observables = hamiltonian.createNumberOperatorObservables(&basis);
+
+    std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
+ 
+    for (int i = 0; i != basis.numberModes; i++)
+    {
+        observableList.push_back(std::make_unique<krylovSpMatrixObservable>("mode" + std::to_string(i), std::move(observables[i])));
+    }
 
     //Create initial state with all particles in the first mode (N0, 0)
     basisVector init(K); init.e[0] = N0;
@@ -61,16 +66,16 @@ int main()
 
     //Start of time evolution   
     std::cout << "Starting time evolution..." << std::endl;
-    std::complex<double> imaginaryMinus;
-    imaginaryMinus.imag(-1);
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus);
+    krylovTimeEvolver timeEvolver(maxT, vec, samplingStep, std::move(observableList),  std::move(hamMatrix));
     krylovReturn* results = timeEvolver.timeEvolve();
 
     std::cout << "Finished time evolution..." << std::endl;
 
     //Sort observables for easier access since observable data for different observables is stored consecutively for each time step in results matrix 
     //The storage layout of krylovReturn has folowing form: obs1 (t0), obs2(t0), obs1(t1), obs2(t1), ....
+
+/*
     double** nicelySorted = new double*[nbObservables];
     for(int i = 0; i < nbObservables; ++i)
         nicelySorted[i] = new double[results->nSamples]; 
@@ -80,10 +85,14 @@ int main()
         for (unsigned int i = 0; i < results->nSamples; i++)
             nicelySorted[j][i] = (results->sampling->values + nbObservables * i + j)->real();
     }
-
+*/
     //Write date to csv file
     std::cout << "Writing data to file..." << std::endl;
 
+    observableList = std::move(results->observableList);
+    parameter_list parameters;
+    krylovBasicObservable::saveResult(observableList, parameters, "SimpleExampleOutputOccupationNumber");
+/*
     for(int j = 0; j != nbObservables; j++)
     {
         std::ofstream outputfile;
@@ -102,6 +111,8 @@ int main()
         delete observables[i];
     }
     delete[] nicelySorted; delete results; delete hamMatrix; delete[] vec; delete[] observables;
+*/
 
+delete[] vec; delete results;
     return 0;
 }

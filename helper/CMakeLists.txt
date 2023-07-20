@@ -1,5 +1,5 @@
 
-add_library(Helper SHARED Basis.cpp hamiltonian.cpp krylovHelper.cpp)
+add_library(Helper SHARED Basis.cpp hamiltonian.cpp)
 target_include_directories(Helper PUBLIC ../core)
 
 set_target_properties(Helper PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)

@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
@@ -10,7 +9,7 @@
 class krylovLogger
 {
 public:
-	static enum loggingLevel { DEBUG, INFO, WARNING, ERROR, FATAL };
+	enum loggingLevel { DEBUG, INFO, WARNING, ERROR, FATAL };
 
 	krylovLogger() = default;
 	krylovLogger(loggingLevel level);

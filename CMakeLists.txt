@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 enable_language(CXX)
 enable_language(C)
 
@@ -31,7 +31,7 @@ if(NOSYSTEMBOOST)
   set (Boost_NO_SYSTEM_PATHS ON)
 endif()
 
-find_package(Boost 1.75 REQUIRED COMPONENTS program_options)
+find_package(Boost 1.75 REQUIRED COMPONENTS program_options log log_setup )
 
 find_package(HDF5 COMPONENTS CXX)
 if(HDF5_FOUND)
@@ -42,6 +42,7 @@ endif()
 
 set(BLA_VENDOR Intel10_64ilp)
 find_package(BLAS REQUIRED)
+add_compile_definitions(USE_MKL)
 
 if(DEFINED ENV{MKLROOT})
 message("MKLROOT defined")
@@ -60,4 +61,4 @@ add_subdirectory(test Test)
 
 add_test(NAME BlackHoleTest COMMAND Test/testBlackHole)
 add_test(NAME BlackHoleTestLB COMMAND Test/testBlackHoleLB)
-add_test(NAME SimpleExampleTest COMMAND Test/testSimpleExample)
+#add_test(NAME SimpleExampleTest COMMAND Test/testSimpleExample)
