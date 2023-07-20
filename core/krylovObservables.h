@@ -27,7 +27,7 @@ public:
     std::string retName();
     void initializeResultArray(size_t size);
 
-    static void saveResult(const std::vector<krylovBasicObservable*> &obs_list, parameter_list& para, const std::string& name);
+    static void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>> &obs_list, parameter_list& para, const std::string& name);
 
     static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
     static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);

@@ -32,12 +32,12 @@ void krylovBasicObservable::initializeResultArray(size_t size)
 
 
 
-void krylovBasicObservable::saveResult(const std::vector<krylovBasicObservable*> &obs_list,  parameter_list &para, const std::string &name)
+void krylovBasicObservable::saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>> &obs_list,  parameter_list &para, const std::string &name)
 {
     std::string outputFileName = name;
 
     parameter_list::iterator paraIter;
-    std::vector<krylovBasicObservable*>::const_iterator obsIter;
+    std::vector<std::unique_ptr<krylovBasicObservable>>::const_iterator obsIter;
 
     //Create string with parameter and its value
     for (paraIter = para.begin(); paraIter != para.end(); paraIter++)
@@ -162,6 +162,11 @@ krylovMatrixObservable::~krylovMatrixObservable()
 
 std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* vec, int len) //requires testing
 {
+    if (sampleIndex >= numSamples)
+    {
+        std::cerr << "Too many samples." << std::endl;
+        exit(1);
+    }
 	if (len != dim)
 	{
 		std::cerr << "Incompatible dimensions" << std::endl;
@@ -197,6 +202,11 @@ krylovSpMatrixObservable::~krylovSpMatrixObservable()
 std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
 {
 
+    if (sampleIndex >= numSamples)
+    {
+        std::cerr << "Too many samples." << std::endl;
+        exit(1);
+    }
 	if (len != dim)
 	{
 		std::cerr << "Incompatible dimensions" << std::endl;
@@ -224,6 +234,11 @@ krylovVectorObservable::krylovVectorObservable(const std::string& name, std::com
 
 std::complex<double> krylovVectorObservable::expectation(std::complex<double>* vec, int len)
 {
+    if (sampleIndex >= numSamples)
+    {
+        std::cerr << "Too many samples." << std::endl;
+        exit(1);
+    }
 	if (len != dim)
 	{
 		std::cerr << "Incompatible dimensions" << std::endl;

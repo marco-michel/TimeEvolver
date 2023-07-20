@@ -8,7 +8,7 @@
 
 
 
-
+#include <vector>
 #include <cmath>
 #include <complex>
 #include <memory>
@@ -28,6 +28,7 @@ struct krylovReturn
 	size_t dim;
     size_t krylovDim;
     int statusCode;
+    std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
 
 /* Status code has the following meaning: 
 1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected) 
@@ -49,8 +50,8 @@ more than 1 digit means failure: 10 (computation of error may be  spoiled due to
 class krylovTimeEvolver
 {
 public:
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<krylovBasicObservable*>  observables, smatrix* Ham, std::complex<double> expFactor, bool fastIntegration, bool progressBar);
-    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<krylovBasicObservable*>  observables, smatrix* Ham);
+    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool fastIntegration, bool progressBar);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
@@ -82,7 +83,7 @@ protected:
     double samplingStep; 
     int nbObservables;
     TE::smatrix* Ham;
-    std::vector<krylovBasicObservable*>  obsVector;
+    std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
 
     //Printing and Logging
     std::thread pBThread;
