@@ -29,7 +29,7 @@ doxyfile                        settings file for creating documentation
 # External Requirements
 
 This software packages relies on following external libraries:
-* Intel Math Kernel Library (MKL) (required)
+* BLAS (required) - MKL recommended
 * BOOST (required)
 * HDF5 (optional)
 
@@ -48,6 +48,11 @@ sudo apt-get install cmake
 sudo apt-get install intel-mkl-full libhdf5-dev libboost-program-options-dev 
 ```
 Note: If you install Intel MKL via the package manager you will be asked if you want to make MKL your default BLAS/LAPACK library. That is not necessary, so you can choose the default answer "No". Additionally, older versions of ``cmake`` might not find the oneapi version of mkl. We therefore recommend cmake version 3.15 or newer. 
+
+It is also possible to use another BLAS library instead of Intel MKL, e.g. OpenBLAS. However, the performance will most likely be worse due to lack of optimized sparse BLAS operations. In this case use
+```
+sudo apt-get install libopenblas-dev liblapacke-dev libhdf5-dev libboost-program-options-dev 
+```
 
 **In order for ``TimeEvolver`` to work properly, Boost version 1.75 and newer is required. Currently, however, most distributions ship packages of the boost library of version 1.74 and older. If your machine does not have at least version 1.75, we offer several solutions (including an automatic download and compilation of the Boost-library), which are described in section "Installation"**.
 
