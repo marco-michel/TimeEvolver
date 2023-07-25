@@ -169,8 +169,8 @@ int smatrix::initialize() {
  #endif
     
 #ifdef USE_ARMADILLO
-    ArmadillorowIndex = arma::umat(rowIndex, 1, numValues, false, true);
-    ArmadillocolIndex = arma::umat(columns, 1, numValues, false, true);
+    ArmadillorowIndex = arma::umat((unsigned long long *) rowIndex, 1, numValues, false, true);
+    ArmadillocolIndex = arma::umat((unsigned long long *) columns, 1, numValues, false, true);
     ArmadillovalueVector = arma::cx_vec(values, numValues, false, true);
     ArmadilloindexMatrix = arma::join_cols(ArmadillorowIndex, ArmadillocolIndex);
 
