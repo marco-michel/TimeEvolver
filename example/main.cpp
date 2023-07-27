@@ -110,8 +110,6 @@ int main(int argc, char* argv[])
    
     //Start of actual time evolution   
     std::cout << "Starting time evolution..." << std::endl;
-    std::complex<double> imaginaryMinus;
-    imaginaryMinus.imag(-1);
 
     auto begin = std::chrono::high_resolution_clock::now();
 
@@ -122,8 +120,9 @@ int main(int argc, char* argv[])
         observableList.push_back(std::make_unique<krylovSpMatrixObservable>("mode" + std::to_string(i), std::move(observables[i])));
     }
   
+    double alpha = 1.0;
 
-    krylovTimeEvolver timeEvolver(maxT, vec, samplingStep, tol, m, std::move(observableList), std::move(hamMatrix), imaginaryMinus, fastIntegration, true);
+    krylovTimeEvolver timeEvolver(maxT, vec, samplingStep, tol, m, std::move(observableList), std::move(hamMatrix), alpha, fastIntegration, true);
 
     timeEvolver.changeLogLevel(krylovLogger::loggingLevel::DEBUG);
 

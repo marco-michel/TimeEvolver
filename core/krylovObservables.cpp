@@ -28,6 +28,11 @@ double* krylovBasicObservable::retexpectationValues()
     return expectationValues;
 }
 
+
+/**
+ * Initializes a raw array to requested size for storing the expectation values of the oberservable 
+ * @param size number of entries in the result)
+ */
 void krylovBasicObservable::initializeResultArray(size_t size)
 {	
 	numSamples = size;
@@ -35,7 +40,11 @@ void krylovBasicObservable::initializeResultArray(size_t size)
 }
 
 
-
+/**
+ * Writes sampled expectation values of a list of observables to file
+ * @param obs_list List of observables with sampled expectation values
+ * @param name Requested filename
+ */
 void krylovBasicObservable::saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>> &obs_list,  parameter_list &para, const std::string &name)
 {
     std::string outputFileName = name;
@@ -153,7 +162,7 @@ krylovMatrixObservable::krylovMatrixObservable(const std::string& name, std::uni
 	dim = obser->m;
 	type = MATRIX_TYPE_OBS;
 	if (dim > 0)
-		tmpBlasVec = new std::complex<double>[dim];
+		tmpBlasVec = new std::complex<double>[dim]; //array for storing temporary intermediate values
 
 	obs = std::move(obser);
 
@@ -165,6 +174,12 @@ krylovMatrixObservable::~krylovMatrixObservable()
 		delete[] tmpBlasVec;
 }
 
+
+/**
+ * Computes expectation value of a dense matrix observable for a given quantum state
+ * @param vec Quantum state vector
+ * @param len Length of state vector
+ */
 std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* vec, int len) //requires testing
 {
     if (sampleIndex >= numSamples)
@@ -204,6 +219,12 @@ krylovSpMatrixObservable::~krylovSpMatrixObservable()
 	}
 }
 
+
+/**
+ * Computes expectation value of a sparse matrix observable for a given quantum state
+ * @param vec Quantum state vector
+ * @param len Length of state vector
+ */
 std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
 {
 
@@ -237,6 +258,12 @@ krylovVectorObservable::krylovVectorObservable(const std::string& name, std::com
 	cblas_zcopy(dim, obser, 1, obs.get(), 1);
 }
 
+
+/**
+ * Computes expectation value of a vector observable for a given quantum state or equivalently a projection of a complexvector onto a state vector
+ * @param vec Quantum state vector
+ * @param len Length of state vector
+ */
 std::complex<double> krylovVectorObservable::expectation(std::complex<double>* vec, int len)
 {
     if (sampleIndex >= numSamples)
