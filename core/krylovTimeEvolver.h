@@ -1,17 +1,16 @@
 #pragma once
 
-#include <boost/math/quadrature/tanh_sinh.hpp>
-
-
-
-
-
-
-
-#include <vector>
 #include <complex>
-#include <memory>
+#include <limits>
+#include <algorithm>
 #include <thread>
+#include <sstream>
+#include <vector>
+#include <memory>
+
+#include <boost/math/quadrature/tanh_sinh.hpp>
+#include <boost/math/quadrature/tanh_sinh.hpp>
+#include <boost/math/quadrature/gauss.hpp> 
 
 #include "mathHeader.h"
 #include "matrixDataTypes.h"
@@ -50,7 +49,7 @@ more than 1 digit means failure: 10 (computation of error may be  spoiled due to
 class krylovTimeEvolver
 {
 public:
-    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, std::complex<double> expFactor, bool fastIntegration, bool progressBar);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, double expFactor, bool fastIntegration, bool progressBar);
     krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();

@@ -5,15 +5,6 @@
  The time-evolved vector then becomes the initial vector for constructing the subsequent Krylov-subspace.
  */
 
-#include <boost/math/quadrature/tanh_sinh.hpp>
-#include <boost/math/quadrature/gauss.hpp> 
-
-#include <complex>
-#include <limits>
-#include <algorithm>
-#include <thread>
-
-#include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
 
 using namespace TE;
@@ -33,12 +24,12 @@ using namespace TE;
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
  * @param progressBar Whether or not to show a progressbar in the terminal
  */
-krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, std::complex<double> expFactor, bool fastIntegration, bool progressBar)
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, double expFactor, bool fastIntegration, bool progressBar)
 {
 
 
 	this->t = t;  this->samplingStep = samplingStep; this->tol = tol;  this->progressBar = progressBar;
-	this->Ham = std::move(HamIn); this->expFactor = expFactor; this->fastIntegration = fastIntegration; this->nbObservables = (int) observables.size();
+	this->Ham = std::move(HamIn); this->expFactor = std::complex<double>(0,-1*expFactor); this->fastIntegration = fastIntegration; this->nbObservables = (int)observables.size();
 
 	matrixNorm = Ham->norm1();
 	this->Hsize = Ham->m;
@@ -87,7 +78,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 
 
 krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham) : krylovTimeEvolver(t, v, samplingStep, 1e-6, 40, std::move(observables), std::move(Ham),
-	std::complex<double>(0.0,-1.0), false, false){}
+	1.0, false, false){}
 
 /**
 * Destructor
@@ -447,7 +438,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	numericalErrorEstimateTotal = numericalErrorEstimate * n_steps; //Rough estimate of total round-of error
 	if (nbErrRoundOff != 0)
 	{
-		logger.log_message(krylovLogger::WARNING, std::string("CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in ") + (nbErrRoundOff + " Krylov spaces.) \n \
+		logger.log_message(krylovLogger::WARNING, std::string("CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in ") + (std::to_string(nbErrRoundOff) + " Krylov spaces.) \n \
 			THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED. \n \
 			Restart with bigger error bound or smaller time."));
 		logger.log_message(krylovLogger::WARNING, "The total computed analytic error is: " + std::to_string(err));
