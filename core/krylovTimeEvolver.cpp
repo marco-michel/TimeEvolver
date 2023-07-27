@@ -500,6 +500,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
     ret->dim = Hsize;
 	ret->krylovDim = m;
 	ret->observableList = std::move(obsVector);
+	ret->hamiltonianMatrix = std::move(Ham);
     
     delete[] eigenvalues;
     delete[] schurvector;

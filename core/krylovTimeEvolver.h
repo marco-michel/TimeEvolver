@@ -28,6 +28,7 @@ struct krylovReturn
     size_t krylovDim;
     int statusCode;
     std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
+    std::unique_ptr<smatrix> hamiltonianMatrix;
 
 /* Status code has the following meaning: 
 1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected) 
