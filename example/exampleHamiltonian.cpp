@@ -1,5 +1,4 @@
 #include "exampleHamiltonian.h"
-#include "Basis.h"
 
 /**
  * Initializes the Hamiltonian for a specific choice of parameters (see accompanying paper for definition of parameters). This class allows for slightly more general choices of parameters than the Hamiltonian displayed in the paper.

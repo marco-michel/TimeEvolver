@@ -1,10 +1,4 @@
-#include <complex>
-#include <vector>
-#include <map>
-
-#include "matrixDataTypes.h"
 #include "hamiltonian.h"
-#include "Basis.h"
 
 using namespace TE;
 

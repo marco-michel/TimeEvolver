@@ -2,16 +2,17 @@
 
 #include <complex>
 #include <fstream>
+#include <iostream>
+#include <memory>
 
-#ifdef USE_MKL
-#include <mkl.h>
-#include <mkl_spblas.h>
-#elif defined USE_OPENBLAS
-#include <cblas.h>
-#endif
-
+#include "mathHeader.h"
 #include "matrixDataTypes.h"
 #include "parameter.h"
+
+
+
+
+
 
 using namespace TE;
 

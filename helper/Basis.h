@@ -5,7 +5,6 @@
 #include <iostream>
 #include <unordered_map>
 
-
 #include "boost/container_hash/hash.hpp"
 #include "boost/math/special_functions/binomial.hpp"
 
