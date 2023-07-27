@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include <memory>
+#include <iomanip>
 
 #include <boost/math/quadrature/tanh_sinh.hpp>
 #include <boost/math/quadrature/tanh_sinh.hpp>
