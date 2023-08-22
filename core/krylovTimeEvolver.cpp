@@ -422,6 +422,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			{
 				delete[] eigenvalues; delete[] schurvector;
 				delete V; delete H;
+				if (progressBar)
+					pBThread.join();
 				return generateReturn();
 			}
         }
