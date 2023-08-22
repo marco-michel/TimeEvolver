@@ -292,6 +292,15 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Were there multible errors thrown
 	int nbErrors = 0;
 
+	//Record observables for initial state
+	try {
+		sample();
+	}
+	catch (requestStopException& e)
+	{
+		return generateReturn();
+	}
+
 
 	//Hessenberg matrix
 	matrix* H = new matrix(m, m);
@@ -307,8 +316,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Init observable vector before first sample
 	
 
-	//Record observables for initial state
-	sample();
+
 
 	//Start progressBar thread
 	if (progressBar == true)
@@ -412,6 +420,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 				sample();
 			} catch (requestStopException& e)
 			{
+				delete[] eigenvalues; delete[] schurvector;
+				delete V; delete H;
 				return generateReturn();
 			}
         }

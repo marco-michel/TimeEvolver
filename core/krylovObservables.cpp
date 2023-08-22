@@ -217,7 +217,7 @@ krylovSpMatrixObservable::~krylovSpMatrixObservable()
  */
 std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
 {
-
+    throw requestStopException();
     if (sampleIndex >= numSamples)
     {
         std::cerr << "Too many samples." << std::endl;

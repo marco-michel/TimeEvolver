@@ -20,15 +20,7 @@
 #include "krylovLogger.h"
 
 
-class requestStopException : public std::exception {
-    virtual const char* what() const throw()
-    {
-        return "Observable requested termination of time evolution.";
-    }
-public:
 
-    requestStopException() = default;
-};
 
 
 struct krylovReturn
