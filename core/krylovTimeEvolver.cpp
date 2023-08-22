@@ -13,7 +13,7 @@ using namespace TE;
 /**
  * All data required for the numerical time evolution is needed.
  * @param t The time interval over which the state should be time evolved.
- * @param v The initial state that should be time evolved
+ * @param v The initial and normalized state that should be time evolved
  * @param samplingStep The time interval after which the values of the observables should be determined
  * @param tol The maximal admissible error (norm difference between result of numerical and true time evolution)
  * @param m The size of the Krylov subspaces
@@ -39,6 +39,12 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 		logger.log_message(krylovLogger::FATAL, "Invalid Hilbertspace dimension");
 		exit(1);
 	}
+
+	if (std::abs(cblas_dznrm2(Hsize, v, 1) - 1.0) > tol) {
+		logger.log_message(krylovLogger::FATAL, "Initial vector is not normalized");
+		exit(1);
+	}
+
 
 	Ham->initialize();
 
