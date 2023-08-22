@@ -72,19 +72,18 @@
             size_t n, m;
             bool sym, hermitian;
             bool upperTri;
+            bool initialized; 
 
             double norm1();
             double normInf();
 
             smatrix();
             smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm);
+            smatrix(const smatrix& old_obj);
             ~smatrix();
 
             int spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double>* out);
-
             int initialize();
-
-
 
             static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
             static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
@@ -103,26 +102,10 @@
             arma::umat ArmadilloindexMatrix;
             arma::cx_vec ArmadillovalueVector;
 #endif
-
-            smatrix(const smatrix& old_obj) {
-                numValues = old_obj.numValues; n = old_obj.n; m = old_obj.m;
-                sym = old_obj.sym; hermitian = old_obj.hermitian; upperTri = old_obj.upperTri;
-                columns = new size_t[numValues];
-                rowIndex = new size_t[numValues];
-                values = new std::complex<double>[numValues];
-
-                for (unsigned int i = 0; i != numValues; i++) {
-                    values[i] = old_obj.values[i];
-                    columns[i] = old_obj.columns[i];
-                    rowIndex[i] = old_obj.rowIndex[i];
-                }
-            }
-
+    
 #ifdef USE_HDF
             int dumpHDF5(std::string fileName);
 #endif
-
-
         };
 
 

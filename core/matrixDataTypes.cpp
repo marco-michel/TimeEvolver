@@ -60,7 +60,7 @@ int matrix::dumpHDF5(std::string filename)
 
 smatrix::smatrix()
 {
-    sym = hermitian = upperTri = false;
+    sym = hermitian = upperTri = initialized = false;
     rowIndex = columns = nullptr;
     values = nullptr;
     m = n = 0;
@@ -107,6 +107,7 @@ smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV
     columns = new size_t[nbV];
     rowIndex = new size_t[nbV];
     values = new std::complex<double>[nbV];
+    initialized = false;
 
     for (unsigned int i = 0; i != nbV; i++)
     {
@@ -114,7 +115,37 @@ smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV
         columns[i] = col[i];
         rowIndex[i] = row[i];
     }
+#ifdef USE_MKL
+    //variables for mkl-library
+    MKLSparseMatrix = new sparse_matrix_t;
+    descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
+    descriptor.diag = SPARSE_DIAG_NON_UNIT;
+    initialize();
+#endif
 }
+
+smatrix::smatrix(const smatrix& old_obj) {
+    numValues = old_obj.numValues; n = old_obj.n; m = old_obj.m;
+    sym = old_obj.sym; hermitian = old_obj.hermitian; upperTri = old_obj.upperTri;
+    columns = new size_t[numValues];
+    rowIndex = new size_t[numValues];
+    values = new std::complex<double>[numValues];
+    initialized = false;
+
+    for (unsigned int i = 0; i != numValues; i++) {
+        values[i] = old_obj.values[i];
+        columns[i] = old_obj.columns[i];
+        rowIndex[i] = old_obj.rowIndex[i];
+    }
+
+#ifdef USE_MKL
+    //variables for mkl-library
+    MKLSparseMatrix = new sparse_matrix_t;
+    descriptor = old_obj.descriptor;
+    initialize();
+#endif
+}
+
 
 int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double> *out) {
 
@@ -140,6 +171,10 @@ int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::com
 }
 
 int smatrix::initialize() {
+
+    if (initialized == true)
+        return -1;
+
 #ifdef USE_MKL
     if (numValues == 0)
         return 1;
@@ -170,6 +205,8 @@ int smatrix::initialize() {
 
     ArmadilloSparseMatrix = new arma::sp_cx_mat(ArmadilloindexMatrix, ArmadillovalueVector, m, n, true, true);
 #endif
+
+    initialized = true;
 
     return 0;
 }
