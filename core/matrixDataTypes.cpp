@@ -65,6 +65,13 @@ smatrix::smatrix()
     values = nullptr;
     m = n = 0;
     numValues = 0;
+#ifdef USE_MKL
+    //variables for mkl-library
+    MKLSparseMatrix = new sparse_matrix_t;
+    descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
+    descriptor.diag = SPARSE_DIAG_NON_UNIT;
+    initialize();
+#endif
 }
 
 double smatrix::norm1()

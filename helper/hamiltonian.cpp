@@ -394,9 +394,9 @@ std::unique_ptr<smatrix> Hamiltonian::createMatrix(std::vector<opTerm>& op, basi
 
 	}
 
-	int M, N;
+	unsigned int M, N;
 	M = N = basis->numberElements;
-	int nz = valuesVec.size();
+	size_t nz = valuesVec.size();
 
 	return std::make_unique<smatrix>(valuesVec.data(), columnIndexVec.data(), rowIndexVec.data(), nz, N, M);
 
