@@ -109,8 +109,7 @@ krylovTimeEvolver::~krylovTimeEvolver()
 /**
  * Computes and saves values of observables for current state ('sampledState')
  */
-void krylovTimeEvolver::sample()
-{
+void krylovTimeEvolver::sample() {
 	int i = 0;
 	for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
 	{
@@ -270,19 +269,12 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	if (fastIntegration)
 		logger.log_message(krylovLogger::WARNING, "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result.");
 
-	//Time of current state
-	double t_now = 0.;
-	//Number of steps so far
-	int n_steps = 0;
+
+
 	//Estimate for initial step size
 	double t_step = 1.0 / 10.0;
-	//Latest time at which sampling has happened so far
-	double t_sampling = 0.;
-
 	//Admissible error rate
 	double tolRate = tol / t;
-	//Total accumulated error so far
-	double err = 0.;
 	//Estimate of error due to limited precision of numerical operations per Kyrlov space
 	double numericalErrorEstimate = Hsize * matrixNorm * std::numeric_limits<double>::epsilon();
 	//Total esimate of round-off errors
@@ -292,8 +284,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	bool dummy_hbd = false;
 	//In case of lucky breakdown, size of Krylov space
 	size_t m_hbd;
-	//Track if an error occured within timeEvolve(). A value unequal 0 indicates that numerical result likely violates error bound.
-	int statusCode = 0;
 	//Monitoring if something went wrong in findSubstep
 	int errorCodeFindSubstep = 0;
 	//Count number of Kyrlov spaces with error bound failures
@@ -418,13 +408,19 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
             cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, schurvector, m, tmpKrylovVec1, 1, &zero, tmpKrylovVec2, 1);
             cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec2, 1, &zero, sampledState, 1);
 
-            sample();
+			try {
+				sample();
+			} catch (requestStopException& e)
+			{
+				return generateReturn(-1, n_steps, err);
+			}
         }
         //END STEP 3
         
         t_now += t_step;
         err += err_step;
     }
+
 
 	//As a consistency check, determine if norm of state was preserved
 	if (std::abs(cblas_dznrm2(Hsize, sampledState, 1) - 1.0) > tol)
@@ -486,25 +482,13 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		logger.log_message(krylovLogger::WARNING, "There were multiple critical warnings raised during evaluation. Please see ouput above for further details.");
 		statusCode = 100;
 	}
-   
-   
-    //Return result
-	krylovReturn* ret = new krylovReturn(Hsize, statusCode);
-    cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
-    ret->n_steps = n_steps;
-    ret->err = err;
-    ret->dim = Hsize;
-	ret->krylovDim = m;
-	ret->observableList = std::move(obsVector);
-	ret->hamiltonianMatrix = std::move(Ham);
-    
+
     delete[] eigenvalues;
     delete[] schurvector;
     delete V;
     delete H;
 
-
-    return ret;
+    return generateReturn(statusCode, n_steps, err);
 }
 
 /**
@@ -644,6 +628,21 @@ void krylovTimeEvolver::progressBarThread()
 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
 	return;
+}
+
+krylovReturn* krylovTimeEvolver::generateReturn()
+{
+	krylovReturn* ret = new krylovReturn(Hsize, statusCode);
+	cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
+	ret->n_steps = n_steps;
+	ret->err = err;
+	ret->dim = Hsize;
+	ret->krylovDim = m;
+	ret->observableList = std::move(obsVector);
+	ret->hamiltonianMatrix = std::move(Ham);
+	ret->evolvedTime = t_now;
+
+	return ret;
 }
 
 

@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include <memory>
+#include <exception>
 #include <iomanip>
 
 #include <boost/math/quadrature/tanh_sinh.hpp>
@@ -19,10 +20,22 @@
 #include "krylovLogger.h"
 
 
+class requestStopException : public std::exception {
+    virtual const char* what() const throw()
+    {
+        return "Observable requested termination of time evolution.";
+    }
+public:
+
+    requestStopException() = default;
+};
+
+
 struct krylovReturn
 {
     std::complex<double>* evolvedState;
-    double err;
+    double err; double evolvedTime;
+    size_t numSamples;
     size_t n_steps;
 	size_t dim;
     size_t krylovDim;
@@ -73,6 +86,7 @@ protected:
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
     void printProgress(float prog);
     void progressBarThread();
+    krylovReturn* generateReturn();
 
 
     std::complex<double>* expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH);
@@ -110,6 +124,16 @@ protected:
     std::complex<double>* tmpintKernelExp3;
     std::complex<double>* tmpintKernelT;
     size_t index_samples;
+    //Time of current state
+    double t_now = 0.;
+    //Number of steps so far
+    int n_steps = 0;
+    //Latest time at which sampling has happened so far
+    double t_sampling = 0.;
+    //Total accumulated error so far
+    double err = 0.;
+    //Track if an error occured within timeEvolve(). A value unequal 0 indicates that numerical result likely violates error bound.
+    int statusCode = 0;
 
     //Useful constants
     static constexpr std::complex<double> one = std::complex<double>(1.0,0.0);
