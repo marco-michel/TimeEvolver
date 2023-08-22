@@ -412,7 +412,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 				sample();
 			} catch (requestStopException& e)
 			{
-				return generateReturn(-1, n_steps, err);
+				return generateReturn();
 			}
         }
         //END STEP 3
@@ -488,7 +488,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
     delete V;
     delete H;
 
-    return generateReturn(statusCode, n_steps, err);
+    return generateReturn();
 }
 
 /**
@@ -641,6 +641,7 @@ krylovReturn* krylovTimeEvolver::generateReturn()
 	ret->observableList = std::move(obsVector);
 	ret->hamiltonianMatrix = std::move(Ham);
 	ret->evolvedTime = t_now;
+	ret->numSamples = index_samples;
 
 	return ret;
 }
