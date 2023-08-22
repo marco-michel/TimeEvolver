@@ -1,5 +1,33 @@
 # Changelog
 
+
+## 2.0.0 - --
+
+### Added
+- Implemented a rudimentary logger (based on BOOST log) including a verbose option. Logging to file will be supported in a later release. 
+- Implemented a new class observab
+- To ensure data ownership and avoiding the copying of large matrices all large matrices including observables are now expected to be passed as unique_ptr.
+- KrylovReturn now includes all output Parameter including the (maybe altered in terms of sorting) Hamiltonian Matrix.
+- Intel MKL is now optional (but still highly recommended) and can be replaced by OpenBLAS.
+- Added wrapper for sparse matrix operations to ensure easier implementation for different sparse BLAS libraries. 
+- New class `krylovBasicObservable` for computing and storing expectation values as well as simplyifing output reworking entirely the input/output of the TimeEvolver.
+- Progressbar is now in a seperate thread in order not to reduce computing performance. 
+  
+### Changed
+- Imput parameter `expFactor` of TimeEvolver is now a real datatype.
+- Reworked constructor of `TimeEvolver` with API-breaking effects. 
+- Expectation value computation is now outsourced from the TimeEvolver core to `krylovBasicObservable`.
+- C++ version requirement changed to 17.
+- Initial vector is required to be normalized to 1. 
+
+### Fixed
+- Fixed some memory leaks
+- Added checks for empty matrices
+- Fixed a confusing output behavior where `dim` in `krylovReturn` stores not the Hilbertspace dim suggested by its name but the Krylov dimension. 
+
+### Known Bugs
+- The more accurate error integration method might fail in certain situtations. 
+
 ## 1.4.0 - 2022-03-07
 
 ### Added
