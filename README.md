@@ -194,21 +194,19 @@ The expectation values of the occupation numbers of the two oscillators at diffe
 
 A third option to use the program arises if the user alredy has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``TimeEvolver`` are needed. The core functionality of the TimeEvolver is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
- krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration)
+ krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, double expFactor, bool fastIntegration, bool progressBar);
 ```
 with 
 * ``t`` The time interval over which the state should be time evolved
-* ``Hsize`` The size of the full Hilbert space
 * ``v`` The initial state that should be time evolved
 * ``samplingStep`` The time interval after which the values of the observables should be determined
 * ``tol`` The maximal admissible error (norm difference between result of numerical and true time evolution)
-* ``m`` The size of the Krylov subspaces
-* ``observables`` The matrix representations of the observables that are to be sampled
-* ``nbObservables`` The number of observables
-* ``Ham`` The matrix representation of the Hamiltonian
-* ``expFactor`` The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
-* ``checkNorm`` Whether or not it should be check that the time evolved state has unit norm
+* ``mm`` The size of the Krylov subspaces
+* ``observables`` Vector of unique_ptrs of derived classes of krylovBasicObservable.
+* ``HamIn`` A unique_ptr to a matrix representation of the Hamiltonian
+* ``expFactor`` The scalar factor multiplying the Hamiltonian in the time evolution (usually 1)
 * ``fastIntegration`` Whether or not the faster not-adaptive Gauss integration scheme should be used. Note that this option can not guarantee that the numerical integration was performed with the requested accuracy.
+* ``progressBar`` Whether or not a progressbar should be printed on the screen to indicate the progress. 
 
 The time evolution is started with the call of the member function
 ```
@@ -220,15 +218,17 @@ krylovReturn* timeEvolve();
 Besides fundamental data types the TimeEvolver defines following two additional matrix types in the header file ``matrixDataTypes.h``:
 * A dense matrix ``matrix(size_t nn, size_t mm)`` with ``nn`` the number of rows and ``mm`` the number of columns 
 * A sparse matrix in coordinate format ``smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, int nn, int mm)`` with ``nn`` the number of rows, ``mm`` the number of columns, ``nbV`` the number of non-zero entries, ``row`` the 
-row indices of the non-zero values, ``col`` the column indices of the non-zero values, ``val`` the non-zero values of the sparse matrix  
+row indices of the non-zero values, ``col`` the column indices of the non-zero values, ``val`` the non-zero values of the sparse matrix
+* A base class ``krylovBasicObservable(const std::string& name)`` for handling observables, computing and storeing expectation values given a state vector as well as streamlining output to a file. There are several derivated classes to sepecalized to the cases where the observable is given by a vector, a sparse matrix or a dense matrix.
 * The structure ``krylovReturn`` for the output of the TimeEvolver. It contains the following output data types:
-    * ``matrix* sampling`` A dense matrix containing either a set of expectation values corresponding to the input observables or full quantum states at the requested time intervals
     *  ``std::complex<double>* evolvedState`` The full quantum state evolved until time ``t``
     * ``double err`` An upper error bound on the numerical error
     * ``size_t n_steps`` The number of Kyrlov steps needed for the timeevolution
     * ``size_t dim`` The dimension of the Hilbert space
-    * ``size_t nSamples`` The number of samples taken
-    * ``int statusCode``Status code indicating success or (potential) failure of the numerical time evolution 
+    * ``size_t krylovDim`` The dimension of the used Krylov space
+    * ``int statusCode``Status code indicating success or (potential) failure of the numerical time evolution
+    * ``std::vector<std::unique_ptr<krylovBasicObservable>> observableList`` Vector of observables each storing its own expectation values.
+    * ``std::unique_ptr<smatrix>`` Hamiltonian matrix (note that entries might have been reordered)
 
 ## Krylov status codes
 * ``0`` Success
