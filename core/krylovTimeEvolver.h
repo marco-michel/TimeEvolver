@@ -93,6 +93,7 @@ protected:
 
     //Printing and Logging
     std::thread pBThread;
+    std::atomic<bool> stop_printing;
     krylovLogger logger;
     
     //Determined by input data

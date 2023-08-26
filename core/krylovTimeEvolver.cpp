@@ -34,6 +34,8 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 	this->Hsize = Ham->m;
 	this->m = std::min<size_t>(mm, Hsize);
 
+	stop_printing = false;
+
 	if (Hsize == 0)
 	{
 		logger.log_message(krylovLogger::FATAL, "Invalid Hilbertspace dimension");
@@ -422,8 +424,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			{
 				delete[] eigenvalues; delete[] schurvector;
 				delete V; delete H;
-				if (progressBar)
+				if (progressBar){
+					stop_printing = true;
 					pBThread.join();
+				}
 				return generateReturn();
 			}
         }
@@ -630,7 +634,7 @@ ProgressBar thread
 void krylovTimeEvolver::progressBarThread()
 {
 	float prog;
-	while (true) {
+	while (!stop_printing) {
 		prog = static_cast<float>(index_samples) / n_samples;
 		printProgress(prog);
 		if (prog == 1) {
