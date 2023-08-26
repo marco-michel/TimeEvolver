@@ -36,7 +36,7 @@ public:
     obsType retType();
     std::string retName();
     double* retexpectationValues();
-    void initializeResultArray(size_t size);
+    virtual void initializeResultArray(size_t size);
     size_t resetResultArray();
 
     static void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>> &obs_list, parameter_list& para, const std::string& name);
