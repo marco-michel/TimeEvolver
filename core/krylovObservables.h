@@ -37,6 +37,7 @@ public:
     std::string retName();
     double* retexpectationValues();
     void initializeResultArray(size_t size);
+    size_t resetResultArray();
 
     static void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>> &obs_list, parameter_list& para, const std::string& name);
 
@@ -44,14 +45,10 @@ public:
     static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
     static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
 
-
+protected:
     std::string obs_name;
     size_t dim;
     size_t numSamples;
-
-
-
-protected:
     size_t sampleIndex;
     obsType type;
     double* expectationValues;

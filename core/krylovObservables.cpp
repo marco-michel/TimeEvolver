@@ -29,6 +29,12 @@ void krylovBasicObservable::initializeResultArray(size_t size)
 	expectationValues = new double[size];
 }
 
+size_t krylovBasicObservable::resetResultArray()
+{
+    sampleIndex = 0;
+    return numSamples;
+}
+
 
 /**
  * Writes sampled expectation values of a list of observables to file
