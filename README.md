@@ -239,6 +239,7 @@ row indices of the non-zero values, ``col`` the column indices of the non-zero v
 * ``20`` Critical Warning: Numerical integration of the error integral failed.
 * ``30`` Critical Warning: Norm of state vector deviates more than the given accuaracy from 1. 
 * ``100`` Critical Warning: Multible errors occured.
+* ``1000`` The TimeEvolution was aborted by request of an observable. KrylovReturn only contains results up until exception was thrown. Note that warnings that have been thrown up until this point are not retrievable at this moment. 
 
 # Build Documentation
 

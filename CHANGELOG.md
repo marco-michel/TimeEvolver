@@ -5,13 +5,13 @@
 
 ### Added
 - Implemented a rudimentary logger (based on BOOST log) including a verbose option. Logging to file will be supported in a later release. 
-- Implemented a new class observab
 - To ensure data ownership and avoiding the copying of large matrices all large matrices including observables are now expected to be passed as unique_ptr.
 - KrylovReturn now includes all output Parameter including the (maybe altered in terms of sorting) Hamiltonian Matrix.
 - Intel MKL is now optional (but still highly recommended) and can be replaced by OpenBLAS.
 - Added wrapper for sparse matrix operations to ensure easier implementation for different sparse BLAS libraries. 
 - New class `krylovBasicObservable` for computing and storing expectation values as well as simplyifing output reworking entirely the input/output of the TimeEvolver.
-- Progressbar is now in a seperate thread in order not to reduce computing performance. 
+- Progressbar is now in a seperate thread in order not to reduce computing performance.
+- `krylovBasicObservable` can throw `requestStopException` exception to stop the time evolution.
   
 ### Changed
 - Imput parameter `expFactor` of TimeEvolver is now a real datatype.
