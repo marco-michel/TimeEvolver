@@ -13,6 +13,13 @@ matrix::matrix(size_t nn, size_t mm)
         values = nullptr;
 }
 
+TE::matrix::matrix(size_t nn, size_t mm, std::complex<double>* vals) : n(nn), m(mm)
+{
+    numValues = n * m;
+    values = new std::complex<double>[numValues];
+    cblas_zcopy(numValues, vals, 1, values, 1);
+}
+
 matrix:: ~matrix()
 {
     if (n * m > 0)

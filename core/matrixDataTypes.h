@@ -30,6 +30,7 @@
             std::complex<double>* values;
             size_t numValues;
             matrix(size_t nn, size_t mm);
+            matrix(size_t nn, size_t mm, std::complex<double>* vals);
             ~matrix();
 #ifdef USE_HDF 
             int dumpHDF5(std::string filename);
