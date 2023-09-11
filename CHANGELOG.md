@@ -23,7 +23,8 @@
 ### Fixed
 - Fixed some memory leaks
 - Added checks for empty matrices
-- Fixed a confusing output behavior where `dim` in `krylovReturn` stores not the Hilbertspace dim suggested by its name but the Krylov dimension. 
+- Fixed a confusing output behavior where `dim` in `krylovReturn` stores not the Hilbertspace dim suggested by its name but the Krylov dimension.
+- Implemented exception handling for failed numerical integration 
 
 ### Known Bugs
 - The more accurate error integration method might fail in certain situtations. 
