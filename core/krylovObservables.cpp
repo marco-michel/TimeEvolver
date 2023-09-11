@@ -293,3 +293,12 @@ std::complex<double> krylovVectorObservable::expectation(std::complex<double>* v
 	sampleIndex++;
 	return observallreturn; //returns the squared magnitued
 }
+
+krylovOutputObservable::krylovOutputObservable(const std::string& name, std::vector<double> values) : krylovBasicObservable(name)
+{
+    this->numSamples = values.size();
+    initializeResultArray(numSamples);
+    for (int i = 0; i != numSamples; i++) {
+        expectationValues[i] = values[i];
+    }
+}

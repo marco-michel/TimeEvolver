@@ -56,7 +56,11 @@ protected:
     double* expectationValues;
 };
 
-
+//class for output only
+class krylovOutputObservable : public krylovBasicObservable {
+public:
+    krylovOutputObservable(const std::string& name, std::vector<double> values);
+};
 
 class krylovVectorObservable : public krylovBasicObservable
 {
