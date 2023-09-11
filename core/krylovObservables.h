@@ -60,6 +60,7 @@ protected:
 class krylovOutputObservable : public krylovBasicObservable {
 public:
     krylovOutputObservable(const std::string& name, std::vector<double> values);
+    std::complex<double> expectation(std::complex<double>* vec, int len);
 };
 
 class krylovVectorObservable : public krylovBasicObservable

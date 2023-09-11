@@ -302,3 +302,9 @@ krylovOutputObservable::krylovOutputObservable(const std::string& name, std::vec
         expectationValues[i] = values[i];
     }
 }
+
+std::complex<double> krylovOutputObservable::expectation(std::complex<double>* vec, int len)
+{
+    throw std::exception("krylovOutputObservable should not call `expectation` function.");
+    return 0;
+}
