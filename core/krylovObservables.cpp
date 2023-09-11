@@ -18,6 +18,11 @@ double* krylovBasicObservable::retexpectationValues()
     return expectationValues;
 }
 
+size_t krylovBasicObservable::retnumSamples()
+{
+    return numSamples;
+}
+
 
 /**
  * Initializes a raw array to requested size for storing the expectation values of the oberservable 

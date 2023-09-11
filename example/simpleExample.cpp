@@ -93,9 +93,9 @@ int main()
        std::ofstream outputfile;
        outputfile.open(fileNameCSV);
        double* exptVal = (*obsIter)->retexpectationValues();
-       for (int i = 0; i != (*obsIter)->numSamples - 1; i++)
+       for (int i = 0; i != (*obsIter)->retnumSamples() - 1; i++)
            outputfile << exptVal[i] << ", ";
-       outputfile << exptVal[((*obsIter)->numSamples) - 1];
+       outputfile << exptVal[((*obsIter)->retnumSamples()) - 1];
        outputfile.close();
    }
 

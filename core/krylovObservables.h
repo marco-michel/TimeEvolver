@@ -36,6 +36,7 @@ public:
     obsType retType();
     std::string retName();
     double* retexpectationValues();
+    size_t retnumSamples();
     virtual void initializeResultArray(size_t size);
     size_t resetResultArray();
 
