@@ -27,7 +27,6 @@
 - Implemented exception handling for failed numerical integration 
 
 ### Known Bugs
-- The more accurate error integration method might fail in certain situtations. 
 
 ## 1.4.0 - 2022-03-07
 
