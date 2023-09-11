@@ -595,7 +595,13 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 		ret = boost::math::quadrature::gauss<double, 7>::integrate(f, a, b); //Gauss-Legendre quadrature with 7 abscissa 
 	else if (method == 2)
 	{
-		ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
+		try {
+			ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
+		}
+		catch (std::exception const& x) { //boost integration routine throw exception
+			logger.log_message(krylovLogger::WARNING, boost::diagnostic_information(x));
+			ret = this->tol * 10; //ignore the error in the integration by setting error to fail the following check to invoke substep reduction
+		}
 		//Check if requested accuracy was achieved; no check is needed if the contribution of the integral computed here to the absolute error integral is small
 		if (error / ret > termination && ret > termination *(b-a) * tolRate)
 			success = false;
