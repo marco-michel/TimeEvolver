@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 
 #include "mathHeader.h"
 #include "matrixDataTypes.h"
