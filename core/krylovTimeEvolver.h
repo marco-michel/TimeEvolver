@@ -12,7 +12,6 @@
 #include <iomanip>
 
 #include <boost/math/quadrature/tanh_sinh.hpp>
-#include <boost/math/quadrature/tanh_sinh.hpp>
 #include <boost/math/quadrature/gauss.hpp> 
 #include <boost/throw_exception.hpp>
 #include <boost/exception/diagnostic_information.hpp>
