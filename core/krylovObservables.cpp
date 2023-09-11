@@ -146,6 +146,14 @@ for (; obsIter != obs_list.end(); obsIter++)
 
 
 
+krylovBasicObservable::krylovBasicObservable(const std::string& name, std::vector<double> values): obs_name(name), dim(0), type(VOID_TYPE_OBS), numSamples(values.size()), sampleIndex(0), expectationValues(nullptr)
+{
+    initializeResultArray(numSamples);
+    for (int i = 0; i != numSamples; i++) {
+        expectationValues[i] = values[i];
+    }
+}
+
 krylovBasicObservable::~krylovBasicObservable()
 {
 	if (numSamples > 0)
