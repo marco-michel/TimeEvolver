@@ -56,8 +56,11 @@ sudo apt-get install libopenblas-dev liblapacke-dev libhdf5-dev libboost-program
 
 **In order for ``TimeEvolver`` to work properly, Boost version 1.75 and newer is required. Currently, however, most distributions ship packages of the boost library of version 1.74 and older. If your machine does not have at least version 1.75, we offer several solutions (including an automatic download and compilation of the Boost-library), which are described in section "Installation"**.
 
-## Mac
-The ``TimeEvolver`` is unfortunately not supported on newer Apple products. After the development of the first version Apple switched from x86 Intel processors to in-house developed ARM processors. The ``TimeEvolver`` relies on the Intel MKL library for various numerical tasks, specifically (sparse) BLAS. This library, however, is not available for non-x86 systems.
+## Mac (experimental)
+With version 2.0 the ``TimeEvolver`` will also be available on Mac. However, since we only have limited testing opportunities for this platform we still consider this feature experimental. For instance, ``cmake`` is not able to locate the include directory for the ``Accelerate`` framework reliably. The exact location seems also to change with different OS/xcode versions and needs to be passed by hand therefore in the ``CMakeLists.txt`` file in the root directory. Please change the following line according to your setup in case ``Accelerate.h`` is located somewhere else. 
+```
+include_directories(/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Accelerate.framework/Headers)
+```
 
 ## Windows 
 
