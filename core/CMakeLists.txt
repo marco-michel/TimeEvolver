@@ -1,8 +1,14 @@
-add_library(TimeEvolver SHARED krylovTimeEvolver.cpp krylovObservables.cpp krylovLogger.cpp matrixDataTypes.cpp)
+
+add_library(MatrixDataTypes SHARED matrixDataTypes.cpp)
+target_link_libraries(MatrixDataTypes PUBLIC ${BLAS_LIBRARIES} ${Boost_LIBRARIES}
+     dl pthread)
+
+
+add_library(TimeEvolver SHARED krylovTimeEvolver.cpp krylovObservables.cpp krylovLogger.cpp)
 target_include_directories(TimeEvolver PUBLIC ../helper)
 
-target_link_libraries(TimeEvolver PUBLIC ${BLAS_LIBRARIES} 
-     dl pthread)
+target_link_libraries(TimeEvolver PUBLIC ${BLAS_LIBRARIES} ${Boost_LIBRARIES}
+     dl pthread MatrixDataTypes)
 
 install(TARGETS TimeEvolver DESTINATION TimeEvolver/lib)
 install(FILES matrixDataTypes.h krylovTimeEvolver.h krylovObservables.h mathHeader.h DESTINATION TimeEvolver/include)
