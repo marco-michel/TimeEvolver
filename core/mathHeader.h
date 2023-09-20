@@ -24,3 +24,10 @@
 #define lapack_complex_double std::complex<double>
 #include <lapacke.h>
 #endif
+
+#ifdef ON_APPLE
+#include <complex>
+#define lapack_complex_float std::complex<float>
+#define lapack_complex_double std::complex<double>
+#include <Accelerate.h>
+#endif

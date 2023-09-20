@@ -359,8 +359,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			statusCode = 1;
 		}
 		//Finally diagonalize Hessenberg matrix H (since it will be exponentiated many times)
-		int infocheck = LAPACKE_zhseqr(LAPACK_COL_MAJOR, 'S', 'I', m, (size_t) 1, m,
-				H->values, m, eigenvalues, schurvector, m);
+		int infocheck = TE_zhseqr(m, H->values, eigenvalues, schurvector);
 		if (infocheck != 0) 
 		{
 			logger.log_message(krylovLogger::FATAL, "Internal error: LAPACK error " + infocheck);

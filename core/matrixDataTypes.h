@@ -135,4 +135,29 @@
 #endif
     }
 
-    
+    //Wrapper for LAPACK zhseqr
+
+    inline int TE_zhseqr(size_t  m,
+		std::complex<double> *  	h,
+		std::complex<double> *  	w,
+		std::complex<double> *  	z
+	) 	
+    {
+#ifdef ON_APPLE
+    long info;
+    long onez = 1;
+    long workspaceSize = 11*m;
+    const char job = 'S';
+    const char COMPZ = 'I';
+    long mReplace = (long) m;
+    std::complex<double>* workspace = new std::complex<double>[workspaceSize];
+    zhseqr_(&job, &COMPZ, &mReplace, &onez, &mReplace, h, &mReplace, w, z, &mReplace, workspace,  &workspaceSize, &info);
+    std::cerr<< "apple lapack: " << std::endl;
+    std::cerr << info << std::endl;
+    delete[] workspace;
+    return (int) info;
+#else
+    return LAPACKE_zhseqr(LAPACK_COL_MAJOR, 'S', 'I', m, (size_t) 1, m,
+				h, m, w, z, m);
+#endif
+    }
