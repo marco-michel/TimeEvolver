@@ -47,7 +47,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 		exit(1);
 	}
 
-
+	//Perform initializing steps for the matrix representation tailored to the installed (s)BLAS library
 	Ham->initialize();
 
 	//Numerical integration terminates if error*L1 < termination
@@ -120,7 +120,10 @@ void krylovTimeEvolver::sample() {
 	index_samples++;
 }
 
-
+/**
+* Sets the severity level for logging
+* @param level: Specific level, e.g. DEBUG, WARNING, ERROR, ... 
+*/
 void krylovTimeEvolver::changeLogLevel(krylovLogger::loggingLevel level)
 {
 	logger.set_loggingLevel(level);
@@ -635,7 +638,7 @@ void krylovTimeEvolver::printProgress(float prog)
 
 
 /**
-ProgressBar thread
+* ProgressBar thread
 */
 void krylovTimeEvolver::progressBarThread()
 {
@@ -652,6 +655,10 @@ void krylovTimeEvolver::progressBarThread()
 	return;
 }
 
+
+/**
+* Initialize member variables of return structure
+*/
 krylovReturn* krylovTimeEvolver::generateReturn()
 {
 	krylovReturn* ret = new krylovReturn(Hsize, statusCode);
