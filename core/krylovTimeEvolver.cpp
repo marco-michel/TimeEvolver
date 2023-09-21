@@ -365,7 +365,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		int infocheck = TE_zhseqr(m, H->values, eigenvalues, schurvector);
 		if (infocheck != 0) 
 		{
-			logger.log_message(krylovLogger::FATAL, "Internal error: LAPACK error " + infocheck);
+			logger.log_message(krylovLogger::FATAL, "Internal error: LAPACK error " + std::to_string(infocheck));
 			exit(1);
 		}
 		//END STEP 1

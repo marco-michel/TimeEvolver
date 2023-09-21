@@ -194,7 +194,7 @@ int smatrix::initialize() {
         return 1;
 
     sparse_status_t mklStatus;
-    matrix_descr type; type.type = SPARSE_MATRIX_TYPE_GENERAL; type.diag = SPARSE_DIAG_NON_UNIT;
+    matrix_descr type; type.type = SPARSE_MATRIX_TYPE_GENERAL; type.diag = SPARSE_DIAG_NON_UNIT; type.mode = SPARSE_FILL_MODE_FULL;
 
     descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
     descriptor.diag = SPARSE_DIAG_NON_UNIT;
@@ -202,12 +202,17 @@ int smatrix::initialize() {
     MKLSparseMatrix = new sparse_matrix_t;
 
     mklStatus = mkl_sparse_z_create_coo(MKLSparseMatrix, SPARSE_INDEX_BASE_ZERO, m, n, numValues, rowIndex, columns, values);
+
+    if (mklStatus != SPARSE_STATUS_SUCCESS) {
+        std::cerr << "Problem with MKL sparse matrix creation" << std::endl;
+        return -1;
+    }
     
-    mklStatus = mkl_sparse_convert_csr(*MKLSparseMatrix, SPARSE_OPERATION_NON_TRANSPOSE, MKLSparseMatrix);
-    mklStatus = mkl_sparse_order(*MKLSparseMatrix);
-    mklStatus = mkl_sparse_set_mv_hint(*MKLSparseMatrix, SPARSE_OPERATION_NON_TRANSPOSE, type, 20000);
-    mklStatus = mkl_sparse_set_memory_hint(*MKLSparseMatrix, SPARSE_MEMORY_AGGRESSIVE);
-    mklStatus = mkl_sparse_optimize(*MKLSparseMatrix);
+    mkl_sparse_convert_csr(*MKLSparseMatrix, SPARSE_OPERATION_NON_TRANSPOSE, MKLSparseMatrix);
+    mkl_sparse_order(*MKLSparseMatrix);
+    mkl_sparse_set_mv_hint(*MKLSparseMatrix, SPARSE_OPERATION_NON_TRANSPOSE, type, 20000);
+    mkl_sparse_set_memory_hint(*MKLSparseMatrix, SPARSE_MEMORY_AGGRESSIVE);
+    mkl_sparse_optimize(*MKLSparseMatrix);
     
  #endif
     
@@ -242,10 +247,10 @@ int smatrix::dumpHDF5(std::string fileName)
     size_t mExport = (size_t)m;
     std::string fileNameH5 = fileName;
     H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
-    int NX = numValues;
+    size_t NX =  numValues;
     const int RANK = 1;
-    hsize_t dimsf[RANK];
-    hsize_t dimsatt[RANK];
+    hsize_t dimsf[RANK] = {};
+    hsize_t dimsatt[RANK] = {};
     dimsf[0] = NX;
     dimsatt[0] = 1;
     DataSpace dataspace(RANK, dimsf);

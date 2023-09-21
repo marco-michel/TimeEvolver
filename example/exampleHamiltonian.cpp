@@ -16,10 +16,8 @@
  */ 
 exampleHamiltonian::exampleHamiltonian(int n0, int nm, double deltan, int q1, int q2, int c, double c0, double cgap1, double cgap2, double cm, double cms)
 {
- 
 	C = c; N0 = n0; Nm = nm; DeltaN = deltan; Q1 = q1; Q2 = q2;
 	C0 = c0; CGap1 = cgap1; CGap2 = cgap2; Cm = cm; CmS = cms; 
-	Hamiltonian();
 }
 
 	/**

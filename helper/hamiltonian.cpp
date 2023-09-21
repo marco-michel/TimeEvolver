@@ -375,7 +375,6 @@ std::unique_ptr<smatrix> Hamiltonian::createMatrix(std::vector<opTerm>& op, basi
 				else
 					pairDoesNotWork->second += tmp.coef;
 			}
-			skip = false;
 		}
 
 		//write row into matrix

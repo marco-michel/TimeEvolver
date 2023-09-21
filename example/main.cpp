@@ -76,9 +76,6 @@ int main(int argc, char* argv[])
             return 1;
         }
     }
-    
-    
-    int nbObservables = 2*K + 2;
 
     std::cout << "TimeEvolver Example" << std::endl;
     
