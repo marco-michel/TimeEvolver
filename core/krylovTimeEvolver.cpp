@@ -461,8 +461,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		logger.log_message(krylovLogger::WARNING, std::string("CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in ") + (std::to_string(nbErrRoundOff) + " Krylov spaces.) \n \
 			THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED. \n \
 			Restart with bigger error bound or smaller time."));
-		logger.log_message(krylovLogger::WARNING, "The total computed analytic error is: " + (std::stringstream() << err).str());
-		logger.log_message(krylovLogger::WARNING, "The total numerical error estimate for all Krylov spaces is " + (std::stringstream() << numericalErrorEstimateTotal).str());
+		logger.log_message(krylovLogger::WARNING, "The total computed analytic error is: " + krylovLogger::stringStreamWrapperd(err));
+		logger.log_message(krylovLogger::WARNING, "The total numerical error estimate for all Krylov spaces is " + krylovLogger::stringStreamWrapperd(numericalErrorEstimateTotal));
 
 		nbErrors++;
 		statusCode = 10;
@@ -479,7 +479,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	{
 		if (numericalErrorEstimateTotal > tol)
 		{
-			logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: The numerical error estimate " + (std::stringstream() << numericalErrorEstimateTotal).str() + " was larger than the requested tolerance " + (std::stringstream() << tol).str() + " \
+			logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: The numerical error estimate " + krylovLogger::stringStreamWrapperd(numericalErrorEstimateTotal)  + " was larger than the requested tolerance " + krylovLogger::stringStreamWrapperd(tol) + " \
 				THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED.");
 
 			statusCode = 11;
@@ -487,8 +487,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		}
 		else
 		{
-			
-			logger.log_message(krylovLogger::WARNING, "Warning: Analytic error " + (std::stringstream() << err).str() + " was smaller than the estimate of the numerical error " + (std::stringstream() << numericalErrorEstimateTotal).str() + ". \
+	
+			logger.log_message(krylovLogger::WARNING, "Warning: Analytic error " + krylovLogger::stringStreamWrapperd(err) + " was smaller than the estimate of the numerical error " + krylovLogger::stringStreamWrapperd(numericalErrorEstimateTotal) + ". \
 				The computed error is not accurate.");
 			
 			if (statusCode != 1) //Don't overwrite Lucky breakdown status
