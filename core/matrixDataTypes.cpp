@@ -102,7 +102,7 @@ smatrix::smatrix()
 #endif
 }
 
-/*
+/**
 * Compute 1-norm: maximum absolute column sum
 * @return 1-norm of the matrix
 */
