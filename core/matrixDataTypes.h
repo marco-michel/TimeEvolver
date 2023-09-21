@@ -137,7 +137,7 @@
 
     //Wrapper for LAPACK zhseqr
 
-    inline int TE_zhseqr(size_t  m,
+    inline size_t TE_zhseqr(size_t  m,
 		std::complex<double> *  	h,
 		std::complex<double> *  	w,
 		std::complex<double> *  	z
@@ -155,7 +155,7 @@
     std::cerr<< "apple lapack: " << std::endl;
     std::cerr << info << std::endl;
     delete[] workspace;
-    return (int) info;
+    return (size_t) info;
 #else
     return LAPACKE_zhseqr(LAPACK_COL_MAJOR, 'S', 'I', m, (size_t) 1, m,
 				h, m, w, z, m);
