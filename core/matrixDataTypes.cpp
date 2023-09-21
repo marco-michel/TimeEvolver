@@ -2,7 +2,7 @@
 
 using namespace TE;
 
-/*
+/**
 * Constructor for empty matrix 
 * @param nn column dimension
 * @param mm row dimension
@@ -17,7 +17,7 @@ matrix::matrix(size_t nn, size_t mm)
         values = nullptr;
 }
 
-/*
+/**
 * Constructor for matrix 
 * @param nn column dimension
 * @param mm row dimension
@@ -30,7 +30,7 @@ TE::matrix::matrix(size_t nn, size_t mm, std::complex<double>* vals) : n(nn), m(
     cblas_zcopy(numValues, vals, 1, values, 1);
 }
 
-/*
+/**
 * Deconstructor for matrix
 */
 matrix:: ~matrix()
@@ -43,7 +43,7 @@ matrix:: ~matrix()
 
 
 #ifdef USE_HDF 
-/*
+/**
 * Save matrix to HDF5 file. 
 * @param filename Filename 
 * @return The return value has no meaning. It always return 0.
@@ -83,7 +83,7 @@ int matrix::dumpHDF5(std::string filename)
 #endif    
 
 
-/*
+/**
 * Default constructor for sparse matrix. Initializes also library specific variables.
 */
 smatrix::smatrix()
@@ -120,7 +120,7 @@ double smatrix::norm1()
     return *result;
 }
 
-/*
+/**
 * Compute infinity-norm: maximum absolute row sum
 * @return infinity-norm of the matrix
 */
@@ -138,7 +138,7 @@ double smatrix::normInf()
     return *result;
 }
 
-/*
+/**
 * Constructor for sparse matrix with initializing values
 * @param val Values to initialize the (sparse) matrix with
 * @param col Column indices for non-zero values 
@@ -175,7 +175,7 @@ smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV
 #endif
 }
 
-/*
+/**
 * Copy constructor
 * @param old_obj Reference object to construct a copy from
 */
@@ -201,7 +201,7 @@ smatrix::smatrix(const smatrix& old_obj) {
 #endif
 }
 
-/*
+/**
 * Sparse Matrix dense vector multiplication: out = alpha * this * in. Uses MKL for optimized routines but also has an alternative branch in case there is no MKL installed. 
 * @param alpha Scalar factor (usually set to one)
 * @param in (Dense) vector multiplying (this) matrix
@@ -231,7 +231,7 @@ int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::com
 #endif
 }
 
-/*
+/**
 * Setting up library variables to speed up spMV. Or do nothing if none is installed.
 */
 int smatrix::initialize() {
@@ -282,7 +282,7 @@ int smatrix::initialize() {
 
 
 #ifdef USE_HDF
-/*
+/**
 * Save matrix to HDF5 file.
 * @param filename Filename
 * @return The return value has no meaning. It always return 0.
@@ -340,7 +340,7 @@ int smatrix::dumpHDF5(std::string fileName)
 }
 #endif
 
-/*
+/**
 * Default deconstructor
 */
 smatrix::~smatrix()

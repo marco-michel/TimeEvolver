@@ -20,7 +20,7 @@ exampleHamiltonian::exampleHamiltonian(int n0, int nm, double deltan, int q1, in
 	C0 = c0; CGap1 = cgap1; CGap2 = cgap2; Cm = cm; CmS = cms; 
 }
 
-	/**
+/**
  * Builds the operators that make up the Hamiltonian
  * @return All operators which sum up to the Hamiltonian
  */ 
@@ -109,7 +109,7 @@ double exampleHamiltonian::symBreak(int a, int b)
     return coef;
 }
 
-	/**
+/**
  * Creates a specific initial state, in which the first mode has occupation N0 and the first Nm qudit-modes have occupation 1
  * @return The initial state
  */ 

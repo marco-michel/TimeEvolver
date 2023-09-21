@@ -156,7 +156,7 @@ for (; obsIter != obs_list.end(); obsIter++)
 }
 
 
-/*
+/**
 * Constructor for base class for observables, initializing the array for the expectation values with predefinied values
 * @param name Name of the observable
 * @param values Values to be stored in the expectation value array
@@ -170,7 +170,7 @@ krylovBasicObservable::krylovBasicObservable(const std::string& name, std::vecto
     }
 }
 
-/*
+/**
 * Default deconstructor
 */
 krylovBasicObservable::~krylovBasicObservable()
@@ -180,7 +180,7 @@ krylovBasicObservable::~krylovBasicObservable()
 }
 
 
-/*
+/**
 * Function to return the type of the observable. 
 * @return Type of the observable
 */
@@ -340,7 +340,7 @@ std::complex<double> krylovVectorObservable::expectation(std::complex<double>* v
 	return observallreturn; //returns the squared magnitued
 }
 
-/*
+/**
 * Constructor for the output observable class. Note that this class is only for file output. 
 * @param name Name of the observable
 * @param values Vector of values that should be stored in the output observable
@@ -354,7 +354,7 @@ krylovOutputObservable::krylovOutputObservable(const std::string& name, std::vec
     }
 }
 
-/*
+/**
 * Throw runtime error when output observable is tried to be sampled. 
 */
 std::complex<double> krylovOutputObservable::expectation(std::complex<double>* vec, int len)
@@ -364,7 +364,7 @@ std::complex<double> krylovOutputObservable::expectation(std::complex<double>* v
 }
 
 
-/*
+/**
 * Exception message
 * @return char array of the message
 */
