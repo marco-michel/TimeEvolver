@@ -23,7 +23,7 @@ list (APPEND DEPENDENCIES ep_boost)
 ExternalProject_Add (ep_boost
   URL ${boost_download}
   URL_HASH SHA256=${boost_SHA256}
-  CONFIGURE_COMMAND ./bootstrap.sh --with-libraries={program_options,log}
+  CONFIGURE_COMMAND ./bootstrap.sh --with-libraries=program_options,log
   BUILD_COMMAND ./b2 link=static
   BUILD_IN_SOURCE 1
   INSTALL_COMMAND ""
