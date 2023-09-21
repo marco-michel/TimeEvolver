@@ -25,32 +25,25 @@
 
 
 
-struct krylovReturn
+class krylovReturn
 {
+public:
     std::complex<double>* evolvedState;
     double err; double evolvedTime;
     size_t numSamples;
     size_t n_steps;
 	size_t dim;
     size_t krylovDim;
+    /* Status code has the following meaning:
+    1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected)
+    more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
+    */
     int statusCode;
     std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
     std::unique_ptr<smatrix> hamiltonianMatrix;
 
-/* Status code has the following meaning: 
-1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected) 
-more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
- */
-    krylovReturn(unsigned int Hsize, int status)
-    {
-        err = 0; n_steps = 0; krylovDim = 0; dim = Hsize; statusCode = status;
-        evolvedState = new std::complex<double>[Hsize];
-    }
-
-	~krylovReturn()
-	{
-            delete[] evolvedState;
-	}
+    krylovReturn(unsigned int Hsize, int status);
+    ~krylovReturn();
 };
 
 

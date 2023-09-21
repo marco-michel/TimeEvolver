@@ -115,7 +115,7 @@ void krylovTimeEvolver::sample() {
 	int i = 0;
 	for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
 	{
-		(*obsIter)->expectation(sampledState, Hsize);
+		(*obsIter)->expectation(sampledState, (int) Hsize);
 	}
 	index_samples++;
 }
@@ -362,10 +362,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			statusCode = 1;
 		}
 		//Finally diagonalize Hessenberg matrix H (since it will be exponentiated many times)
-		int infocheck = TE_zhseqr(m, H->values, eigenvalues, schurvector);
+		size_t infocheck = TE_zhseqr(m, H->values, eigenvalues, schurvector);
 		if (infocheck != 0) 
 		{
-			logger.log_message(krylovLogger::FATAL, "Internal error: LAPACK error " + std::to_string(infocheck));
+			logger.log_message(krylovLogger::FATAL, "Internal error: LAPACK error " + std::to_string((int) infocheck));
 			exit(1);
 		}
 		//END STEP 1
@@ -584,7 +584,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
 */
 double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful)
 {
-	double error, L1;
+	double error = 0, L1 = 0;
 	double ret;
 	bool success = true;
 
@@ -661,7 +661,7 @@ void krylovTimeEvolver::progressBarThread()
 */
 krylovReturn* krylovTimeEvolver::generateReturn()
 {
-	krylovReturn* ret = new krylovReturn(Hsize, statusCode);
+	krylovReturn* ret = new krylovReturn((unsigned int) Hsize, statusCode);
 	cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
 	ret->n_steps = n_steps;
 	ret->err = err;
@@ -699,4 +699,16 @@ std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double
 
 	return tmpintKernelExp;
 
+}
+
+
+krylovReturn::krylovReturn(unsigned int Hsize, int status)
+{
+	err = 0; n_steps = 0; krylovDim = 0; dim = Hsize; statusCode = status; evolvedTime = 0; numSamples = 0;
+	evolvedState = new std::complex<double>[Hsize];
+}
+
+krylovReturn::~krylovReturn()
+{
+	delete[] evolvedState;
 }

@@ -70,7 +70,7 @@ void krylovBasicObservable::saveResult(const std::vector<std::unique_ptr<krylovB
     {
         int NX = (int)(*obsIter)->numSamples;
         const int RANK = 1;
-        hsize_t dimsf[RANK];
+        hsize_t dimsf[RANK] = {};
         dimsf[0] = NX;
         DataSpace dataspace(RANK, dimsf);
         FloatType datatype(PredType::NATIVE_DOUBLE);
@@ -148,7 +148,7 @@ for (; obsIter != obs_list.end(); obsIter++)
 
 krylovBasicObservable::krylovBasicObservable(const std::string& name, std::vector<double> values): obs_name(name), dim(0), numSamples(values.size()), sampleIndex(0), type(VOID_TYPE_OBS), expectationValues(nullptr)
 {
-    initializeResultArray(numSamples);
+    expectationValues = new double[numSamples];
     for (int i = 0; i != numSamples; i++) {
         expectationValues[i] = values[i];
     }
@@ -307,4 +307,11 @@ std::complex<double> krylovOutputObservable::expectation(std::complex<double>* v
 {
     throw std::runtime_error("krylovOutputObservable should not call `expectation` function.");
     return 0;
+}
+
+
+
+const char* requestStopException::what() const throw()
+{
+    return "Observable requested termination of time evolution.";
 }
