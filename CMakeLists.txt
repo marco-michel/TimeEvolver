@@ -22,7 +22,7 @@ endif()
 
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
-message("${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
+message("Installation directory would be: ${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 set (Boost_USE_STATIC_LIBS ON)
 
 include(CTest)
