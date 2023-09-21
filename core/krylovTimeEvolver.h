@@ -24,7 +24,10 @@
 
 
 
-
+/**
+* Return type of krylovTimeEvolver containing general information as well as the original Hamiltonian and the observables containing the actual expectation values.
+* Note that the matrix representations might have been changed in the course of the time evolution 
+*/
 class krylovReturn
 {
 public:
@@ -46,7 +49,9 @@ public:
     ~krylovReturn();
 };
 
-
+/**
+* Main class responsible for computing the actual time evolution.
+*/
 class krylovTimeEvolver
 {
 public:

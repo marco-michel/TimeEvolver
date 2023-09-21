@@ -1,6 +1,6 @@
 #pragma once
 
-
+//This header includes mathematical libraries according to availability and platform
 
 #ifdef USE_MKL
 #define MKL_Complex16 std::complex<double>

@@ -1,17 +1,30 @@
 #include "krylovLogger.h"
 
-
+/**
+* Constructor for the logger. 
+* @param level Initial logging level. This sets the threshold on the severity for which messages will be printed on the screen. 
+*/
 krylovLogger::krylovLogger(loggingLevel level)
 {
     boost::log::core::get()->set_filter(boost::log::trivial::severity >= translateLevel(level));
     logToFile = false;
 }
 
+
+/**
+* Function to change the logging level.
+* @param level Logging level. This sets the threshold on the severity for which messages will be printed on the screen.
+*/
 void krylovLogger::set_loggingLevel(loggingLevel level)
 {
     boost::log::core::get()->set_filter(boost::log::trivial::severity >= translateLevel(level));
 }
 
+/**
+* Function to log messages.
+* @param level Severity level of the message, e.g. debuginfo, warning, error, ...
+* @param msg Actual message
+*/
 void krylovLogger::log_message(loggingLevel level, const std::string& msg)
 {
     switch (level)
@@ -27,7 +40,8 @@ void krylovLogger::log_message(loggingLevel level, const std::string& msg)
 
 /**
 * Internal function to translate logging level to boost logging level
-* @param level logging level
+* @param level TimeEvolver logging level
+* @return Boost logging level
 */
 boost::log::trivial::severity_level krylovLogger::translateLevel(loggingLevel level)
 {
@@ -44,6 +58,7 @@ boost::log::trivial::severity_level krylovLogger::translateLevel(loggingLevel le
 /**
 * Wrapper for creating single line stringstream outputs
 * @param val Number to be converted into a string
+* @return string representation of the passed double 
 */
 std::string krylovLogger::stringStreamWrapperd(double val)
 {

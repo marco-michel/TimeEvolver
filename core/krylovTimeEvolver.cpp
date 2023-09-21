@@ -11,7 +11,7 @@ using namespace TE;
 
 
 /**
- * All data required for the numerical time evolution is needed.
+ * Extended constructor
  * @param t The time interval over which the state should be time evolved.
  * @param v The initial and normalized state that should be time evolved
  * @param samplingStep The time interval after which the values of the observables should be determined
@@ -82,8 +82,15 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 		(*iter)->initializeResultArray(n_samples);
 
 }
-
-
+/**
+* Simplified constructor 
+* @param t The time interval over which the state should be time evolved.
+* @param v The initial and normalized state that should be time evolved
+* @param samplingStep The time interval after which the values of the observables should be determined
+* @param tol The maximal admissible error (norm difference between result of numerical and true time evolution)
+* @param observables The vector of observables that are to be sampled
+* @param Ham The full Hamiltonian
+*/
 krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham) : krylovTimeEvolver(t, v, samplingStep, 1e-6, 40, std::move(observables), std::move(Ham),
 	1.0, false, false){}
 
@@ -701,13 +708,21 @@ std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double
 
 }
 
-
+/**
+* Constructor for return constructor
+* @param Hsize Dimension of Hilbertspace 
+* @param status Statuscode indicating errors for values other than 0
+*/
 krylovReturn::krylovReturn(unsigned int Hsize, int status)
 {
 	err = 0; n_steps = 0; krylovDim = 0; dim = Hsize; statusCode = status; evolvedTime = 0; numSamples = 0;
 	evolvedState = new std::complex<double>[Hsize];
 }
 
+
+/**
+* Destructor for return constructor
+*/
 krylovReturn::~krylovReturn()
 {
 	delete[] evolvedState;

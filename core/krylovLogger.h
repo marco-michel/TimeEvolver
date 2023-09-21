@@ -8,7 +8,9 @@
 #include <boost/log/expressions.hpp>
 
 
-
+/**
+* Logger used to print warnings, errors, etc.
+*/
 class krylovLogger
 {
 public:

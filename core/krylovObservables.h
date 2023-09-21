@@ -11,7 +11,9 @@
 #include "parameter.h"
 
 
-
+/**
+* Exception raised when an observable requests the TimeEvolver to stop at the current timestep.
+*/
 class requestStopException : public std::exception {
     virtual const char* what() const throw();
 public:
@@ -22,8 +24,16 @@ public:
 using namespace TE;
 
 
+/*
+* Different types of observable classes describing the underlying data structure
+*/
 enum obsType { VOID_TYPE_OBS, VECTOR_TYPE_OBS, SPARSE_MATRIX_TYPE_OBS, MATRIX_TYPE_OBS };
 
+
+
+/**
+* Base observable class used for defining observables, computing expectation values as well as manage output to file
+*/
 class krylovBasicObservable
 {
 public:
@@ -53,13 +63,18 @@ protected:
     double* expectationValues;
 };
 
-//class for output only
+/**
+* Derived observable class only used for easier file output. Can't be used for sampling in the TimeEvolver. Calling the expectation function will result in a runtime error. 
+*/
 class krylovOutputObservable : public krylovBasicObservable {
 public:
     krylovOutputObservable(const std::string& name, std::vector<double> values);
     std::complex<double> expectation(std::complex<double>* vec, int len);
 };
 
+/**
+* Derviced observable class. The observable is represented as a vector and the expecation value is computed as a dot product: <Obs|state>
+*/
 class krylovVectorObservable : public krylovBasicObservable
 {
 public:
@@ -72,7 +87,9 @@ private:
 };
 
 
-
+/**
+* Derived observable class. The observable is represented as a sparse matrix and the expectation value is computed as <Obs|state|Obs>
+*/
 class krylovSpMatrixObservable : public krylovBasicObservable
 {
 public:
@@ -86,7 +103,9 @@ private:
 };
 
 
-
+/**
+* Derived observable class. The observable is represented as a (dense) matrix and the expectation value is computed as <Obs|state|Obs>
+*/
 class krylovMatrixObservable : public krylovBasicObservable
 {
     krylovMatrixObservable(const std::string& name, std::unique_ptr<matrix> obs);

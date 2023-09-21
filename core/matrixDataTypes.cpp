@@ -2,7 +2,11 @@
 
 using namespace TE;
 
-
+/*
+* Constructor for empty matrix 
+* @param nn column dimension
+* @param mm row dimension
+*/
 matrix::matrix(size_t nn, size_t mm)
 {
     n = nn; m = mm;
@@ -13,6 +17,12 @@ matrix::matrix(size_t nn, size_t mm)
         values = nullptr;
 }
 
+/*
+* Constructor for matrix 
+* @param nn column dimension
+* @param mm row dimension
+* @param vals values to initialize the matrix with. Note there are no checks for array size. nn*mm is assumed.
+*/
 TE::matrix::matrix(size_t nn, size_t mm, std::complex<double>* vals) : n(nn), m(mm)
 {
     numValues = n * m;
@@ -20,6 +30,9 @@ TE::matrix::matrix(size_t nn, size_t mm, std::complex<double>* vals) : n(nn), m(
     cblas_zcopy(numValues, vals, 1, values, 1);
 }
 
+/*
+* Deconstructor for matrix
+*/
 matrix:: ~matrix()
 {
     if (n * m > 0)
@@ -28,7 +41,13 @@ matrix:: ~matrix()
     }
 }
 
+
 #ifdef USE_HDF 
+/*
+* Save matrix to HDF5 file. 
+* @param filename Filename 
+* @return The return value has no meaning. It always return 0.
+*/
 int matrix::dumpHDF5(std::string filename)
 {
     double* realPart = new double[numValues];
@@ -64,7 +83,9 @@ int matrix::dumpHDF5(std::string filename)
 #endif    
 
 
-
+/*
+* Default constructor for sparse matrix. Initializes also library specific variables.
+*/
 smatrix::smatrix()
 {
     sym = hermitian = upperTri = initialized = false;
@@ -81,6 +102,10 @@ smatrix::smatrix()
 #endif
 }
 
+/*
+* Compute 1-norm: maximum absolute column sum
+* @return 1-norm of the matrix
+*/
 double smatrix::norm1()
 {
     std::vector<double> colVal(n);
@@ -95,6 +120,10 @@ double smatrix::norm1()
     return *result;
 }
 
+/*
+* Compute infinity-norm: maximum absolute row sum
+* @return infinity-norm of the matrix
+*/
 double smatrix::normInf()
 {
     std::vector<double> rowVal(m);
@@ -109,7 +138,15 @@ double smatrix::normInf()
     return *result;
 }
 
-
+/*
+* Constructor for sparse matrix with initializing values
+* @param val Values to initialize the (sparse) matrix with
+* @param col Column indices for non-zero values 
+* @param row Row indices for non-zero values
+* @param nbV Number of non-zero values
+* @param nn Column dimension
+* @param mm Row dimension
+*/
 smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm)
 {
     if (nn == 0 || mm == 0) {
@@ -138,6 +175,10 @@ smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV
 #endif
 }
 
+/*
+* Copy constructor
+* @param old_obj Reference object to construct a copy from
+*/
 smatrix::smatrix(const smatrix& old_obj) {
     numValues = old_obj.numValues; n = old_obj.n; m = old_obj.m;
     sym = old_obj.sym; hermitian = old_obj.hermitian; upperTri = old_obj.upperTri;
@@ -160,7 +201,13 @@ smatrix::smatrix(const smatrix& old_obj) {
 #endif
 }
 
-
+/*
+* Sparse Matrix dense vector multiplication: out = alpha * this * in. Uses MKL for optimized routines but also has an alternative branch in case there is no MKL installed. 
+* @param alpha Scalar factor (usually set to one)
+* @param in (Dense) vector multiplying (this) matrix
+* @param out Result sparse matrix
+* @return Status indicating success or failure of the operation
+*/
 int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double> *out) {
 
 #if defined USE_MKL
@@ -184,6 +231,9 @@ int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::com
 #endif
 }
 
+/*
+* Setting up library variables to speed up spMV. Or do nothing if none is installed.
+*/
 int smatrix::initialize() {
 
     if (initialized == true)
@@ -232,6 +282,11 @@ int smatrix::initialize() {
 
 
 #ifdef USE_HDF
+/*
+* Save matrix to HDF5 file.
+* @param filename Filename
+* @return The return value has no meaning. It always return 0.
+*/
 int smatrix::dumpHDF5(std::string fileName)
 {
 
@@ -285,6 +340,9 @@ int smatrix::dumpHDF5(std::string fileName)
 }
 #endif
 
+/*
+* Default deconstructor
+*/
 smatrix::~smatrix()
 {
     if (n > 1 || m > 1)

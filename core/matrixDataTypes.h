@@ -22,7 +22,9 @@
     //Define namespace for matrices and vector classes
     namespace TE {
 
-        //Matrix class
+        /** 
+        * Dense matrix class providing function to store the matrix as well as HDF5 file output on supported platforms
+        */
         class matrix
         {
         public:
@@ -38,7 +40,9 @@
         };
 
 
-        //Vector class
+        /**
+        * Class to store a dense vector 
+        */
         class vector
         {
         public:
@@ -62,7 +66,9 @@
         };
 
 
-        //Sparse matrix class
+        /**
+        * Internal class for sparse matrix representation. Provides a wrapper for sparse matrix - dense vector multiplications, which can take advantage of optimized libraries. 
+        */
         class smatrix
         {
         public:
@@ -111,8 +117,11 @@
 
 
     }
-        
-    //Wrapper for element-wise vector operations: exp
+     
+
+    /**
+    * Wrapper for element-wise vector operations: exp
+    */
     inline void expV(size_t len, std::complex<double>* x, std::complex<double>* y)
     {
 #ifdef USE_MKL
@@ -124,7 +133,9 @@
 #endif
     }
 
-    //Wrapper for element-wise vector operations: multiplication
+    /**
+    * Wrapper for element-wise vector operations: multiplication
+    */
     inline void mulV(size_t len, std::complex<double>* a, std::complex<double>* b, std::complex<double>* y) {
 #ifdef USE_MKL
         vzMul(len, a, b, y);
@@ -135,8 +146,9 @@
 #endif
     }
 
-    //Wrapper for LAPACK zhseqr
-
+    /**
+    * Wrapper for LAPACK zhseqr
+    */
     inline size_t TE_zhseqr(size_t  m,
 		std::complex<double> *  	h,
 		std::complex<double> *  	w,

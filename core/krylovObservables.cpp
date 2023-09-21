@@ -1,23 +1,30 @@
 #include "krylovObservables.h"
 
-
-
-
-
-
 using namespace TE;
 
 
+/**
+* Function to return the name of the observable
+* @return Name of the observable
+*/
 std::string krylovBasicObservable::retName()
 {
 	return obs_name;
 }
 
+/**
+* Function to return a pointer to the expectation value array
+* @return Raw pointer to the array which stores the expectation values
+*/
 double* krylovBasicObservable::retexpectationValues()
 {
     return expectationValues;
 }
 
+/**
+* Function to return the number of samples taken
+* @return Number of samples taken
+*/
 size_t krylovBasicObservable::retnumSamples()
 {
     return numSamples;
@@ -34,6 +41,10 @@ void krylovBasicObservable::initializeResultArray(size_t size)
 	expectationValues = new double[size];
 }
 
+/**
+* Resets the index of sampling to zero. Note that the original values are not overwritten! 
+* @return The size of the expectation value array, i.e. the number of expectation values that can be recorded.
+*/
 size_t krylovBasicObservable::resetResultArray()
 {
     sampleIndex = 0;
@@ -145,27 +156,45 @@ for (; obsIter != obs_list.end(); obsIter++)
 }
 
 
-
-krylovBasicObservable::krylovBasicObservable(const std::string& name, std::vector<double> values): obs_name(name), dim(0), numSamples(values.size()), sampleIndex(0), type(VOID_TYPE_OBS), expectationValues(nullptr)
+/*
+* Constructor for base class for observables, initializing the array for the expectation values with predefinied values
+* @param name Name of the observable
+* @param values Values to be stored in the expectation value array
+*/
+krylovBasicObservable::krylovBasicObservable(const std::string& name, std::vector<double> values): obs_name(name), dim(0), numSamples(values.size()), sampleIndex(values.size()), type(VOID_TYPE_OBS), expectationValues(nullptr)
 {
     expectationValues = new double[numSamples];
+
     for (int i = 0; i != numSamples; i++) {
         expectationValues[i] = values[i];
     }
 }
 
+/*
+* Default deconstructor
+*/
 krylovBasicObservable::~krylovBasicObservable()
 {
 	if (numSamples > 0)
 		delete[] expectationValues;
 }
 
+
+/*
+* Function to return the type of the observable. 
+* @return Type of the observable
+*/
 obsType krylovBasicObservable::retType()
 {
 	return type;
 }
 
 
+/**
+* Constructor for (dense) matrix observables 
+* @param name Name of the observable
+* @param obser (dense) Matrix representation of the observable 
+*/
 krylovMatrixObservable::krylovMatrixObservable(const std::string& name, std::unique_ptr<matrix> obser) : krylovBasicObservable(name)
 {
 	dim = obser->m;
@@ -177,6 +206,9 @@ krylovMatrixObservable::krylovMatrixObservable(const std::string& name, std::uni
 
 }
 
+/**
+* Destructor for (dense) matrix observables
+*/
 krylovMatrixObservable::~krylovMatrixObservable()
 {
 	if (dim > 0)
@@ -210,6 +242,11 @@ std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* v
 	return observall;
 }
 
+/**
+* Constructor for (sparse) matrix observables
+* @param name Name of the observable
+* @param obser (sparse) Matrix representation of the observable
+*/
 krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, std::unique_ptr<smatrix> obser) : krylovBasicObservable(name)
 {
 	dim = obser->m;
@@ -220,6 +257,9 @@ krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, std:
 	tmpBlasVec = new std::complex<double>[dim];
 }
 
+/**
+* Destructor for (sparse) matrix observables
+*/
 krylovSpMatrixObservable::~krylovSpMatrixObservable()
 {
 	if (dim > 0)
@@ -233,6 +273,7 @@ krylovSpMatrixObservable::~krylovSpMatrixObservable()
  * Computes expectation value of a sparse matrix observable for a given quantum state
  * @param vec Quantum state vector
  * @param len Length of state vector
+ * @return computed expectation value <Obs|state|Obs>. Since we do technically not require the observable to be Hermitian the value might be complex. Note that the stored value only contains the real part. 
  */
 std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>* vec, int len)
 {
@@ -257,7 +298,12 @@ std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>*
 
 }
 
-
+/**
+* Constructor for vector observables
+* @param name Name of the observable
+* @param obser Pointer to an complex array representing the vector
+* @param len Length of the array 
+*/
 krylovVectorObservable::krylovVectorObservable(const std::string& name, std::complex<double>* obser, size_t len) : krylovBasicObservable(name)
 {
 	dim = len;
@@ -294,6 +340,11 @@ std::complex<double> krylovVectorObservable::expectation(std::complex<double>* v
 	return observallreturn; //returns the squared magnitued
 }
 
+/*
+* Constructor for the output observable class. Note that this class is only for file output. 
+* @param name Name of the observable
+* @param values Vector of values that should be stored in the output observable
+*/
 krylovOutputObservable::krylovOutputObservable(const std::string& name, std::vector<double> values) : krylovBasicObservable(name)
 {
     this->numSamples = values.size();
@@ -303,6 +354,9 @@ krylovOutputObservable::krylovOutputObservable(const std::string& name, std::vec
     }
 }
 
+/*
+* Throw runtime error when output observable is tried to be sampled. 
+*/
 std::complex<double> krylovOutputObservable::expectation(std::complex<double>* vec, int len)
 {
     throw std::runtime_error("krylovOutputObservable should not call `expectation` function.");
@@ -310,7 +364,10 @@ std::complex<double> krylovOutputObservable::expectation(std::complex<double>* v
 }
 
 
-
+/*
+* Exception message
+* @return char array of the message
+*/
 const char* requestStopException::what() const throw()
 {
     return "Observable requested termination of time evolution.";
