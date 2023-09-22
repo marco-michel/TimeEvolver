@@ -26,8 +26,8 @@ public:
 	}
 
 private:
-	std::string p_name; //!< Name of the model parameter
-	bool includeInFilename; //!< include the parameter also in the filename
+	std::string p_name; //!< Name of the model parameter */
+	bool includeInFilename; //!< include the parameter also in the filename */
 };
 
 /**
