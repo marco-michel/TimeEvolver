@@ -65,8 +65,12 @@ void krylovBasicObservable::saveResult(const std::vector<std::unique_ptr<krylovB
     std::vector<std::unique_ptr<krylovBasicObservable>>::const_iterator obsIter;
 
     //Create string with parameter and its value
-    for (paraIter = para.begin(); paraIter != para.end(); paraIter++)
-        outputFileName += "_" + (*paraIter)->getName() + (*paraIter)->getData();
+    for (paraIter = para.begin(); paraIter != para.end(); paraIter++) {
+        if((*paraIter)->getPrintFilename() == true)
+            outputFileName += "_" + (*paraIter)->getName() + (*paraIter)->getData();
+    }
+
+
 
     obsIter = obs_list.begin();
     size_t nbOutputParameters = para.size();

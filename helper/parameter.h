@@ -18,9 +18,11 @@ public:
 	virtual bool isDouble() = 0;
 	virtual bool isInt() = 0;
 	virtual bool isBool() = 0;
-	std::string getName()
-	{
+	std::string getName() {
 		return p_name;
+	}
+	bool getPrintFilename() {
+		return includeInFilename;
 	}
 
 private:
