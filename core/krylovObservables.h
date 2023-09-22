@@ -73,7 +73,7 @@ public:
 };
 
 /**
-* Derviced observable class. The observable is represented as a vector and the expecation value is computed as a dot product: <Obs|state>
+* Derviced observable class. The observable is represented as a vector and the expecation value is computed as the squared dot product: |<Obs|state>|^2
 */
 class krylovVectorObservable : public krylovBasicObservable
 {

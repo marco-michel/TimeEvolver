@@ -319,7 +319,7 @@ krylovVectorObservable::krylovVectorObservable(const std::string& name, std::com
 
 
 /**
- * Computes expectation value of a vector observable for a given quantum state or equivalently a projection of a complexvector onto a state vector
+ * Computes expectation value of a vector observable for a given quantum state or equivalently the absolute square of a projection of a complexvector onto the state vector
  * @param vec Quantum state vector
  * @param len Length of state vector
  */
