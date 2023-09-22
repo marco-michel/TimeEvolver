@@ -140,20 +140,20 @@ int main(int argc, char* argv[])
     std::cout << "Writing results to file..." << std::endl;
     parameter_list parameters;
 
-    parameters.push_back(paraPush("N", N0));
-    parameters.push_back(paraPush("Nm", Nm));
-    parameters.push_back(paraPush("K", K));
-    parameters.push_back(paraPush("C", capacity));
-    parameters.push_back(paraPush("DeltaN", DeltaN));
-    parameters.push_back(paraPush("C0", C0));
-    parameters.push_back(paraPush("Cm", Cm));
-    parameters.push_back(paraPush("maxT", maxT));
-    parameters.push_back(paraPush("tol", tol));
-    parameters.push_back(paraPush("samplingStep", samplingStep));
-    parameters.push_back(paraPush("m", m));
-    parameters.push_back(paraPush("fastIntegration", fastIntegration));
-    parameters.push_back(paraPush("TE_MAJOR_VERSION", TIMEEVOLVER_VERSION / 100));
-    parameters.push_back(paraPush("TE_MINOR_VERSION", TIMEEVOLVER_VERSION % 100));
+    parameters.push_back(paraPush("N", true, N0));
+    parameters.push_back(paraPush("Nm", true, Nm));
+    parameters.push_back(paraPush("K", true, K));
+    parameters.push_back(paraPush("C", true, capacity));
+    parameters.push_back(paraPush("DeltaN", true, DeltaN));
+    parameters.push_back(paraPush("C0", true, C0));
+    parameters.push_back(paraPush("Cm", true, Cm));
+    parameters.push_back(paraPush("maxT", true, maxT));
+    parameters.push_back(paraPush("tol", true, tol));
+    parameters.push_back(paraPush("samplingStep", true, samplingStep));
+    parameters.push_back(paraPush("m", true, m));
+    parameters.push_back(paraPush("fastIntegration", true, fastIntegration));
+    parameters.push_back(paraPush("TE_MAJOR_VERSION", false, TIMEEVOLVER_VERSION / 100));
+    parameters.push_back(paraPush("TE_MINOR_VERSION", false, TIMEEVOLVER_VERSION % 100));
 
     observableList = std::move(results->observableList);
 

@@ -9,7 +9,7 @@
 class parameter
 {
 public:
-	parameter(const std::string& name) : p_name(name) {}
+	parameter(const std::string& name, bool inclInFilename) : p_name(name), includeInFilename(inclInFilename) {}
 	virtual ~parameter() {}
 	virtual std::string getData() = 0;
 	virtual bool isDouble() = 0;
@@ -22,6 +22,7 @@ public:
 
 private:
 	std::string p_name;
+	bool includeInFilename;
 };
 
 //parameter class for different data types
@@ -29,7 +30,7 @@ template <typename T>
 class typedParameter : public parameter
 {
 public:
-	typedParameter(const std::string& name, const T& data) : parameter(name), para_data(data) {}
+	typedParameter(const std::string& name, bool inclInFilname, const T& data) : parameter(name, inclInFilname), para_data(data) {}
 
 	std::string getData() //write to string
 	{
@@ -63,4 +64,4 @@ private:
 };
 
 typedef std::vector< std::shared_ptr<parameter> > parameter_list; //shorten notation.
-#define paraPush(nm, ...) std::make_shared<typedParameter<decltype(__VA_ARGS__)>>(nm, __VA_ARGS__) //macro for easier insertion
+#define paraPush(nm, bfnm, ...) std::make_shared<typedParameter<decltype(__VA_ARGS__)>>(nm, bfnm, __VA_ARGS__) //macro for easier insertion
