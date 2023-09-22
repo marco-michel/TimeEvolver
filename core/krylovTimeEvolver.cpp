@@ -16,9 +16,9 @@ using namespace TE;
  * @param v The initial and normalized state that should be time evolved
  * @param samplingStep The time interval after which the values of the observables should be determined
  * @param tol The maximal admissible error (norm difference between result of numerical and true time evolution)
- * @param m The size of the Krylov subspaces
+ * @param mm The size of the Krylov subspaces
  * @param observables The vector of observables that are to be sampled
- * @param Ham The full Hamiltonian
+ * @param HamIn The full Hamiltonian
  * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution exp(-i expFactor H t)
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
  * @param progressBar Whether or not to show a progressbar in the terminal
@@ -87,7 +87,6 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 * @param t The time interval over which the state should be time evolved.
 * @param v The initial and normalized state that should be time evolved
 * @param samplingStep The time interval after which the values of the observables should be determined
-* @param tol The maximal admissible error (norm difference between result of numerical and true time evolution)
 * @param observables The vector of observables that are to be sampled
 * @param Ham The full Hamiltonian
 */

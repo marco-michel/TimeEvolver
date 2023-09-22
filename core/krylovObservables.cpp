@@ -55,6 +55,7 @@ size_t krylovBasicObservable::resetResultArray()
 /**
  * Writes sampled expectation values of a list of observables to file
  * @param obs_list List of observables with sampled expectation values
+ * @param para List of parameters that are included as attributes in the HDF5 file as well as filename (if requested)
  * @param name Requested filename
  */
 void krylovBasicObservable::saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>> &obs_list,  parameter_list &para, const std::string &name)
