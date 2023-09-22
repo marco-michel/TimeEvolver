@@ -152,6 +152,8 @@ int main(int argc, char* argv[])
     parameters.push_back(paraPush("samplingStep", samplingStep));
     parameters.push_back(paraPush("m", m));
     parameters.push_back(paraPush("fastIntegration", fastIntegration));
+    parameters.push_back(paraPush("TE_MAJOR_VERSION", TIMEEVOLVER_VERSION / 100));
+    parameters.push_back(paraPush("TE_MINOR_VERSION", TIMEEVOLVER_VERSION % 100));
 
     observableList = std::move(results->observableList);
 

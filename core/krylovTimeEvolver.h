@@ -20,6 +20,7 @@
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
 #include "krylovLogger.h"
+#include "version.h"
 
 
 

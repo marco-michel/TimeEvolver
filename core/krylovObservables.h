@@ -24,7 +24,7 @@ public:
 using namespace TE;
 
 
-/*
+/**
 * Different types of observable classes describing the underlying data structure
 */
 enum obsType { VOID_TYPE_OBS, VECTOR_TYPE_OBS, SPARSE_MATRIX_TYPE_OBS, MATRIX_TYPE_OBS };
