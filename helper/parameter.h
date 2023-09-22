@@ -5,11 +5,14 @@
 #include <iomanip>
 #include <memory>
 
-//parent class
+/**
+* Base class for including model parameters in the output (HDF5) file
+*/
 class parameter
 {
 public:
 	parameter(const std::string& name, bool inclInFilename) : p_name(name), includeInFilename(inclInFilename) {}
+	parameter() = default;
 	virtual ~parameter() {}
 	virtual std::string getData() = 0;
 	virtual bool isDouble() = 0;
@@ -21,11 +24,13 @@ public:
 	}
 
 private:
-	std::string p_name;
-	bool includeInFilename;
+	std::string p_name; //!< Name of the model parameter
+	bool includeInFilename; //!< include the parameter also in the filename
 };
 
-//parameter class for different data types
+/**
+* Template class for including model parameters in the output file specialized to parameter datatype
+*/
 template <typename T>
 class typedParameter : public parameter
 {
