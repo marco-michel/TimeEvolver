@@ -310,6 +310,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	}
 	catch (requestStopException& e)
 	{
+		logger.log_message(krylovLogger::ERROR, e.what());
 		return generateReturn();
 	}
 
@@ -431,6 +432,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 				sample();
 			} catch (requestStopException& e)
 			{
+				logger.log_message(krylovLogger::ERROR, e.what());
 				delete[] eigenvalues; delete[] schurvector;
 				delete V; delete H;
 				if (progressBar){

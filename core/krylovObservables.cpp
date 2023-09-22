@@ -365,10 +365,12 @@ std::complex<double> krylovOutputObservable::expectation(std::complex<double>* v
 
 
 /**
-* Exception message
+* Default exception message
 * @return char array of the message
 */
 const char* requestStopException::what() const throw()
 {
     return "Observable requested termination of time evolution.";
 }
+
+

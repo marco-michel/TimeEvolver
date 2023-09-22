@@ -15,8 +15,8 @@
 * Exception raised when an observable requests the TimeEvolver to stop at the current timestep.
 */
 class requestStopException : public std::exception {
-    virtual const char* what() const throw();
 public:
+    virtual const char* what() const throw();
     requestStopException() = default;
 };
 
