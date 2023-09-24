@@ -68,12 +68,12 @@ else()
 
 endif()
 
-#Old code, please remove if nothing breaks
-#if(DEFINED ENV{MKLROOT})
-#message("MKLROOT defined")
-#ELSE()
-#include_directories(/usr/include/mkl)
-#ENDIF()
+
+if(DEFINED ENV{MKLROOT})
+message("MKLROOT defined")
+ELSE()
+include_directories(/usr/include/mkl)
+ENDIF()
 
 include_directories(${Boost_INCLUDE_DIRS} ${boost_SOURCE_DIR})
 
