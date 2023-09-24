@@ -1,6 +1,5 @@
 # Changelog
 
-
 ## 2.0.0 - --
 
 ### Added
@@ -29,7 +28,13 @@
 - Fixed a confusing output behavior where `dim` in `krylovReturn` stores not the Hilbertspace dim suggested by its name but the Krylov dimension.
 - Implemented exception handling for failed numerical integration 
 
-### Known Bugs
+## 1.4.1 - 2022-04-11
+
+### Fixed
+- Fixed memory leak and memory corruption in smatrix class
+
+### Changed
+- Code layout for observable class
 
 ## 1.4.0 - 2022-03-07
 
