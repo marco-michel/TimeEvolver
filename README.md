@@ -2,8 +2,8 @@
 
 # Introduction
 
-*TimeEvolver* is an open-source software package for computational physics. Its purpose is to perfrom **"numerical simulations"**, i.e. to **compute real-time evolution in a generic quantum system.**  Relying on known Krylov subspace techniques, the software tackles the problem of calculating the quantum state at a given time $t$ by evaluating the product
-$$ \exp(-iHt) v \;,$$
+*TimeEvolver* is an open-source software package for computational physics. Its purpose is to perfrom **"numerical simulations"**, i.e. to **compute real-time evolution in a generic quantum system.**  Relying on known Krylov subspace techniques, the software tackles the problem of calculating the quantum state at a given time $t$ by evaluating the product\
+$\qquad\qquad\exp(-iHt) v \;,$\
 where $H$ is the Hamiltonian (represented as large sparse and Hermitian matrix), *v* corresponds to the initial state vector and $i$ is the imaginary unit. The precision of the result is adjustable and on a standard notebook, *TimeEvolver* allows to compute time evolution in **any Hilbert space of dimension up to 10<sup>7</sup>**.
 
 *TimeEvolver* is designed to be **easily applicable to a given physics model**. In particular, the software package includes routines for sampling observables and for deriving the Hamiltonian matrix $H$ from a more abstract representation of the Hamiltonian operator. Moreover, convenient output methods, concrete examples and a documentation are provided.
