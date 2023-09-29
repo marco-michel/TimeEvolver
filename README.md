@@ -2,16 +2,27 @@
 
 # Introduction
 
-This is the TimeEvolver software package. 
-This software was published in 
+*TimeEvolver* is an open-source software package for computational physics. Its purpose is to perfrom **"numerical simulations"**, i.e. to **compute real-time evolution in a generic quantum system.**  Relying on known Krylov subspace techniques, the software tackles the problem of calculating the quantum state at a given time $t$ by evaluating the product
+$$ \exp(-iHt) v \;,$$
+where $H$ is the Hamiltonian (represented as large sparse and Hermitian matrix), *v* corresponds to the initial state vector and $i$ is the imaginary unit. The precision of the result is adjustable and on a standard notebook, *TimeEvolver* allows to compute time evolution in **any Hilbert space of dimension up to 10<sup>7</sup>**.
+
+*TimeEvolver* is designed to be **easily applicable to a given physics model**. In particular, the software package includes routines for sampling observables and for deriving the Hamiltonian matrix $H$ from a more abstract representation of the Hamiltonian operator. Moreover, convenient output methods, concrete examples and a documentation are provided.
+
+With the **new version 2.0**, *TimeEvolver* is available on **all operating systems**, although we still recommend Linux.
+
+A detailed description of *TimeEvolver* can be found in:
 
 M. Michel and S. Zell, *TimeEvolver*: A Program for Time Evolution With Improved Error Bound, [Comput.Phys.Commun. 277 (2022) 10837](https://doi.org/10.1016/j.cpc.2022.108374), [arXiv:2205.15346](https://arxiv.org/abs/2205.15346).
 
-We refer to this paper for a detailed description. 
+**If you use *TimeEvolver*, please cite the above paper.**
+
+If you have any questions or experience technical problems, please feel free to **contact us**:
+- <michelma@post.bgu.ac.il>
+- <sebastian.zell@uclouvain.be>
 
 # Project Structure
 
-The TimeEvolver distribution includes the following files and directories:
+The *TimeEvolver* distribution includes the following files and directories:
 
 <pre>
 README                          this file
@@ -38,7 +49,7 @@ On top of that it uses the build managing software Cmake.
 
 ## Linux 
 
-We recommend using Linux, or a virtual Linux machine, for TimeEvolver. The above libraries and software packages are usually available via a package manager like ``apt``. For example on Ubuntu can be installed via 
+We recommend using Linux, or a virtual Linux machine, for *TimeEvolver*. The above libraries and software packages are usually available via a package manager like ``apt``. For example on Ubuntu can be installed via 
 ```
 sudo apt-get install git
 ```
@@ -55,10 +66,10 @@ It is also possible to use another BLAS library instead of Intel MKL, e.g. OpenB
 sudo apt-get install libopenblas-dev liblapacke-dev libhdf5-dev libboost-program-options-dev 
 ```
 
-**In order for ``TimeEvolver`` to work properly, Boost version 1.75 and newer is required. Currently, however, most distributions ship packages of the boost library of version 1.74 and older. If your machine does not have at least version 1.75, we offer several solutions (including an automatic download and compilation of the Boost-library), which are described in section "Installation"**.
+**In order for *TimeEvolver* to work properly, Boost version 1.75 and newer is required. Currently, however, most distributions ship packages of the boost library of version 1.74 and older. If your machine does not have at least version 1.75, we offer several solutions (including an automatic download and compilation of the Boost-library), which are described in section "Installation"**.
 
 ## Mac (experimental)
-With version 2.0 the ``TimeEvolver`` will also be available on Mac. The build-in ``Accelerate`` framework is used for ``BLAS`` calls. 
+With version 2.0 *TimeEvolver* will also be available on Mac. The build-in ``Accelerate`` framework is used for ``BLAS`` calls. 
 However, since we only have limited testing opportunities for this platform we still consider this feature experimental. For instance, ``cmake`` is not able to locate the include directory for the ``Accelerate`` framework reliably. The exact location seems also to change with different OS/xcode versions and needs to be passed by hand therefore in the ``CMakeLists.txt`` file in the root directory. Please change the following line according to your setup in case ``Accelerate.h`` is located somewhere else. 
 ```
 include_directories(/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Accelerate.framework/Headers)
@@ -66,7 +77,7 @@ include_directories(/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/L
 
 ## Windows 
 
-There are several ways to compile ``TimeEvolver`` on Windows. The easiest option is to use WSL (Windows Subsystem for Linux), where you can install a virtual Ubuntu machine and then follow the instructions described above. We provide a short guide to install WSL below. 
+There are several ways to compile *TimeEvolver* on Windows. The easiest option is to use WSL (Windows Subsystem for Linux), where you can install a virtual Ubuntu machine and then follow the instructions described above. We provide a short guide to install WSL below. 
 
 A second option is to download binary libraries with the help of the ``vcpk`` package manager. BOOST and HDF5 can be obtained for Windows 64bit OS via
 ```
@@ -79,26 +90,26 @@ A third option would be to compile Boost (and HDF5) from source. Please follow t
 
 # Compilation
 
-There are two possible approaches to compile ``TimeEvolver``. One can either build it locally or install it system-wide: 
+There are two possible approaches to compile *TimeEvolver*. One can either build it locally or install it system-wide: 
 
 **Note that both procedures will fail if you do not have at least version 1.75 of Boost. Further below we describe how to solve this issue.**
 
 ## Basic setup without installation (the easiest)
 
-In the root folder ``timeEvolver``, you can build the TimeEvolver with no customization using:
+In the root folder ``timeEvolver``, you can build *TimeEvolver* with no customization using:
 ```
 mkdir build; cd build     # create and use a build directroy
 cmake ..                  # configuration reading the Cmake script
 cmake --build .           # compilation and linking (or type "make")
 ```
 This will create three folder in the folder ``build``:
-* Example (example demonstrating the application of TimeEvolver to a concrete system)
+* Example (example demonstrating the application of *TimeEvolver* to two concrete systems)
 * Helper (library for the creation of a matrix representation)
 * TimeEvolver (core functionality: libary for the timeevolution)
 
 ## Basic setup with installation
 
-To install ``TimeEvolver`` to the path ``TIMEEVOLVER_INSTALL_PATH`` set the cmake variable ``CMAKE_INSTALL_PREFIX`` accordingly in the configuration step. If this variable remains unset a system folder will be chosen as installation path by cmake. 
+To install *TimeEvolver* to the path ``TIMEEVOLVER_INSTALL_PATH`` set the cmake variable ``CMAKE_INSTALL_PREFIX`` accordingly in the configuration step. If this variable remains unset a system folder will be chosen as installation path by cmake. 
 ```
 mkdir build; cd build     					          # create and use a build directroy
 cmake -DCMAKE_INSTALL_PREFIX=TIMEEVOLVER_INSTALL_PATH ..                  # configuration reading the Cmake script
@@ -106,11 +117,11 @@ cmake --build .          						  # compilation and linking (or type "make")
 make install								  # installation to TIMEEVOLVER_INSTALL_PATH 
 ```
 
-Now one can proceed as follows to compile a file that uses ``TimeEvolver``. For example, if we want to compile ``simpleExample.cpp``, then we navigate to the folder where it is located and execute
+Now one can proceed as follows to compile a file that uses *TimeEvolver*. For example, if we want to compile ``simpleExample.cpp``, then we navigate to the folder where it is located and execute
 ```
  g++ simpleExample.cpp -I TIMEEVOLVER_INSTALL_PATH/TimeEvolver/include/ -I /opt/intel/oneapi/mkl/latest/include/ -I /usr/include/mkl -L TIMEEVOLVER_INSTALL_PATH/TimeEvolver/lib/ -lTimeEvolver -lHelper -Wl,-rpath=TIMEEVOLVER_INSTALL_PATHTimeEvolver/lib/ -o simpleExample
 ```
-In the above, ``TIMEEVOLVER_INSTALL_PATH`` has to be replaced (three times) by the path where ``TimeEvolver`` was installed. Moreover, the include directoy for the MKL header might need to be adjusted. 
+In the above, ``TIMEEVOLVER_INSTALL_PATH`` has to be replaced (three times) by the path where *TimeEvolver* was installed. Moreover, the include directoy for the MKL header might need to be adjusted. 
 
 
 ## Dependencies
@@ -121,7 +132,7 @@ If the dependencies have been installed locally and are not accessible system-wi
 
 ### Boost version is too old
 
-For ``TimeEvolver`` to work properly, a Boost version of 1.75 or newer is required. If you do not have it, there are two possible solutions.
+For *TimeEvolver* to work properly, a Boost version of 1.75 or newer is required. If you do not have it, there are two possible solutions.
 
 The first one is an automated download and compilation of Boost, which we integrated into cmake. To use it, you only have to set the cmake varibale ``DOWNLOAD_BOOST`` to ``ON``:
 ```
@@ -138,7 +149,7 @@ cd path/to/boost_1_76_0
 ./b2
 sudo ./b2 install
 ```
-In case a local installation you need to change the corresponding line to ``./bootstrap.sh --prefix=INSTALL_PATH`` with ``INSTALL_PATH`` being the chosen install directory for the boost library. When using a local installation, please set the cmake variable ``-DBOOST_ROOT=INSTALL_PATH`` when building ``TimeEvolver``. 
+In case a local installation you need to change the corresponding line to ``./bootstrap.sh --prefix=INSTALL_PATH`` with ``INSTALL_PATH`` being the chosen install directory for the boost library. When using a local installation, please set the cmake variable ``-DBOOST_ROOT=INSTALL_PATH`` when building *TimeEvolver*. 
 
 ### Standalone Version of Intel MKL
 
@@ -185,7 +196,7 @@ A set of standard values for the parameters will be used. For a list of availabl
 ```
 ./main --help
 ```
-The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.1_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.)
+The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.01_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.)
 
 ## Usage 2: Examplary Program II
 
@@ -193,11 +204,11 @@ Furthermore, we provide a second simpler example of two coupled oscillators. In 
 ```
 ./SimpleExample
 ```
-The expectation values of the occupation numbers of the two oscillators at different times will be written in the files ``output0.csv`` and ``output1.csv``.
+The expectation values of the occupation numbers of the two oscillators at different times will be written in the files ``SimpleExampleOutputOccupationNumber0.csv`` and ``SimpleExampleOutputOccupationNumber1.csv``.
 
 ## Usage 3: Apply TimeEvolver to own Hamiltonian matrix
 
-A third option to use the program arises if the user alredy has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``TimeEvolver`` are needed. The core functionality of the TimeEvolver is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
+A third option to use the program arises if the user already has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``core`` are needed. The main functionality of *TimeEvolver* is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
  krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, double expFactor, bool fastIntegration, bool progressBar);
 ```
@@ -220,12 +231,12 @@ krylovReturn* timeEvolve();
 
 ## Internal data formats
 
-Besides fundamental data types the TimeEvolver defines following two additional matrix types in the header file ``matrixDataTypes.h``:
+Besides fundamental data types, *TimeEvolver* defines the following two additional matrix types in the header file ``matrixDataTypes.h``:
 * A dense matrix ``matrix(size_t nn, size_t mm)`` with ``nn`` the number of rows and ``mm`` the number of columns 
 * A sparse matrix in coordinate format ``smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, int nn, int mm)`` with ``nn`` the number of rows, ``mm`` the number of columns, ``nbV`` the number of non-zero entries, ``row`` the 
 row indices of the non-zero values, ``col`` the column indices of the non-zero values, ``val`` the non-zero values of the sparse matrix
 * A base class ``krylovBasicObservable(const std::string& name)`` for handling observables, computing and storeing expectation values given a state vector as well as streamlining output to a file. There are several derivated classes to sepecalized to the cases where the observable is given by a vector, a sparse matrix or a dense matrix.
-* The structure ``krylovReturn`` for the output of the TimeEvolver. It contains the following output data types:
+* The structure ``krylovReturn`` for the output of the *TimeEvolver*. It contains the following output data types:
     *  ``std::complex<double>* evolvedState`` The full quantum state evolved until time ``t``
     * ``double err`` An upper error bound on the numerical error
     * ``size_t n_steps`` The number of Kyrlov steps needed for the timeevolution
