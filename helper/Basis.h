@@ -182,7 +182,7 @@ struct basisVector
 
 	/**
 	* Assign operator
-	* @param b BasisVector from which a copy is made
+	* @param rhs BasisVector from which a copy is made
 	*/
 	basisVector& operator= (const basisVector &rhs)
 	{
