@@ -118,8 +118,7 @@ krylovTimeEvolver::~krylovTimeEvolver()
  * Computes and saves values of observables for current state ('sampledState')
  */
 void krylovTimeEvolver::sample() {
-	int i = 0;
-	for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
+	for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++)
 	{
 		(*obsIter)->expectation(sampledState, (int) Hsize);
 	}
