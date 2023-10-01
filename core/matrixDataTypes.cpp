@@ -233,6 +233,7 @@ int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::com
 
 /**
 * Setting up library variables to speed up spMV. Or do nothing if none is installed.
+* @return Status if the operation was successful (0) or not (error code != 0). 
 */
 int smatrix::initialize() {
 
