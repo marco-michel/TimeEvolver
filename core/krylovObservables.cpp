@@ -16,7 +16,7 @@ std::string krylovBasicObservable::retName()
 * Function to return a pointer to the expectation value array
 * @return Raw pointer to the array which stores the expectation values
 */
-double* krylovBasicObservable::retexpectationValues()
+double* krylovBasicObservable::retExpectationValues()
 {
     return expectationValues;
 }
@@ -25,7 +25,7 @@ double* krylovBasicObservable::retexpectationValues()
 * Function to return the number of samples taken
 * @return Number of samples taken
 */
-size_t krylovBasicObservable::retnumSamples()
+size_t krylovBasicObservable::retNumSamples()
 {
     return numSamples;
 }

@@ -43,8 +43,8 @@ public:
     virtual std::complex<double> expectation(std::complex<double>* vec, int len) = 0;
     obsType retType();
     std::string retName();
-    double* retexpectationValues();
-    size_t retnumSamples();
+    double* retExpectationValues();
+    size_t retNumSamples();
     virtual void initializeResultArray(size_t size);
     size_t resetResultArray();
 
