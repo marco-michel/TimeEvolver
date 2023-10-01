@@ -250,12 +250,13 @@ row indices of the non-zero values, ``col`` the column indices of the non-zero v
 * ``0`` Success
 * ``1`` Lucky breakdown
 * ``2`` Analytic error was smaller than the estimated total round-off error. However, the estimate for the round-off error was below the requested tolerance, so the result is probably trustable. 
+* ``3`` The TimeEvolution was aborted by request of an observable. KrylovReturn only contains results up until exception was thrown. Note that warnings that have been thrown up until this point are not retrievable. 
 * ``10`` Critical Warning: Numerical error estimate was larger than analytic error in at least one substep. Requested accuacy was probably not achived.  
 * ``11`` Critical Warning: Total numerical error estimate was larger than the total analytic error. Requested accuacy was probably not achived.
 * ``20`` Critical Warning: Numerical integration of the error integral failed.
 * ``30`` Critical Warning: Norm of state vector deviates more than the given accuaracy from 1. 
 * ``100`` Critical Warning: Multible errors occured.
-* ``1000`` The TimeEvolution was aborted by request of an observable. KrylovReturn only contains results up until exception was thrown. Note that warnings that have been thrown up until this point are not retrievable at this moment. 
+
 
 # Build Documentation
 

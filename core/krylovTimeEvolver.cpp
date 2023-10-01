@@ -431,7 +431,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 					stop_printing = true;
 					pBThread.join();
 				}
-				statusCode = 1000;
+				statusCode = 3;
 				return generateReturn();
 			}
         }
