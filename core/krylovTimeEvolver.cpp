@@ -665,6 +665,7 @@ void krylovTimeEvolver::progressBarThread()
 
 /**
 * Initialize member variables of return structure
+* @return Pointer to a krylovReturn class instance which contains all the results and information of the finished time evolution
 */
 krylovReturn* krylovTimeEvolver::generateReturn()
 {
