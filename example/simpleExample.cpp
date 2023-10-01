@@ -92,10 +92,10 @@ int main()
        std::string fileNameCSV = outputFileName + (*obsIter)->retName() + ".csv";
        std::ofstream outputfile;
        outputfile.open(fileNameCSV);
-       double* exptVal = (*obsIter)->retexpectationValues();
-       for (int i = 0; i != (*obsIter)->retnumSamples() - 1; i++)
+       double* exptVal = (*obsIter)->retExpectationValues();
+       for (int i = 0; i != (*obsIter)->retNumSamples() - 1; i++)
            outputfile << exptVal[i] << ", ";
-       outputfile << exptVal[((*obsIter)->retnumSamples()) - 1];
+       outputfile << exptVal[((*obsIter)->retNumSamples()) - 1];
        outputfile.close();
    }
 
