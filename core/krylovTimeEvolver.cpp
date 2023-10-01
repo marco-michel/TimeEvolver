@@ -529,8 +529,6 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
 
 		int spStatus = Ham->spMV(expFactor, (VRet->values) + j * Hsize, tmpBlasVec);
 
-		//sparse_status_t mklStatus2 = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, expFactor, *HamOpt, descriptor, (VRet->values) + j * Hsize, zero, tmpBlasVec);
-
         if(spStatus != 0)
         {
 			logger.log_message(krylovLogger::FATAL, "spMV error ");
