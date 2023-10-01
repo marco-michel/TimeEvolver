@@ -332,7 +332,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
     while (index_samples < n_samples)
     {
 		n_steps++;
-		//t_step = fmin(t - t_now, t_step);
 		double err_step = 0;
 
 		//STEP 1: Construct Krylov subspace using Arnoldi algorithm
