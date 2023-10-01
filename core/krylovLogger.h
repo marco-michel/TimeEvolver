@@ -23,7 +23,6 @@ public:
 	static std::string stringStreamWrapperd(double val);
 
 private:
-	bool logToFile;
 	std::string logFileName;
 	boost::log::trivial::severity_level translateLevel(loggingLevel level);
 

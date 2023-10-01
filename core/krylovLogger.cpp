@@ -7,7 +7,6 @@
 krylovLogger::krylovLogger(loggingLevel level)
 {
     boost::log::core::get()->set_filter(boost::log::trivial::severity >= translateLevel(level));
-    logToFile = false;
 }
 
 
