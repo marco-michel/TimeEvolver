@@ -324,11 +324,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Eigenvectors of Hessenberg matrix
 	std::complex<double>* schurvector = new std::complex<double>[m * m];
 
-	//Init observable vector before first sample
-	
-
-
-
 	//Start progressBar thread
 	if (progressBar == true)
 			pBThread = std::thread(&krylovTimeEvolver::progressBarThread, this);
