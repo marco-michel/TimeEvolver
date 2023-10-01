@@ -273,8 +273,8 @@ std::string Hamiltonian::toString()
 
 /**
  * Creates the represenation of the Hamiltonian as a sparse matrix
- * @param out Resulting sparse matrix
  * @param basis Set of basis states
+ * @return Resulting sparse matrix representation of the Hamiltonian
  */
 std::unique_ptr<smatrix> Hamiltonian::createHamiltonMatrix(basicBasis* basis)
 {
