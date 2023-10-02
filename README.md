@@ -211,7 +211,7 @@ The expectation values of the occupation numbers of the two oscillators at diffe
 
 A third option to use the program arises if the user already has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``core`` are needed. The main functionality of *TimeEvolver* is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
- krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar);
+krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar);
 ```
 with 
 * ``t`` The time interval over which the state should be time evolved
