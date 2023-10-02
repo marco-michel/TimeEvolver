@@ -211,19 +211,24 @@ The expectation values of the occupation numbers of the two oscillators at diffe
 
 A third option to use the program arises if the user already has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``core`` are needed. The main functionality of *TimeEvolver* is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
- krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, double expFactor, bool fastIntegration, bool progressBar);
+ krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar);
 ```
 with 
 * ``t`` The time interval over which the state should be time evolved
 * ``v`` The initial state that should be time evolved
 * ``samplingStep`` The time interval after which the values of the observables should be determined
-* ``tol`` The maximal admissible error (norm difference between result of numerical and true time evolution)
-* ``mm`` The size of the Krylov subspaces
 * ``observables`` Vector of unique_ptrs of derived classes of krylovBasicObservable.
-* ``HamIn`` A unique_ptr to a matrix representation of the Hamiltonian
-* ``expFactor`` The scalar factor multiplying the Hamiltonian in the time evolution (usually 1)
-* ``fastIntegration`` Whether or not the faster not-adaptive Gauss integration scheme should be used. Note that this option can not guarantee that the numerical integration was performed with the requested accuracy.
-* ``progressBar`` Whether or not a progressbar should be printed on the screen to indicate the progress. 
+* ``Ham`` A unique_ptr to a matrix representation of the Hamiltonian
+* ``expFactor`` The scalar factor multiplying the Hamiltonian in the time evolution (default: 1)
+* ``tol`` The maximal admissible error (2-norm difference between result of numerical and true time evolution) (default: 1e-6)
+* ``mm`` The size of the Krylov subspaces (default: 40)
+* ``fastIntegration`` Whether or not the faster not-adaptive Gauss integration scheme should be used. Note that this option can not guarantee that the numerical integration was performed with the requested accuracy. (defaut: false)
+* ``progressBar`` Whether or not a progressbar should be printed on the screen to indicate the progress.  (defaut: false)
+
+Additionally, we provide a simplified constructor which sets all meta parameters to the above mentioned default values and only requires obligatory arguments corresponding to the physical system to be simulated. 
+```
+krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham);
+```
 
 The time evolution is started with the call of the member function
 ```
