@@ -196,7 +196,8 @@ A set of standard values for the parameters will be used. For a list of availabl
 ```
 ./main --help
 ```
-The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.01_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.) Additionally, we provide the exemplary Mathematica-notebook ``analysisOutputData.nb`` to analyse the output data.
+The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.01_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.) Additionally, we provide the exemplary Mathematica-notebook ``analysisOutputData.nb`` to visualize the output data,
+which is located in the example output folder ``/output``.
 
 ## Usage 2: Examplary Program II
 
