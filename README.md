@@ -8,11 +8,11 @@ where $H$ is the Hamiltonian (represented as large sparse and Hermitian matrix),
 
 *TimeEvolver* is designed to be **easily applicable to a given physics model**. In particular, the software package includes routines for sampling observables and for deriving the Hamiltonian matrix $H$ from a more abstract representation of the Hamiltonian operator. Moreover, convenient output methods, concrete examples and a documentation are provided.
 
-With the **new version 2.0**, *TimeEvolver* is available on **all operating systems**, although we still recommend Linux.
+*TimeEvolver* was considerably improved with the **new version 2.0**. Please note that the **API changed** as compared to versions 1.x (in particular of the core-method krylovTimeEvolver; see below), so existing projects may need to be updated. With the new release, *TimeEvolver* is available on **all operating systems**, although we still recommend Linux.
 
 A detailed description of *TimeEvolver* can be found in:
 
-M. Michel and S. Zell, *TimeEvolver*: A Program for Time Evolution With Improved Error Bound, [Comput.Phys.Commun. 277 (2022) 10837](https://doi.org/10.1016/j.cpc.2022.108374), [arXiv:2205.15346](https://arxiv.org/abs/2205.15346).
+M. Michel and S. Zell, *TimeEvolver*: A Program for Time Evolution With Improved Error Bound, [Comput. Phys. Commun. 277 (2022) 10837](https://doi.org/10.1016/j.cpc.2022.108374), [arXiv:2205.15346](https://arxiv.org/abs/2205.15346).
 
 **If you use *TimeEvolver*, please cite the above paper.**
 
@@ -196,7 +196,7 @@ A set of standard values for the parameters will be used. For a list of availabl
 ```
 ./main --help
 ```
-The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.01_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.)
+The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.01_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.) Additionally, we provide the exemplary Mathematica-notebook ``analysisOutputData.nb`` to analyse the output data.
 
 ## Usage 2: Examplary Program II
 
@@ -228,6 +228,14 @@ The time evolution is started with the call of the member function
 ```
 krylovReturn* timeEvolve();
 ```
+
+## Usage 4: Recent research project
+
+*TimeEvolver* was used in a recent research project, all details can be found in the repository
+
+[QuantumBreaking-TimeScales](https://github.com/marco-michel/QuantumBreaking-TimeScales)
+
+Note the the previous version 1.4.1 was used there. (So small modifications would be needed before *TimeEvolver* 2.0 can be applied.)
 
 ## Internal data formats
 
