@@ -18,6 +18,7 @@ namespace po = boost::program_options;
 #include "exampleHamiltonian.h"
 #include "krylovObservables.h"
 #include "parameter.h"
+#include "krylovHelper.h"
 
 using namespace TE;
 
@@ -157,7 +158,7 @@ int main(int argc, char* argv[])
 
     observableList = std::move(results->observableList);
 
-    krylovBasicObservable::saveResult(observableList, parameters, "ResultBlackHole");
+    saveResult(observableList, parameters, "ResultBlackHole");
 
     delete results; delete[] vec;
 

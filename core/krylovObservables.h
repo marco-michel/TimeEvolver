@@ -48,7 +48,7 @@ public:
     virtual void initializeResultArray(size_t size);
     size_t resetResultArray();
 
-    static void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>> &obs_list, parameter_list& para, const std::string& name);
+
 
 
     static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
