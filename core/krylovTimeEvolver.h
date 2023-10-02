@@ -38,10 +38,9 @@ public:
     size_t n_steps;
 	size_t dim;
     size_t krylovDim;
-    /** Status code has the following meaning:
-    * 1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected)
-    * 3 (Observable requested time evolution to be aborted
-    * more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
+    /* Status code has the following meaning:
+    1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected), 3 (time evolution was stopped by request of an observable; note that warnings that have been thrown up until this point are not retrievable)
+    more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
     */
     int statusCode;
     std::vector<std::unique_ptr<krylovBasicObservable>> observableList;

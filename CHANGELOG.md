@@ -4,7 +4,7 @@
 
 ### Added
 - Implemented a rudimentary logger (based on BOOST log) including a verbose option. Logging to file will be supported in a later release. 
-- To ensure data ownership and avoid the copying of large matrices all large matrices including observables are now expected to be passed as unique_ptr.
+- To ensure data ownership and to avoid the copying of large matrices all large matrices including observables are now expected to be passed as unique_ptr.
 - KrylovReturn now includes all output Parameter including the (maybe altered in terms of sorting) Hamiltonian Matrix.
 - Intel MKL is now optional (but still highly recommended) and can be replaced by any BLAS library.
 - Added wrapper for sparse matrix operations to ensure easier implementation for different sparse BLAS libraries. 
