@@ -9,16 +9,6 @@
 #include "mathHeader.h"
 
 
-#ifdef USE_HDF
-    #include <H5Cpp.h>
-    using namespace H5;
-#endif
-
-
-
-
-
-
     //Define namespace for matrices and vector classes
     namespace TE {
 
@@ -34,9 +24,6 @@
             matrix(size_t nn, size_t mm);
             matrix(size_t nn, size_t mm, std::complex<double>* vals);
             ~matrix();
-#ifdef USE_HDF 
-            int dumpHDF5(std::string filename);
-#endif    
         };
 
 
@@ -108,10 +95,6 @@
             arma::umat ArmadillocolIndex;
             arma::umat ArmadilloindexMatrix;
             arma::cx_vec ArmadillovalueVector;
-#endif
-    
-#ifdef USE_HDF
-            int dumpHDF5(std::string fileName);
 #endif
         };
 

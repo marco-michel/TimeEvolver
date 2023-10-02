@@ -41,48 +41,6 @@ matrix:: ~matrix()
     }
 }
 
-
-#ifdef USE_HDF 
-/**
-* Save matrix to HDF5 file. 
-* @param filename Filename 
-* @return The return value has no meaning. It always return 0.
-*/
-int matrix::dumpHDF5(std::string filename)
-{
-    double* realPart = new double[numValues];
-    double* imagPart = new double[numValues];
-
-    for (unsigned int i = 0; i != numValues; i++)
-    {
-        realPart[i] = values[i].real();
-        imagPart[i] = values[i].imag();
-    }
-
-    std::string fileNameH5 = filename;
-    H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
-    size_t NX = numValues;
-    const int RANK = 1;
-    hsize_t dimsf[RANK];
-    dimsf[0] = NX;
-    DataSpace dataspace(RANK, dimsf);
-    FloatType datatype(PredType::NATIVE_DOUBLE);
-    datatype.setOrder(H5T_ORDER_LE);
-    DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
-        dataspace);
-    dataset1.write(realPart, PredType::NATIVE_DOUBLE);
-    DataSet dataset2 = fileHh.createDataSet("valuesImagPart", datatype,
-        dataspace);
-    dataset2.write(imagPart, PredType::NATIVE_DOUBLE);
-
-    delete[] realPart;
-    delete[] imagPart;
-
-    return 0;
-}
-#endif    
-
-
 /**
 * Default constructor for sparse matrix. Initializes also library specific variables.
 */
@@ -281,65 +239,6 @@ int smatrix::initialize() {
     return 0;
 }
 
-
-#ifdef USE_HDF
-/**
-* Save matrix to HDF5 file.
-* @param filename Filename
-* @return The return value has no meaning. It always return 0.
-*/
-int smatrix::dumpHDF5(std::string fileName)
-{
-
-    double* realPart = new double[numValues];
-    double* imagPart = new double[numValues];
-
-    for (unsigned int i = 0; i != numValues; i++)
-    {
-        realPart[i] = values[i].real();
-        imagPart[i] = values[i].imag();
-    }
-
-    size_t mExport = (size_t)m;
-    std::string fileNameH5 = fileName;
-    H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
-    size_t NX =  numValues;
-    const int RANK = 1;
-    hsize_t dimsf[RANK] = {};
-    hsize_t dimsatt[RANK] = {};
-    dimsf[0] = NX;
-    dimsatt[0] = 1;
-    DataSpace dataspace(RANK, dimsf);
-    FloatType datatype(PredType::NATIVE_DOUBLE);
-
-    DataSpace dataspace2(RANK, dimsatt);
-
-    datatype.setOrder(H5T_ORDER_LE);
-    DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
-        dataspace);
-    dataset1.write(realPart, PredType::NATIVE_DOUBLE);
-    DataSet dataset2 = fileHh.createDataSet("valuesImagPart", datatype,
-        dataspace);
-    dataset2.write(imagPart, PredType::NATIVE_DOUBLE);
-
-    IntType datatypeInt(PredType::NATIVE_HSIZE);
-    datatypeInt.setOrder(H5T_ORDER_LE);
-    DataSet dataset3 = fileHh.createDataSet("columIndex", datatypeInt,
-        dataspace);
-    dataset3.write(columns, PredType::NATIVE_HSIZE);
-    DataSet dataset4 = fileHh.createDataSet("rowIndex", datatypeInt,
-        dataspace);
-    dataset4.write(rowIndex, PredType::NATIVE_HSIZE);
-
-    DataSet dataset5 = fileHh.createDataSet("dimension", datatypeInt, dataspace2);
-    dataset5.write(&mExport, PredType::NATIVE_HSIZE);
-
-    delete[] realPart;
-    delete[] imagPart;
-
-    return 0;
-}
-#endif
 
 /**
 * Default deconstructor
