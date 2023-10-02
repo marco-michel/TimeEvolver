@@ -38,9 +38,10 @@ public:
     size_t n_steps;
 	size_t dim;
     size_t krylovDim;
-    /* Status code has the following meaning:
-    1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected)
-    more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
+    /** Status code has the following meaning:
+    * 1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected)
+    * 3 (Observable requested time evolution to be aborted
+    * more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
     */
     int statusCode;
     std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
@@ -56,15 +57,11 @@ public:
 class krylovTimeEvolver
 {
 public:
-    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, double expFactor = 1.0, bool fastIntegration = false, bool progressBar = true);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar);
     krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
-    //sampled values of observables
-
-
-    //options
     bool fastIntegration, progressBar;
     std::complex<double> expFactor;
     double tol; size_t m;

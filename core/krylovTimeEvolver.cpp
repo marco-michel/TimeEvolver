@@ -11,27 +11,27 @@ using namespace TE;
 
 
 /**
- * Extended constructor
+ * Extended constructor. Default values refer to the simplified constructor and are suited for most applications of the TimeEvoler
  * @param t The time interval over which the state should be time evolved.
  * @param v The initial and normalized state that should be time evolved
  * @param samplingStep The time interval after which the values of the observables should be determined
- * @param tol The maximal admissible error (norm difference between result of numerical and true time evolution)
- * @param mm The size of the Krylov subspaces
  * @param observables The vector of observables that are to be sampled
- * @param HamIn The full Hamiltonian
- * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution exp(-i expFactor H t)
+ * @param Ham The full Hamiltonian
+ * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution exp(-i expFactor H t) (default value: 1.0)
+ * @param tol The maximal admissible error (norm difference between result of numerical and true time evolution) (default value: 1e-6)
+ * @param mm The size of the Krylov subspaces (default value: 40)
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
- * @param progressBar Whether or not to show a progressbar in the terminal
+ * @param progressBar Whether or not to show a progressbar in the terminal (default value: true)
  */
-krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> HamIn, double expFactor, bool fastIntegration, bool progressBar)
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar)
 {
 
 
 	this->t = t;  this->samplingStep = samplingStep; this->tol = tol;  this->progressBar = progressBar;
-	this->Ham = std::move(HamIn); this->expFactor = std::complex<double>(0,-1*expFactor); this->fastIntegration = fastIntegration; this->nbObservables = (int)observables.size();
+	this->Ham = std::move(Ham); this->expFactor = std::complex<double>(0,-1*expFactor); this->fastIntegration = fastIntegration; this->nbObservables = (int)observables.size();
 
-	matrixNorm = Ham->norm1();
-	this->Hsize = Ham->m;
+	matrixNorm = this->Ham->norm1();
+	this->Hsize = this->Ham->m;
 	this->m = std::min<size_t>(mm, Hsize);
 
 	stop_printing = false;
@@ -48,7 +48,7 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 	}
 
 	//Perform initializing steps for the matrix representation tailored to the installed (s)BLAS library
-	Ham->initialize();
+	this->Ham->initialize();
 
 	//Numerical integration terminates if error*L1 < termination
 	termination = 1e-3;
@@ -83,15 +83,15 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 
 }
 /**
-* Simplified constructor 
+* Simplified and default constructor with recommended values of meta parameters suited for most standard use cases 
 * @param t The time interval over which the state should be time evolved.
 * @param v The initial and normalized state that should be time evolved
 * @param samplingStep The time interval after which the values of the observables should be determined
 * @param observables The vector of observables that are to be sampled
 * @param Ham The full Hamiltonian
 */
-krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham) : krylovTimeEvolver(t, v, samplingStep, 1e-6, 40, std::move(observables), std::move(Ham),
-	1.0, false, false){}
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham) : krylovTimeEvolver(t, v, samplingStep,  std::move(observables), std::move(Ham),
+	1.0, 1e-6, 40, false, false){}
 
 /**
 * Destructor

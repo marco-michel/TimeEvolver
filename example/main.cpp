@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
   
     double alpha = 1.0;
 
-    krylovTimeEvolver timeEvolver(maxT, vec, samplingStep, tol, m, std::move(observableList), std::move(hamMatrix), alpha, fastIntegration, true);
+    krylovTimeEvolver timeEvolver(maxT, vec, samplingStep, std::move(observableList), std::move(hamMatrix), alpha, tol, m, fastIntegration, true);
 
     timeEvolver.changeLogLevel(krylovLogger::loggingLevel::DEBUG);
 
