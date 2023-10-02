@@ -13,11 +13,6 @@ target_link_libraries(TimeEvolver PUBLIC ${BLAS_LIBRARIES} ${Boost_LIBRARIES}
 install(TARGETS TimeEvolver DESTINATION TimeEvolver/lib)
 install(FILES matrixDataTypes.h krylovTimeEvolver.h krylovObservables.h mathHeader.h DESTINATION TimeEvolver/include)
 
-if(HDF5_FOUND)
-    target_link_libraries(TimeEvolver PUBLIC
-    ${HDF5_LIBRARIES}) 
-endif()
-
 if(USING_OPENBLAS)
     target_link_libraries(TimeEvolver PUBLIC lapacke) 
 endif()

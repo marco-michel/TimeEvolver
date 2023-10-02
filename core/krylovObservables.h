@@ -8,7 +8,6 @@
 
 #include "mathHeader.h"
 #include "matrixDataTypes.h"
-#include "parameter.h"
 
 
 /**
