@@ -99,9 +99,9 @@ void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>>& obs_l
         outputfile.open(fileNameCSV);
 
 
-        for (int i = 0; i != (*obsIter)->numSamples - 1; i++)
-            outputfile << (*obsIter)->expectationValues[i] << ", ";
-        outputfile << (*obsIter)->expectationValues[((*obsIter)->numSamples) - 1];
+        for (int i = 0; i != (*obsIter)->retNumSamples() - 1; i++)
+            outputfile << (*obsIter)->retExpectationValues()[i] << ", ";
+        outputfile << (*obsIter)->retExpectationValues()[((*obsIter)->retNumSamples()) - 1];
         outputfile.close();
     }
 
