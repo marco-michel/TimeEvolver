@@ -282,6 +282,6 @@ Then a documentation, which lists all classes and member functions, can be built
 ```
 doxygen
 ```
-The result can subsequently be found by opening ``doc/html/intex.html``.
+The result can subsequently be found by opening ``doc/html/index.html``.
 
 	
