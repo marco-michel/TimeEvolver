@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 - --
+## 2.0.0 - 2023-10-03
 
 ### Added
 - Implemented a rudimentary logger (based on BOOST log) including a verbose option. Logging to file will be supported in a later release. 
