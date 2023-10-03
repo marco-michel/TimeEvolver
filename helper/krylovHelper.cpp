@@ -89,7 +89,7 @@ void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>>& obs_l
         obsIter++;
 
     }
-    //If not write data to simple csv files
+    //If HDF5 is not available, write data to simple csv files
 #else
 
     for (; obsIter != obs_list.end(); obsIter++)
@@ -113,6 +113,7 @@ void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>>& obs_l
 #ifdef USE_HDF
 /**
 * Save a sparse matrix to HDF5 file.
+* @param mat Matrix to be saved
 * @param filename Filename
 */
 void saveSparseMatrix(const smatrix* mat, const std::string& name)
@@ -169,6 +170,7 @@ void saveSparseMatrix(const smatrix* mat, const std::string& name)
 #ifdef USE_HDF 
 /**
 * Save matrix to HDF5 file.
+* @param mat Matrix to be saved
 * @param filename Filename
 */
 void saveMatrix(const matrix* mat, const std::string& name)
