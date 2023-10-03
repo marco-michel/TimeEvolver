@@ -6,7 +6,7 @@
 $\qquad\qquad\exp(-iHt)v$ ,\
 where $H$ is the Hamiltonian (represented as large sparse and Hermitian matrix), *v* corresponds to the initial state vector and $i$ is the imaginary unit. The precision of the result is adjustable and on a standard notebook, *TimeEvolver* allows to compute time evolution in **any Hilbert space of dimension up to 10<sup>7</sup>**.
 
-*TimeEvolver* is designed to be **easily applicable to a given physics model**. In particular, the software package includes routines for sampling observables and for deriving the Hamiltonian matrix $H$ from a more abstract representation of the Hamiltonian operator. Moreover, convenient output methods, concrete examples and a documentation are provided.
+*TimeEvolver* is designed to be **easily applicable to your physics model**. In particular, the software package includes routines for sampling observables and for deriving the Hamiltonian matrix $H$ from a more abstract representation of the Hamiltonian operator. Moreover, convenient output methods, concrete examples and a documentation are provided.
 
 *TimeEvolver* was considerably improved with the **new version 2.0**. Please note that the **API changed** as compared to versions 1.x (in particular of the core-method krylovTimeEvolver; see below), so existing projects may need to be updated. With the new release, *TimeEvolver* is available on **all operating systems**, although we still recommend Linux.
 
