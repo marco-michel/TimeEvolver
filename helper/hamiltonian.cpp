@@ -283,7 +283,7 @@ std::unique_ptr<smatrix> Hamiltonian::createHamiltonMatrix(basicBasis* basis)
 
 /**
  * Creates an array of observables (represented as matrices). For each mode, an observable corresponding to the expectation value of the of the occupation of the mode is created.
- * @param Basis set of basis states
+ * @param basis set of basis states
  * @return Returns resulting list of observables
  */
 std::vector<std::unique_ptr<smatrix>> Hamiltonian::createNumberOperatorObservables(basicBasis* basis)
