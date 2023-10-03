@@ -30,8 +30,8 @@ int main()
     int nbObservables = K;
 
     //Creating particle number conserving basis consiting of two different quantum modes.
-    std::cout << "Creating basis..." << std::endl;
     basis basis(N0, K, 0, 0);
+    std::cout << "Created basis with " << basis.numberElements << " elements ..." << std::endl;
 
     //Create Hamiltonian E1 * a^dagger a + E2 * b^dagger b + lambda * (a^dagger b + b^dagger a)
     Hamiltonian hamiltonian;
@@ -44,10 +44,10 @@ int main()
     hamiltonian.hamiltonOperator = HamiltonianOperator;
 
     //Create matrix representation of HamiltonianOperator
-    std::cout << "Creating Hamiltonian matrix..." << std::endl;
     std::unique_ptr<smatrix> hamMatrix = hamiltonian.createHamiltonMatrix(&basis);
+    std::cout << "Created Hamiltonian matrix..." << std::endl;
+    
     //Create matrices for number Operators
-    std::cout << "Creating observables..." << std::endl;
     std::vector<std::unique_ptr<smatrix>> observables = hamiltonian.createNumberOperatorObservables(&basis);
 
     std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
@@ -56,6 +56,7 @@ int main()
     {
         observableList.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), std::move(observables[i])));
     }
+    std::cout << "Created observables..." << std::endl;
 
     //Create initial state with all particles in the first mode (N0, 0)
     basisVector init(K); init.e[0] = N0;
@@ -74,8 +75,6 @@ int main()
     std::cout << "Finished time evolution..." << std::endl;
 
     //Write date to csv file
-    std::cout << "Writing data to file..." << std::endl;
-
     observableList = std::move(results->observableList);
 
     std::vector<std::unique_ptr<krylovBasicObservable>>::const_iterator obsIter;
@@ -98,6 +97,7 @@ int main()
        outputfile << exptVal[((*obsIter)->retNumSamples()) - 1];
        outputfile.close();
    }
+   std::cout << "Results have been saved to file." << std::endl;
 
 
 delete[] vec; delete results;
