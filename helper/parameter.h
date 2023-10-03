@@ -4,6 +4,7 @@
 #include <vector>
 #include <iomanip>
 #include <memory>
+#include <sstream>
 
 /**
 * Base class for including model parameters in the output (HDF5) file
