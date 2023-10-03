@@ -81,8 +81,8 @@ int main(int argc, char* argv[])
     std::cout << "TimeEvolver Example" << std::endl;
     
     //Create basis
-    std::cout << "Creating basis..." << std::endl;
     tensorBasis basis(N0, 2, Nm, 2*K, capacity);
+    std::cout << "Created basis with " << basis.numberElements << " elements ..." << std::endl;
     
     //Create Hamiltonian
     exampleHamiltonian ham = exampleHamiltonian(N0, Nm, DeltaN, K, K, capacity, C0, 1, 1, Cm, Cm);
@@ -90,13 +90,13 @@ int main(int argc, char* argv[])
     //std::cout << ham.toString() << std::endl;
     
    //Create Hamiltonian matrix
-    std::cout << "Creating Hamiltonian matrix..." << std::endl;
     std::unique_ptr<smatrix> hamMatrix = ham.createHamiltonMatrix(&basis);
+    std::cout << "Created Hamiltonian matrix..." << std::endl;
     
    
     //Create matrices for observables
-    std::cout << "Creating observables..." << std::endl;
     std::vector<std::unique_ptr<smatrix>> observables = ham.createNumberOperatorObservables(&basis);
+    std::cout << "Created observables..." << std::endl;
    
 
     //Create initial state
@@ -138,7 +138,6 @@ int main(int argc, char* argv[])
     //End of actual time evolution 
     
 
-    std::cout << "Writing results to file..." << std::endl;
     parameter_list parameters;
 
     parameters.push_back(paraPush("N", true, N0));
@@ -159,6 +158,7 @@ int main(int argc, char* argv[])
     observableList = std::move(results->observableList);
 
     saveResult(observableList, parameters, "ResultBlackHole");
+    std::cout << "Results have been saved to file." << std::endl;
 
     delete results; delete[] vec;
 
