@@ -147,8 +147,6 @@
     long mReplace = (long) m;
     std::complex<double>* workspace = new std::complex<double>[workspaceSize];
     zhseqr_(&job, &COMPZ, &mReplace, &onez, &mReplace, h, &mReplace, w, z, &mReplace, workspace,  &workspaceSize, &info);
-    std::cerr<< "apple lapack: " << std::endl;
-    std::cerr << info << std::endl;
     delete[] workspace;
     return (size_t) info;
 #else
