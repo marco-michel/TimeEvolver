@@ -5,7 +5,6 @@
 #include <iostream>
 #include <unordered_map>
 
-
 #include "boost/container_hash/hash.hpp"
 #include "boost/math/special_functions/binomial.hpp"
 
@@ -162,7 +161,10 @@ struct basisVector
 			delete[] e;
 	}
 
-
+	/**
+	* Compare operator
+	* @param b BasisVector to compare to
+	*/
 	bool operator== (const basisVector &b) const
 	{
 		if (b.length != length)
@@ -178,6 +180,10 @@ struct basisVector
 		return true;
 	}
 
+	/**
+	* Assign operator
+	* @param rhs BasisVector from which a copy is made
+	*/
 	basisVector& operator= (const basisVector &rhs)
 	{
 
@@ -207,9 +213,15 @@ struct basisVector
 };
 
 
-
+/**
+* Hash class for vectors
+*/
 struct basisVectorHasher
 {
+	/**
+	* Hash operator 
+	* @param b Vector which is going to get hashed
+	*/
 	std::size_t operator()(const basisVector &b) const
 	{
 		std::size_t seed = 0;

@@ -2,16 +2,27 @@
 
 # Introduction
 
-This is the TimeEvolver software package. 
-This software was published in 
+*TimeEvolver* is an open-source software package for computational physics. Its purpose is to perfrom **"numerical simulations"**, i.e. to **compute real-time evolution in a generic quantum system.**  Relying on known Krylov subspace techniques, the software tackles the problem of calculating the quantum state at a given time $t$ by evaluating the product\
+$\qquad\qquad\exp(-iHt)v$ ,\
+where $H$ is the Hamiltonian (represented as large sparse and Hermitian matrix), *v* corresponds to the initial state vector and $i$ is the imaginary unit. The precision of the result is adjustable and on a standard notebook, *TimeEvolver* allows to compute time evolution in **any Hilbert space of dimension up to 10<sup>7</sup>**.
 
-M. Michel and S. Zell, *TimeEvolver*: A Program for Time Evolution With Improved Error Bound, [Comput.Phys.Commun. 277 (2022) 10837](https://doi.org/10.1016/j.cpc.2022.108374), [arXiv:2205.15346](https://arxiv.org/abs/2205.15346).
+*TimeEvolver* is designed to be **easily applicable to your physics model**. In particular, the software package includes routines for sampling observables and for deriving the Hamiltonian matrix $H$ from a more abstract representation of the Hamiltonian operator. Moreover, convenient output methods, concrete examples and a documentation are provided.
 
-We refer to this paper for a detailed description. 
+*TimeEvolver* was considerably improved with the **new version 2.0**. Please note that the **API changed** as compared to versions 1.x (in particular of the core-method krylovTimeEvolver; see below), so existing projects may need to be updated. With the new release, *TimeEvolver* is available on **all operating systems**, although we still recommend Linux.
+
+A detailed description of *TimeEvolver* can be found in:
+
+M. Michel and S. Zell, *TimeEvolver*: A Program for Time Evolution With Improved Error Bound, [Comput. Phys. Commun. 277 (2022) 10837](https://doi.org/10.1016/j.cpc.2022.108374), [arXiv:2205.15346](https://arxiv.org/abs/2205.15346).
+
+**If you use *TimeEvolver*, please cite the above paper.**
+
+If you have any questions or experience technical problems, please feel free to **contact us**:
+- <michelma@post.bgu.ac.il>
+- <sebastian.zell@uclouvain.be>
 
 # Project Structure
 
-The TimeEvolver distribution includes the following files and directories:
+The *TimeEvolver* distribution includes the following files and directories:
 
 <pre>
 README                          this file
@@ -29,7 +40,8 @@ doxyfile                        settings file for creating documentation
 # External Requirements
 
 This software packages relies on following external libraries:
-* Intel Math Kernel Library (MKL) (required)
+* BLAS (required) - MKL recommended
+* LAPACK (required) - usually included in BLAS framework
 * BOOST (required)
 * HDF5 (optional)
 
@@ -37,7 +49,7 @@ On top of that it uses the build managing software Cmake.
 
 ## Linux 
 
-We recommend using Linux, or a virtual Linux machine, for TimeEvolver. The above libraries and software packages are usually available via a package manager like ``apt``. For example on Ubuntu can be installed via 
+We recommend using Linux, or a virtual Linux machine, for *TimeEvolver*. The above libraries and software packages are usually available via a package manager like ``apt``. For example on Ubuntu can be installed via 
 ```
 sudo apt-get install git
 ```
@@ -49,14 +61,23 @@ sudo apt-get install intel-mkl-full libhdf5-dev libboost-program-options-dev
 ```
 Note: If you install Intel MKL via the package manager you will be asked if you want to make MKL your default BLAS/LAPACK library. That is not necessary, so you can choose the default answer "No". Additionally, older versions of ``cmake`` might not find the oneapi version of mkl. We therefore recommend cmake version 3.15 or newer. 
 
-**In order for ``TimeEvolver`` to work properly, Boost version 1.75 and newer is required. Currently, however, most distributions ship packages of the boost library of version 1.74 and older. If your machine does not have at least version 1.75, we offer several solutions (including an automatic download and compilation of the Boost-library), which are described in section "Installation"**.
+It is also possible to use another BLAS library instead of Intel MKL, e.g. OpenBLAS. However, the performance will most likely be worse due to lack of optimized sparse BLAS operations. In this case use
+```
+sudo apt-get install libopenblas-dev liblapacke-dev libhdf5-dev libboost-program-options-dev 
+```
 
-## Mac
-The ``TimeEvolver`` is unfortunately not supported on newer Apple products. After the development of the first version Apple switched from x86 Intel processors to in-house developed ARM processors. The ``TimeEvolver`` relies on the Intel MKL library for various numerical tasks, specifically (sparse) BLAS. This library, however, is not available for non-x86 systems.
+**In order for *TimeEvolver* to work properly, Boost version 1.75 and newer is required. Currently, however, most distributions ship packages of the boost library of version 1.74 and older. If your machine does not have at least version 1.75, we offer several solutions (including an automatic download and compilation of the Boost-library), which are described in section "Installation"**.
+
+## Mac (experimental)
+With version 2.0 *TimeEvolver* will also be available on Mac. The build-in ``Accelerate`` framework is used for ``BLAS`` calls. 
+However, since we only have limited testing opportunities for this platform we still consider this feature experimental. For instance, ``cmake`` is not able to locate the include directory for the ``Accelerate`` framework reliably. The exact location seems also to change with different OS/xcode versions and needs to be passed by hand therefore in the ``CMakeLists.txt`` file in the root directory. Please change the following line according to your setup in case ``Accelerate.h`` is located somewhere else. 
+```
+include_directories(/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Accelerate.framework/Headers)
+```
 
 ## Windows 
 
-There are several ways to compile ``TimeEvolver`` on Windows. The easiest option is to use WSL (Windows Subsystem for Linux), where you can install a virtual Ubuntu machine and then follow the instructions described above. We provide a short guide to install WSL below. 
+There are several ways to compile *TimeEvolver* on Windows. The easiest option is to use WSL (Windows Subsystem for Linux), where you can install a virtual Ubuntu machine and then follow the instructions described above. We provide a short guide to install WSL below. 
 
 A second option is to download binary libraries with the help of the ``vcpk`` package manager. BOOST and HDF5 can be obtained for Windows 64bit OS via
 ```
@@ -69,26 +90,26 @@ A third option would be to compile Boost (and HDF5) from source. Please follow t
 
 # Compilation
 
-There are two possible approaches to compile ``TimeEvolver``. One can either build it locally or install it system-wide: 
+There are two possible approaches to compile *TimeEvolver*. One can either build it locally or install it system-wide: 
 
 **Note that both procedures will fail if you do not have at least version 1.75 of Boost. Further below we describe how to solve this issue.**
 
 ## Basic setup without installation (the easiest)
 
-In the root folder ``timeEvolver``, you can build the TimeEvolver with no customization using:
+In the root folder ``timeEvolver``, you can build *TimeEvolver* with no customization using:
 ```
 mkdir build; cd build     # create and use a build directroy
 cmake ..                  # configuration reading the Cmake script
 cmake --build .           # compilation and linking (or type "make")
 ```
 This will create three folder in the folder ``build``:
-* Example (example demonstrating the application of TimeEvolver to a concrete system)
+* Example (example demonstrating the application of *TimeEvolver* to two concrete systems)
 * Helper (library for the creation of a matrix representation)
 * TimeEvolver (core functionality: libary for the timeevolution)
 
 ## Basic setup with installation
 
-To install ``TimeEvolver`` to the path ``TIMEEVOLVER_INSTALL_PATH`` set the cmake variable ``CMAKE_INSTALL_PREFIX`` accordingly in the configuration step. If this variable remains unset a system folder will be chosen as installation path by cmake. 
+To install *TimeEvolver* to the path ``TIMEEVOLVER_INSTALL_PATH`` set the cmake variable ``CMAKE_INSTALL_PREFIX`` accordingly in the configuration step. If this variable remains unset a system folder will be chosen as installation path by cmake. 
 ```
 mkdir build; cd build     					          # create and use a build directroy
 cmake -DCMAKE_INSTALL_PREFIX=TIMEEVOLVER_INSTALL_PATH ..                  # configuration reading the Cmake script
@@ -96,11 +117,11 @@ cmake --build .          						  # compilation and linking (or type "make")
 make install								  # installation to TIMEEVOLVER_INSTALL_PATH 
 ```
 
-Now one can proceed as follows to compile a file that uses ``TimeEvolver``. For example, if we want to compile ``simpleExample.cpp``, then we navigate to the folder where it is located and execute
+Now one can proceed as follows to compile a file that uses *TimeEvolver*. For example, if we want to compile ``simpleExample.cpp``, then we navigate to the folder where it is located and execute
 ```
  g++ simpleExample.cpp -I TIMEEVOLVER_INSTALL_PATH/TimeEvolver/include/ -I /opt/intel/oneapi/mkl/latest/include/ -I /usr/include/mkl -L TIMEEVOLVER_INSTALL_PATH/TimeEvolver/lib/ -lTimeEvolver -lHelper -Wl,-rpath=TIMEEVOLVER_INSTALL_PATHTimeEvolver/lib/ -o simpleExample
 ```
-In the above, ``TIMEEVOLVER_INSTALL_PATH`` has to be replaced (three times) by the path where ``TimeEvolver`` was installed. Moreover, the include directoy for the MKL header might need to be adjusted. 
+In the above, ``TIMEEVOLVER_INSTALL_PATH`` has to be replaced (three times) by the path where *TimeEvolver* was installed. Moreover, the include directoy for the MKL header might need to be adjusted. 
 
 
 ## Dependencies
@@ -111,7 +132,7 @@ If the dependencies have been installed locally and are not accessible system-wi
 
 ### Boost version is too old
 
-For ``TimeEvolver`` to work properly, a Boost version of 1.75 or newer is required. If you do not have it, there are two possible solutions.
+For *TimeEvolver* to work properly, a Boost version of 1.75 or newer is required. If you do not have it, there are two possible solutions.
 
 The first one is an automated download and compilation of Boost, which we integrated into cmake. To use it, you only have to set the cmake varibale ``DOWNLOAD_BOOST`` to ``ON``:
 ```
@@ -128,7 +149,7 @@ cd path/to/boost_1_76_0
 ./b2
 sudo ./b2 install
 ```
-In case a local installation you need to change the corresponding line to ``./bootstrap.sh --prefix=INSTALL_PATH`` with ``INSTALL_PATH`` being the chosen install directory for the boost library. When using a local installation, please set the cmake variable ``-DBOOST_ROOT=INSTALL_PATH`` when building ``TimeEvolver``. 
+In case a local installation you need to change the corresponding line to ``./bootstrap.sh --prefix=INSTALL_PATH`` with ``INSTALL_PATH`` being the chosen install directory for the boost library. When using a local installation, please set the cmake variable ``-DBOOST_ROOT=INSTALL_PATH`` when building *TimeEvolver*. 
 
 ### Standalone Version of Intel MKL
 
@@ -175,7 +196,8 @@ A set of standard values for the parameters will be used. For a list of availabl
 ```
 ./main --help
 ```
-The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.1_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.)
+The result of time evolution will be stored in a HDF5-file. For the standard choice of parameters, it has the name ``ResultBlackHole_N20_Nm2_K4_C1_DeltaN12_C01_Cm1_maxT10_tol1e-08_samplingStep0.01_m40_fastIntegration0.h5``. It contains the expectation values of the occupation numbers of each of the modes at different times. (If HDF5 is not installed, the result will instead be written in .csv-files.) Additionally, we provide the exemplary Mathematica-notebook ``analysisOutputData.nb`` to visualize the output data,
+which is located in the example output folder ``output``.
 
 ## Usage 2: Examplary Program II
 
@@ -183,57 +205,72 @@ Furthermore, we provide a second simpler example of two coupled oscillators. In 
 ```
 ./SimpleExample
 ```
-The expectation values of the occupation numbers of the two oscillators at different times will be written in the files ``output0.csv`` and ``output1.csv``.
+The expectation values of the occupation numbers of the two oscillators at different times will be written in the files ``SimpleExampleOutputOccupationNumber0.csv`` and ``SimpleExampleOutputOccupationNumber1.csv``.
 
 ## Usage 3: Apply TimeEvolver to own Hamiltonian matrix
 
-A third option to use the program arises if the user alredy has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``TimeEvolver`` are needed. The core functionality of the TimeEvolver is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
+A third option to use the program arises if the user already has at their disposal a Hamiltonian matrix. In this case, only the classes contained in the folder  ``core`` are needed. The main functionality of *TimeEvolver* is encapsulated in the class ``krylovTimeEvolver`` declared in the header file ``krylovTimeEvolver.h``. Its constructor has following form
 ```
- krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration)
+krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar);
 ```
 with 
 * ``t`` The time interval over which the state should be time evolved
-* ``Hsize`` The size of the full Hilbert space
 * ``v`` The initial state that should be time evolved
 * ``samplingStep`` The time interval after which the values of the observables should be determined
-* ``tol`` The maximal admissible error (norm difference between result of numerical and true time evolution)
-* ``m`` The size of the Krylov subspaces
-* ``observables`` The matrix representations of the observables that are to be sampled
-* ``nbObservables`` The number of observables
-* ``Ham`` The matrix representation of the Hamiltonian
-* ``expFactor`` The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
-* ``checkNorm`` Whether or not it should be check that the time evolved state has unit norm
-* ``fastIntegration`` Whether or not the faster not-adaptive Gauss integration scheme should be used. Note that this option can not guarantee that the numerical integration was performed with the requested accuracy.
+* ``observables`` Vector of unique_ptrs of derived classes of krylovBasicObservable.
+* ``Ham`` A unique_ptr to a matrix representation of the Hamiltonian
+* ``expFactor`` The scalar factor multiplying the Hamiltonian in the time evolution (default: 1)
+* ``tol`` The maximal admissible error (2-norm difference between result of numerical and true time evolution) (default: 1e-6)
+* ``mm`` The size of the Krylov subspaces (default: 40)
+* ``fastIntegration`` Whether or not the faster not-adaptive Gauss integration scheme should be used. Note that this option can not guarantee that the numerical integration was performed with the requested accuracy. (defaut: false)
+* ``progressBar`` Whether or not a progressbar should be printed on the screen to indicate the progress.  (defaut: false)
+
+Additionally, we provide a simplified constructor which sets all meta parameters to the above mentioned default values and only requires obligatory arguments corresponding to the physical system to be simulated. 
+```
+krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham);
+```
 
 The time evolution is started with the call of the member function
 ```
 krylovReturn* timeEvolve();
 ```
 
+## Usage 4: Recent research project
+
+*TimeEvolver* was used in a recent research project, all details can be found in the repository
+
+[QuantumBreaking-TimeScales](https://github.com/marco-michel/QuantumBreaking-TimeScales)
+
+Note the the previous version 1.4.1 was used there. (So small modifications would be needed before *TimeEvolver* 2.0 can be applied.)
+
 ## Internal data formats
 
-Besides fundamental data types the TimeEvolver defines following two additional matrix types in the header file ``matrixDataTypes.h``:
+Besides fundamental data types, *TimeEvolver* defines the following two additional matrix types in the header file ``matrixDataTypes.h``:
 * A dense matrix ``matrix(size_t nn, size_t mm)`` with ``nn`` the number of rows and ``mm`` the number of columns 
 * A sparse matrix in coordinate format ``smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, int nn, int mm)`` with ``nn`` the number of rows, ``mm`` the number of columns, ``nbV`` the number of non-zero entries, ``row`` the 
-row indices of the non-zero values, ``col`` the column indices of the non-zero values, ``val`` the non-zero values of the sparse matrix  
-* The structure ``krylovReturn`` for the output of the TimeEvolver. It contains the following output data types:
-    * ``matrix* sampling`` A dense matrix containing either a set of expectation values corresponding to the input observables or full quantum states at the requested time intervals
+row indices of the non-zero values, ``col`` the column indices of the non-zero values, ``val`` the non-zero values of the sparse matrix
+* A base class ``krylovBasicObservable(const std::string& name)`` for handling observables, computing and storeing expectation values given a state vector as well as streamlining output to a file. There are several derivated classes to sepecalized to the cases where the observable is given by a vector, a sparse matrix or a dense matrix.
+* The structure ``krylovReturn`` for the output of the *TimeEvolver*. It contains the following output data types:
     *  ``std::complex<double>* evolvedState`` The full quantum state evolved until time ``t``
     * ``double err`` An upper error bound on the numerical error
     * ``size_t n_steps`` The number of Kyrlov steps needed for the timeevolution
     * ``size_t dim`` The dimension of the Hilbert space
-    * ``size_t nSamples`` The number of samples taken
-    * ``int statusCode``Status code indicating success or (potential) failure of the numerical time evolution 
+    * ``size_t krylovDim`` The dimension of the used Krylov space
+    * ``int statusCode``Status code indicating success or (potential) failure of the numerical time evolution
+    * ``std::vector<std::unique_ptr<krylovBasicObservable>> observableList`` Vector of observables each storing its own expectation values.
+    * ``std::unique_ptr<smatrix>`` Hamiltonian matrix (note that entries might have been reordered)
 
 ## Krylov status codes
 * ``0`` Success
 * ``1`` Lucky breakdown
 * ``2`` Analytic error was smaller than the estimated total round-off error. However, the estimate for the round-off error was below the requested tolerance, so the result is probably trustable. 
+* ``3`` The TimeEvolution was aborted by request of an observable. KrylovReturn only contains results up until exception was thrown. Note that warnings that have been thrown up until this point are not retrievable. 
 * ``10`` Critical Warning: Numerical error estimate was larger than analytic error in at least one substep. Requested accuacy was probably not achived.  
 * ``11`` Critical Warning: Total numerical error estimate was larger than the total analytic error. Requested accuacy was probably not achived.
 * ``20`` Critical Warning: Numerical integration of the error integral failed.
 * ``30`` Critical Warning: Norm of state vector deviates more than the given accuaracy from 1. 
 * ``100`` Critical Warning: Multible errors occured.
+
 
 # Build Documentation
 
@@ -245,6 +282,6 @@ Then a documentation, which lists all classes and member functions, can be built
 ```
 doxygen
 ```
-The result can subsequently be found by opening ``doc/html/intex.html``.
+The result can subsequently be found by opening ``doc/html/index.html``.
 
 	

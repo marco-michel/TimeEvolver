@@ -1,96 +1,97 @@
 #pragma once
 
-#include <boost/math/quadrature/tanh_sinh.hpp>
-
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-#include <mkl.h>
-#include <mkl_spblas.h>
-
-#include <cmath>
 #include <complex>
+#include <limits>
+#include <algorithm>
+#include <thread>
+#include <sstream>
+#include <vector>
 #include <memory>
+#include <exception>
+#include <stdexcept>
+#include <iomanip>
 
+#include <boost/math/quadrature/tanh_sinh.hpp>
+#include <boost/math/quadrature/gauss.hpp> 
+#include <boost/throw_exception.hpp>
+#include <boost/exception/diagnostic_information.hpp>
+
+#include "mathHeader.h"
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
+#include "krylovLogger.h"
+#include "version.h"
 
 
-struct krylovReturn
+
+
+/**
+* Return type of krylovTimeEvolver containing general information as well as the original Hamiltonian and the observables containing the actual expectation values.
+* Note that the matrix representations might have been changed in the course of the time evolution 
+*/
+class krylovReturn
 {
-    matrix* sampling;
+public:
     std::complex<double>* evolvedState;
-    double err;
+    double err; double evolvedTime;
+    size_t numSamples;
     size_t n_steps;
 	size_t dim;
-	size_t nSamples;
+    size_t krylovDim;
+    /* Status code has the following meaning:
+    1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected), 3 (time evolution was stopped by request of an observable; note that warnings that have been thrown up until this point are not retrievable)
+    more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
+    */
     int statusCode;
+    std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
+    std::unique_ptr<smatrix> hamiltonianMatrix;
 
-/* Status code has the following meaning: 
-1-digit codes mean succes: 0 (everything in order, nothing special happened), 1 (lucky breakdown), 2 (computed analytic error is smaller than estimate of numerical error, which in turn is bigger than requested error; so desired error bound is probably respected) 
-more than 1 digit means failure: 10 (computation of error may be  spoiled due to numerical roundoff), 11 (requested tolerance seems unreachable because of roundoff errors), 20 (desired accuracy of numerical integral could not be achieved), 30 (norm of vector deviates significantly from 1), 100 (multiple of these errors)
- */
-    krylovReturn(unsigned int nbObservables, unsigned int Hsize, unsigned int nbSamples, int status)
-    {
-        err = 0; n_steps = 0; dim = Hsize; nSamples = nbSamples; statusCode = status;
-        if(nbObservables == 0 && (nSamples * Hsize * sizeof(std::complex<double>) > std::pow(2.,34.)))
-        {
-            std::cerr << "Requested output would be too large" << std::endl;
-            exit(1);
-        }
-        evolvedState = new std::complex<double>[Hsize];
-        if (nbSamples > 0)
-        {
-            if (nbObservables == 0)
-                sampling = new matrix(Hsize, nbSamples);
-            else {
-                sampling = new matrix(nbObservables, nbSamples);
-            }
-        }
-        else
-            sampling = nullptr;
-    }
-
-	~krylovReturn()
-	{
-            delete[] evolvedState;
-            if (nSamples > 0)
-				delete sampling;
-	}
+    krylovReturn(unsigned int Hsize, int status);
+    ~krylovReturn();
 };
 
-
+/**
+* Main class responsible for computing the actual time evolution.
+*/
 class krylovTimeEvolver
 {
 public:
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm= true, bool fastIntegration = false);
-    krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm = true, bool fastIntegration = false, bool progressBar = false);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
-    //sampled values of observables
-    matrix* samplings;
+    bool fastIntegration, progressBar;
+    std::complex<double> expFactor;
+    double tol; size_t m;
+
+    void changeLogLevel(krylovLogger::loggingLevel level);
+
     
 protected:
-    void optimizeInput();
     int findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
-    void destroyOptimizeInput();
     void sample();
-    bool arnoldiAlgorithm(double tolRate, matrix* H, matrix* V, double* h, size_t* m_hbd);
+    bool arnoldiAlgorithm(double tolRate, TE::matrix* H, TE::matrix* V, double* h, size_t* m_hbd);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
     void printProgress(float prog);
+    void progressBarThread();
+    krylovReturn* generateReturn();
+
 
     std::complex<double>* expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH);
 
     
     //Input date
     double t; size_t Hsize;
-    double samplingStep; double tol; size_t m;
+    double samplingStep; 
     int nbObservables;
-    smatrix* Ham;
-    std::complex<double> expFactor;
-    bool checkNorm, fastIntegration, progressBar;
+    std::unique_ptr<smatrix> Ham;
     std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
+
+    //Printing and Logging
+    std::thread pBThread;
+    std::atomic<bool> stop_printing;
+    krylovLogger logger;
     
     //Determined by input data
     size_t n_samples;
@@ -100,10 +101,6 @@ protected:
     boost::math::quadrature::tanh_sinh<double> integ;
     int integrationMethodLong, integrationMethodShort;
     double termination;
-    
-    //variables for mkl-library
-    sparse_matrix_t* HamOpt;
-    matrix_descr descriptor;
     
     //temporary variables shared by different functions
     std::complex<double>* currentVec;
@@ -117,6 +114,16 @@ protected:
     std::complex<double>* tmpintKernelExp3;
     std::complex<double>* tmpintKernelT;
     size_t index_samples;
+    //Time of current state
+    double t_now = 0.;
+    //Number of steps so far
+    int n_steps = 0;
+    //Latest time at which sampling has happened so far
+    double t_sampling = 0.;
+    //Total accumulated error so far
+    double err = 0.;
+    //Track if an error occured within timeEvolve(). A value unequal 0 indicates that numerical result likely violates error bound.
+    int statusCode = 0;
 
     //Useful constants
     static constexpr std::complex<double> one = std::complex<double>(1.0,0.0);

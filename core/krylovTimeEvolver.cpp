@@ -5,98 +5,56 @@
  The time-evolved vector then becomes the initial vector for constructing the subsequent Krylov-subspace.
  */
 
-#include <boost/math/quadrature/tanh_sinh.hpp>
-#include <boost/math/quadrature/gauss.hpp> 
-
-#include <cstdlib>
-#include <cmath>
-#include <complex>
-#include <limits>
-#include <algorithm>
-#include <iostream>
-
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-#include <mkl.h>
-#include <mkl_spblas.h>
-
-#include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
 
-/**
- * Legacy constructor with raw sparse matrix argument as observables 
- * All data required for the numerical time evolution is needed.
- * @param t The time interval over which the state should be time evolved.
- * @param Hsize The size of the full Hilbert space
- * @param v The initial state that should be time evolved
- * @param samplingStep The time interval after which the values of the observables should be determined
- * @param tol The maximal admissible error (norm difference between result of numerical and true time evolution)
- * @param m The size of the Krylov subspaces
- * @param observables The observables that are to be sampled
- * @param nbObservables The number of observables
- * @param Ham The full Hamiltonian
- * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
- * @param checkNorm Whether or not it should be check that the time evolved state has unit norm (default value: true)
- * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
- */
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int m, smatrix** observables, int nbObservables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration) :
-krylovTimeEvolver(t, Hsize, v, samplingStep, tol, m, std::vector<std::unique_ptr<krylovBasicObservable>>(), Ham, expFactor, checkNorm, fastIntegration, false) {
-	this->nbObservables = nbObservables;
-	for (int i = 0; i != nbObservables; i++){
-		obsVector.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), observables[i]));
-	}
-}
+using namespace TE;
+
 
 /**
- * All data required for the numerical time evolution is needed.
+ * Extended constructor. Default values refer to the simplified constructor and are suited for most applications of the TimeEvoler
  * @param t The time interval over which the state should be time evolved.
- * @param Hsize The size of the full Hilbert space
- * @param v The initial state that should be time evolved
+ * @param v The initial and normalized state that should be time evolved
  * @param samplingStep The time interval after which the values of the observables should be determined
- * @param tol The maximal admissible error (norm difference between result of numerical and true time evolution)
- * @param m The size of the Krylov subspaces
  * @param observables The vector of observables that are to be sampled
  * @param Ham The full Hamiltonian
- * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution (usually -i)
- * @param checkNorm Whether or not it should be check that the time evolved state has unit norm (default value: true)
+ * @param expFactor The scalar factor multiplying the Hamiltonian in the time evolution exp(-i expFactor H t) (default value: 1.0)
+ * @param tol The maximal admissible error (norm difference between result of numerical and true time evolution) (default value: 1e-6)
+ * @param mm The size of the Krylov subspaces (default value: 40)
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
- * @param progressBar Whether or not to show a progressbar in the terminal
+ * @param progressBar Whether or not to show a progressbar in the terminal (default value: true)
  */
-krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double>* v, double samplingStep, double tol, int mm, std::vector<std::unique_ptr<krylovBasicObservable>>  observables, smatrix* Ham, std::complex<double> expFactor, bool checkNorm, bool fastIntegration, bool progressBar)
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar)
 {
+
+
+	this->t = t;  this->samplingStep = samplingStep; this->tol = tol;  this->progressBar = progressBar;
+	this->Ham = std::move(Ham); this->expFactor = std::complex<double>(0,-1*expFactor); this->fastIntegration = fastIntegration; this->nbObservables = (int)observables.size();
+
+	matrixNorm = this->Ham->norm1();
+	this->Hsize = this->Ham->m;
+	this->m = std::min<size_t>(mm, Hsize);
+
+	stop_printing = false;
+
 	if (Hsize == 0)
 	{
-		std::cerr << "Invalid Hilbertspace dimension" << std::endl;
+		logger.log_message(krylovLogger::FATAL, "Invalid Hilbertspace dimension");
 		exit(1);
 	}
 
-	this->t = t; this->Hsize = Hsize; this->samplingStep = samplingStep; this->tol = tol; this->m = std::min<size_t>(mm, Hsize); this->progressBar = progressBar;
-	this->Ham = Ham; this->expFactor = expFactor; this->checkNorm = checkNorm; this->fastIntegration = fastIntegration; this->nbObservables = observables.size();
-	HamOpt = nullptr;
-
-	matrixNorm = Ham->norm1();
-
-	if (fastIntegration)//Use Gauss integration
-	{
-		integrationMethodLong = 0;
-		integrationMethodShort = 1;
+	if (std::abs(cblas_dznrm2(Hsize, v, 1) - 1.0) > tol) {
+		logger.log_message(krylovLogger::FATAL, "Initial vector is not normalized");
+		exit(1);
 	}
-	else//Use double exponential integration
-	{
-		integrationMethodLong = integrationMethodShort = 2;
-	}
+
+	//Perform initializing steps for the matrix representation tailored to the installed (s)BLAS library
+	this->Ham->initialize();
 
 	//Numerical integration terminates if error*L1 < termination
 	termination = 1e-3;
 
 	//number of sampling steps
 	n_samples = (size_t)floor(t / samplingStep) + 1;
-
-	if (nbObservables == 0)
-		samplings = new matrix(Hsize, n_samples);
-	else
-		samplings = new matrix(nbObservables, n_samples);
 
 	//The state at the current time
 	currentVec = new std::complex<double>[Hsize];
@@ -115,17 +73,25 @@ krylovTimeEvolver::krylovTimeEvolver(double t, size_t Hsize, std::complex<double
 	tmpintKernelExp3 = new std::complex<double>[m];
 	tmpintKernelT = new std::complex<double>[m];
 
-	descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
-	descriptor.diag = SPARSE_DIAG_NON_UNIT;
-	//descriptorObs.diag = SPARSE_DIAG_NON_UNIT;
-	//descriptorObs.type = SPARSE_MATRIX_TYPE_GENERAL;
-
 	index_samples = 0;
 	e_1 = new std::complex<double>[m];
 	e_1[0].real(1);
 
 	obsVector = std::move(observables);
+	for (auto iter = obsVector.begin(); iter != obsVector.end(); iter++)
+		(*iter)->initializeResultArray(n_samples);
+
 }
+/**
+* Simplified and default constructor with recommended values of meta parameters suited for most standard use cases 
+* @param t The time interval over which the state should be time evolved.
+* @param v The initial and normalized state that should be time evolved
+* @param samplingStep The time interval after which the values of the observables should be determined
+* @param observables The vector of observables that are to be sampled
+* @param Ham The full Hamiltonian
+*/
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham) : krylovTimeEvolver(t, v, samplingStep,  std::move(observables), std::move(Ham),
+	1.0, 1e-6, 40, false, false){}
 
 /**
 * Destructor
@@ -142,74 +108,31 @@ krylovTimeEvolver::~krylovTimeEvolver()
 	delete[] tmpintKernelExp2;
 	delete[] tmpintKernelExp3;
 	delete[] tmpintKernelT;
-    delete samplings;
-    if(HamOpt != nullptr)
-        delete HamOpt;
     delete[] e_1;
 	obsVector.clear();
 }
 
-constexpr std::complex<double> krylovTimeEvolver::one;
-constexpr std::complex<double> krylovTimeEvolver::zero;
+
 
 /**
  * Computes and saves values of observables for current state ('sampledState')
  */
-void krylovTimeEvolver::sample()
-{
-	if (progressBar)
+void krylovTimeEvolver::sample() {
+	for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++)
 	{
-		float prog = static_cast<float>(index_samples) / n_samples;
-		printProgress(prog);
-	}
-	if (nbObservables == 0)
-		cblas_zcopy(Hsize, sampledState, 1, samplings->values + index_samples * Hsize, 1);
-	else 
-	{
-		int i = 0;
-		for (auto obsIter = obsVector.begin(); obsIter != obsVector.end(); obsIter++, i++)
-		{
-			*(samplings->values + i + index_samples * nbObservables) = (*obsIter)->expectation(sampledState, Hsize);
-		}
+		(*obsIter)->expectation(sampledState, (int) Hsize);
 	}
 	index_samples++;
 }
 
 /**
- * Destroys variables created in krylovTimeEvolver::optimizeInput
- */
-void krylovTimeEvolver::destroyOptimizeInput()
+* Sets the severity level for logging
+* @param level: Specific level, e.g. DEBUG, WARNING, ERROR, ... 
+*/
+void krylovTimeEvolver::changeLogLevel(krylovLogger::loggingLevel level)
 {
-    if(HamOpt != nullptr)
-        mkl_sparse_destroy(*HamOpt);
+	logger.set_loggingLevel(level);
 }
-
-
-
-/**
- * Brings input parameters in form needed for mkl-routines that perform operations on large matrices and vectors
- */
-void krylovTimeEvolver::optimizeInput()
-{
-    if (Ham == nullptr)
-        return;
-    
-    sparse_status_t mklStatus;
-	matrix_descr type; type.type = SPARSE_MATRIX_TYPE_GENERAL; type.diag = SPARSE_DIAG_NON_UNIT;
-    
-    HamOpt = new sparse_matrix_t;
-    
-    if (Ham->numValues != 0)
-        mklStatus = mkl_sparse_z_create_coo(HamOpt, SPARSE_INDEX_BASE_ZERO, Ham->m, Ham->n, Ham->numValues, Ham->rowIndex, Ham->columns, Ham->values);
-    
-    mklStatus = mkl_sparse_convert_csr(*HamOpt, SPARSE_OPERATION_NON_TRANSPOSE, HamOpt);
-    mklStatus = mkl_sparse_order(*HamOpt);
-    mklStatus = mkl_sparse_set_mv_hint(*HamOpt, SPARSE_OPERATION_NON_TRANSPOSE, type, (size_t)std::llabs(std::llround(m*t)));
-    mklStatus = mkl_sparse_set_memory_hint(*HamOpt, SPARSE_MEMORY_AGGRESSIVE);
-    mklStatus = mkl_sparse_optimize(*HamOpt);
-}
-
-
 
 /**
  * Given a Krylov subspace, this function finds out how far (i.e. for what time step) one can use it without exceeding the prescribed error bound. To this end, it computes an error bound for different possible time steps. This function only operates in the Krylov subspace, i.e. with vectors and matrices of dimension m
@@ -279,7 +202,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 		err_step = integrateError(0, t_step, T, spectrumH, h, integrationMethodLong, tolRate, numericalIntegrationSuccessful);
 		if (nbReductions == GO_MAX)
 		{
-			std::cerr << "Error: No small enough time step found to meet tolerance requirements." << std::endl;
+			logger.log_message(krylovLogger::FATAL, "Error: No small enough time step found to meet tolerance requirements.");
 			exit(1);
 		}
 		skipSubsteps = false;
@@ -343,42 +266,34 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//After each time step, the optimal step size is computed. To avoid substep reduction because of a too small number of substeps, the optimal step size is multiplied by this number
 	double INITIAL_STEP_FRACTION = 0.97;
 
-	optimizeInput();
-	if (checkNorm) 
+	if (fastIntegration)//Use Gauss integration
 	{
-		if (std::abs(cblas_dznrm2(Hsize, currentVec, 1) - 1.0) > tol) {
-			std::cerr << "Norm error in initial vector" << std::endl;
-			exit(1);
-		}
+		integrationMethodLong = 0;
+		integrationMethodShort = 1;
+	}
+	else//Use double exponential integration
+	{
+		integrationMethodLong = integrationMethodShort = 2;
 	}
 
 	if (fastIntegration)
-		std::cout << "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result." << std::endl;
-    
-    //Time of current state
-	double t_now = 0.;
-	//Number of steps so far
-	int n_steps = 0;
+		logger.log_message(krylovLogger::WARNING, "Please note that a less accurate method for evaluating the error integral was used. We recommend recomputing with accurate integration to establish the validity of the result.");
+
+
+
 	//Estimate for initial step size
 	double t_step = 1.0 / 10.0;
-	//Latest time at which sampling has happened so far
-	double t_sampling = 0.;
-
 	//Admissible error rate
 	double tolRate = tol / t;
-	//Total accumulated error so far
-	double err = 0.;
 	//Estimate of error due to limited precision of numerical operations per Kyrlov space
 	double numericalErrorEstimate = Hsize * matrixNorm * std::numeric_limits<double>::epsilon();
 	//Total esimate of round-off errors
 	double numericalErrorEstimateTotal = 0;
 
-    //Flag indicating if a lucky breakdown has occured
-    bool dummy_hbd = false;
-    //In case of lucky breakdown, size of Krylov space
-    size_t m_hbd;
-	//Track if an error occured within timeEvolve(). A value unequal 0 indicates that numerical result likely violates error bound.
-	int statusCode = 0;
+	//Flag indicating if a lucky breakdown has occured
+	bool dummy_hbd = false;
+	//In case of lucky breakdown, size of Krylov space
+	size_t m_hbd;
 	//Monitoring if something went wrong in findSubstep
 	int errorCodeFindSubstep = 0;
 	//Count number of Kyrlov spaces with error bound failures
@@ -387,26 +302,36 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Were there multible errors thrown
 	int nbErrors = 0;
 
+	//Record observables for initial state
+	try {
+		sample();
+	}
+	catch (requestStopException& e)
+	{
+		logger.log_message(krylovLogger::ERROR, e.what());
+		return generateReturn();
+	}
 
-    //Hessenberg matrix
-	matrix *H = new matrix(m, m);
+
+	//Hessenberg matrix
+	matrix* H = new matrix(m, m);
 	//Corresponding transformation matrix
-	matrix *V = new matrix(Hsize, m);
+	matrix* V = new matrix(Hsize, m);
 	//The (m+1,m) element of Hessenberg matrix (needed for computation of error)
 	double h = 0;
 	//Eigenvalues of Hessenberg matrix
-	std::complex<double> *eigenvalues = new std::complex<double>[m];
+	std::complex<double>* eigenvalues = new std::complex<double>[m];
 	//Eigenvectors of Hessenberg matrix
-	std::complex<double> *schurvector = new std::complex<double>[m * m];
+	std::complex<double>* schurvector = new std::complex<double>[m * m];
 
-	//Record observables for initial state
-	sample();
-
+	//Start progressBar thread
+	if (progressBar == true)
+			pBThread = std::thread(&krylovTimeEvolver::progressBarThread, this);
+	
     //Main loop
     while (index_samples < n_samples)
     {
 		n_steps++;
-		//t_step = fmin(t - t_now, t_step);
 		double err_step = 0;
 
 		//STEP 1: Construct Krylov subspace using Arnoldi algorithm
@@ -432,15 +357,15 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			V = Vtmp;
 			m = m_hbd;
 
-			std::cout << "***Lucky breakdown at Krylov dimension " << m	<< " *** " << std::endl;
+			logger.log_message(krylovLogger::INFO, "***Lucky breakdown at Krylov dimension" + std::to_string(m) + " *** ");
+
 			statusCode = 1;
 		}
 		//Finally diagonalize Hessenberg matrix H (since it will be exponentiated many times)
-		int infocheck = LAPACKE_zhseqr(LAPACK_COL_MAJOR, 'S', 'I', m, 1, m,
-				H->values, m, eigenvalues, schurvector, m);
+		size_t infocheck = TE_zhseqr(m, H->values, eigenvalues, schurvector);
 		if (infocheck != 0) 
 		{
-			std::cerr << "Internal error: LAPACK error " << infocheck << std::endl;
+			logger.log_message(krylovLogger::FATAL, "Internal error: LAPACK error " + std::to_string((int) infocheck));
 			exit(1);
 		}
 		//END STEP 1
@@ -483,7 +408,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
             //Determine state at t_sampling in the following
             cblas_zcopy(m, eigenvalues, 1, tmpKrylovVec1, 1);
             cblas_zdscal(m, (t_sampling - t_now), tmpKrylovVec1, 1);
-            vzExp(m, tmpKrylovVec1,tmpKrylovVec2);
+			expV(m, tmpKrylovVec1, tmpKrylovVec2);
+
             //Now temp1 is no longer needed and can be reused
             cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, schurvector, m, e_1, 1, &zero, tmpKrylovVec1, 1);
             for(size_t i = 0; i != m; i++)
@@ -494,46 +420,58 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
             cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, schurvector, m, tmpKrylovVec1, 1, &zero, tmpKrylovVec2, 1);
             cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec2, 1, &zero, sampledState, 1);
 
-            sample();
+			try {
+				sample();
+			} catch (requestStopException& e)
+			{
+				logger.log_message(krylovLogger::ERROR, e.what());
+				delete[] eigenvalues; delete[] schurvector;
+				delete V; delete H;
+				if (progressBar){
+					stop_printing = true;
+					pBThread.join();
+				}
+				statusCode = 3;
+				return generateReturn();
+			}
         }
         //END STEP 3
         
         t_now += t_step;
         err += err_step;
-        
-        //As a consistency check, determine if norm of state was preserved
-        double nrm = cblas_dznrm2(Hsize, currentVec, 1);
-        if (checkNorm)
-        {
-            if (std::abs(nrm - 1) > tol)
-            {
-                std::cerr << "CRITICAL WARNING: Norm of state vector is not inside specified tolerance." << std::endl;
-				std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
-				nbErrors++;
-				statusCode = 30;
-            }
-        }
-        
     }
+
+
+	//As a consistency check, determine if norm of state was preserved
+	if (std::abs(cblas_dznrm2(Hsize, sampledState, 1) - 1.0) > tol)
+	{
+		logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: Norm of state vector is not inside specified tolerance. \n \
+				THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED.");
+		nbErrors++;
+		statusCode = 30;
+	}
+
+
+	if (progressBar)
+		pBThread.join();
 
 	//Output of potential errors
 	numericalErrorEstimateTotal = numericalErrorEstimate * n_steps; //Rough estimate of total round-of error
 	if (nbErrRoundOff != 0)
 	{
-		std::cerr << "CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in " << nbErrRoundOff << " Krylov spaces." << std::endl;
-		std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
-		std::cerr << "Restart with bigger error bound or smaller time." << std::endl;
-
-		std::cerr << "The total computed analytic error is: " << err << std::endl;
-		std::cerr << "The total numerical error estimate for all Krylov spaces is " << numericalErrorEstimateTotal << std::endl;
+		logger.log_message(krylovLogger::WARNING, std::string("CRITICAL WARNING: The computed error bound was smaller than the estimate of the numerical error in ") + (std::to_string(nbErrRoundOff) + " Krylov spaces.) \n \
+			THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED. \n \
+			Restart with bigger error bound or smaller time."));
+		logger.log_message(krylovLogger::WARNING, "The total computed analytic error is: " + krylovLogger::stringStreamWrapperd(err));
+		logger.log_message(krylovLogger::WARNING, "The total numerical error estimate for all Krylov spaces is " + krylovLogger::stringStreamWrapperd(numericalErrorEstimateTotal));
 
 		nbErrors++;
 		statusCode = 10;
 	}
 	if (nbErrInt != 0)
 	{
-		std::cerr << "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " << nbErrInt << " Krylov spaces." << std::endl;
-		std::cerr << "THE DESIRED ERROR BOUND MAY BE VIOLATED." << std::endl;
+		logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: The error of numerical integration did not meet the required accuarcy in " + std::to_string(nbErrInt) + " Krylov spaces. \
+			THE DESIRED ERROR BOUND MAY BE VIOLATED.");
 
 		nbErrors++;
 		statusCode = 20;
@@ -542,15 +480,18 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	{
 		if (numericalErrorEstimateTotal > tol)
 		{
-			std::cerr << "CRITICAL WARNING: The numerical error estimate " << numericalErrorEstimateTotal << " was larger than the requested tolerance " << tol << std::endl;
-			std::cerr << "THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED." << std::endl;
+			logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: The numerical error estimate " + krylovLogger::stringStreamWrapperd(numericalErrorEstimateTotal)  + " was larger than the requested tolerance " + krylovLogger::stringStreamWrapperd(tol) + " \
+				THE DESIRED ERROR BOUND WILL LIKELY BE VIOLATED.");
+
 			statusCode = 11;
 			nbErrors++;
 		}
 		else
 		{
-			std::cout << "Info: Analytic error " << err << " was smaller than the estimate of the numerical error " << numericalErrorEstimateTotal << "." << std::endl;
-			std::cout << "The computed error is not accurate." << std::endl;
+	
+			logger.log_message(krylovLogger::WARNING, "Warning: Analytic error " + krylovLogger::stringStreamWrapperd(err) + " was smaller than the estimate of the numerical error " + krylovLogger::stringStreamWrapperd(numericalErrorEstimateTotal) + ". \
+				The computed error is not accurate.");
+			
 			if (statusCode != 1) //Don't overwrite Lucky breakdown status
 				statusCode = 2;
 		}
@@ -558,32 +499,16 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 	if (nbErrors > 1)
 	{
-		std::cerr << "There were multiple critical warnings raised during evaluation. Please see ouput above for further details." << std::endl;
+		logger.log_message(krylovLogger::WARNING, "There were multiple critical warnings raised during evaluation. Please see ouput above for further details.");
 		statusCode = 100;
 	}
-   
-   
-    //Return result
-	krylovReturn* ret = new krylovReturn(nbObservables, Hsize, n_samples, statusCode);
-    cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
-    unsigned int nbResults;
-    if (nbObservables != 0)
-        nbResults = n_samples*nbObservables;
-    else
-        nbResults = n_samples *Hsize;
-    cblas_zcopy(nbResults, samplings->values, 1, ret->sampling->values, 1);
-    ret->n_steps = n_steps;
-    ret->err = err;
-    ret->dim = m;
-    ret->nSamples = n_samples;
-    
+
     delete[] eigenvalues;
     delete[] schurvector;
     delete V;
     delete H;
-    destroyOptimizeInput();
 
-    return ret;
+    return generateReturn();
 }
 
 /**
@@ -595,17 +520,18 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
  * @param mRet Returns the actual size of the Krylov subspace (important in case of lucky breakdown)
  * @return false, is no lucky breakdown has occured; true if lucky breakdown has occured
  */
-bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *VRet, double *hRet, size_t *mRet) {
+bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::matrix *VRet, double *hRet, size_t *mRet) {
 	double normy = 0.;
 	std::complex<double> negativeH;
 	cblas_zcopy(Hsize, currentVec, 1, VRet->values, 1);
 
 	for (size_t j = 0; j <= m - 1; j++) {
-		sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, expFactor, *HamOpt,
-				descriptor, (VRet->values) + j * Hsize, zero, tmpBlasVec);
-        if(SPARSE_STATUS_SUCCESS != mklStatus)
+
+		int spStatus = Ham->spMV(expFactor, (VRet->values) + j * Hsize, tmpBlasVec);
+
+        if(spStatus != 0)
         {
-            std::cerr << "MKL error " << mklStatus << std::endl;
+			logger.log_message(krylovLogger::FATAL, "spMV error ");
             exit(1);
         }
 		if (j != 0) {
@@ -657,7 +583,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, matrix *HRet, matrix *V
 */
 double krylovTimeEvolver::integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful)
 {
-	double error, L1;
+	double error = 0, L1 = 0;
 	double ret;
 	bool success = true;
 
@@ -670,15 +596,21 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 		ret = boost::math::quadrature::gauss<double, 7>::integrate(f, a, b); //Gauss-Legendre quadrature with 7 abscissa 
 	else if (method == 2)
 	{
-		ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
+		try {
+			ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
+		}
+		catch (std::exception const& x) { //boost integration routine throw exception
+			logger.log_message(krylovLogger::WARNING, boost::diagnostic_information(x));
+			ret = this->tol * 10; //ignore the error in the integration by setting error to fail the following check to invoke substep reduction
+		}
 		//Check if requested accuracy was achieved; no check is needed if the contribution of the integral computed here to the absolute error integral is small
 		if (error / ret > termination && ret > termination *(b-a) * tolRate)
 			success = false;
 	}
 	else
 	{
-		std::cerr << "Internal error: No method of integration selected" << std::endl;
-		exit(-1);
+		logger.log_message(krylovLogger::FATAL, "Internal error: No method of integration selected");
+		exit(1);
 	}
 	
 	successful = successful && success;
@@ -693,7 +625,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 void krylovTimeEvolver::printProgress(float prog)
 {
 	std::cout << "[";
-	int pos = pBarWidth * prog;
+	int pos = (int) (pBarWidth * prog);
 	for (int i = 0; i < pBarWidth; ++i)
 	{
 		if (i <= pos) std::cout << "|";
@@ -701,6 +633,46 @@ void krylovTimeEvolver::printProgress(float prog)
 	}
 	std::cout << "] " << int(prog * 100.0) << " %\r";
 	std::cout.flush();
+}
+
+
+/**
+* ProgressBar thread
+*/
+void krylovTimeEvolver::progressBarThread()
+{
+	float prog;
+	while (!stop_printing) {
+		prog = static_cast<float>(index_samples) / n_samples;
+		printProgress(prog);
+		if (prog == 1) {
+			printProgress(prog);
+			break;
+		}
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	}
+	return;
+}
+
+
+/**
+* Initialize member variables of return structure
+* @return Pointer to a krylovReturn class instance which contains all the results and information of the finished time evolution
+*/
+krylovReturn* krylovTimeEvolver::generateReturn()
+{
+	krylovReturn* ret = new krylovReturn((unsigned int) Hsize, statusCode);
+	cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
+	ret->n_steps = n_steps;
+	ret->err = err;
+	ret->dim = Hsize;
+	ret->krylovDim = m;
+	ret->observableList = std::move(obsVector);
+	ret->hamiltonianMatrix = std::move(Ham);
+	ret->evolvedTime = t_now;
+	ret->numSamples = index_samples;
+
+	return ret;
 }
 
 
@@ -716,14 +688,35 @@ std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double
 	
 	//Exponenting scaled eigenvalues
 	cblas_zdscal(m, t, tmpintKernelExp1, 1);
-	vzExp(m, tmpintKernelExp1, tmpintKernelExp2);
+	expV(m, tmpintKernelExp1, tmpintKernelExp2);
 
+	
 	//Rotate basis back to Kyrlovspace
 	cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1, &zero, tmpintKernelT, 1);
-	vzMul(m, tmpintKernelExp2, tmpintKernelT, tmpintKernelExp3);
+	mulV(m, tmpintKernelExp2, tmpintKernelT, tmpintKernelExp3);
 	cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
 		tmpintKernelExp3, 1, &zero, tmpintKernelExp, 1);
 
 	return tmpintKernelExp;
 
+}
+
+/**
+* Constructor for return constructor
+* @param Hsize Dimension of Hilbertspace 
+* @param status Statuscode indicating errors for values other than 0
+*/
+krylovReturn::krylovReturn(unsigned int Hsize, int status)
+{
+	err = 0; n_steps = 0; krylovDim = 0; dim = Hsize; statusCode = status; evolvedTime = 0; numSamples = 0;
+	evolvedState = new std::complex<double>[Hsize];
+}
+
+
+/**
+* Destructor for return constructor
+*/
+krylovReturn::~krylovReturn()
+{
+	delete[] evolvedState;
 }

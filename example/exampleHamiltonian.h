@@ -7,7 +7,7 @@
 #include "Basis.h"
 
 /**
- * The specific exemplary Hamiltonian as defined in the accompnying paper
+ * The specific exemplary Hamiltonian as defined in the orignal paper. This Hamiltonian describes an analogue Black Hole system.
  */ 
 class exampleHamiltonian : public Hamiltonian
 {

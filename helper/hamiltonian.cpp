@@ -1,11 +1,6 @@
-#include <complex>
-#include <vector>
-#include <map>
-
-#include "matrixDataTypes.h"
 #include "hamiltonian.h"
-#include "Basis.h"
 
+using namespace TE;
 
 /**
  * Creates the kinetic terms
@@ -278,33 +273,31 @@ std::string Hamiltonian::toString()
 
 /**
  * Creates the represenation of the Hamiltonian as a sparse matrix
- * @param out Resulting sparse matrix
  * @param basis Set of basis states
+ * @return Resulting sparse matrix representation of the Hamiltonian
  */
-void Hamiltonian::createHamiltonMatrix(smatrix * &out, basicBasis* basis)
+std::unique_ptr<smatrix> Hamiltonian::createHamiltonMatrix(basicBasis* basis)
 {
-	out = createMatrix(hamiltonOperator, basis);
+	return createMatrix(hamiltonOperator, basis);
 }
 
 /**
  * Creates an array of observables (represented as matrices). For each mode, an observable corresponding to the expectation value of the of the occupation of the mode is created.
- * @param out resulting list of observables
  * @param basis set of basis states
+ * @return Returns resulting list of observables
  */
-void Hamiltonian::createObservables(smatrix ** &out, basicBasis* basis)
+std::vector<std::unique_ptr<smatrix>> Hamiltonian::createNumberOperatorObservables(basicBasis* basis)
 {
-    unsigned int nbModes = basis->numberModes;
+	std::vector<std::unique_ptr<smatrix>> out;
 
-	out = new smatrix*[nbModes];
-
-	for (unsigned int i = 0; i != nbModes; i++)
+	for (unsigned int i = 0; i != basis->numberModes; i++)
 	{
 		std::vector<opTerm> operators;
 		operators.push_back(createNumberOperator(i, 1));
-		smatrix* matrix;
-		matrix = createMatrix(operators, basis);
-		out[i] = matrix;
+		out.push_back(createMatrix(operators, basis));
 	}
+
+	return out;
 }
 
 /**
@@ -322,7 +315,7 @@ void Hamiltonian::scalarMultiplication(basisState* in, std::complex<double> scal
  * @param op terms that sum up to form the total operator
  * @param basis set of basis states
  */
-smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
+std::unique_ptr<smatrix> Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 {
 
 	const std::complex<double> one(1, 0);
@@ -382,7 +375,6 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 				else
 					pairDoesNotWork->second += tmp.coef;
 			}
-			skip = false;
 		}
 
 		//write row into matrix
@@ -401,14 +393,12 @@ smatrix* Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
 
 	}
 
-	int M, N;
+	unsigned int M, N;
 	M = N = basis->numberElements;
-	int nz = valuesVec.size();
+	size_t nz = valuesVec.size();
 
-	smatrix* A = new smatrix(valuesVec.data(), columnIndexVec.data(), rowIndexVec.data(), nz, N, M);
+	return std::make_unique<smatrix>(valuesVec.data(), columnIndexVec.data(), rowIndexVec.data(), nz, N, M);
 
-
-	return A;
 }
 
 /**

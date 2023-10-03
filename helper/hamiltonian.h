@@ -1,21 +1,16 @@
 #pragma once
 
-
 #include <vector>
 #include <string>
 #include <complex>
-
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-#include "mkl_types.h"
-#include "mkl.h"
-#include "mkl_spblas.h"
-
-
+#include <memory>
+#include <map>
 
 #include "matrixDataTypes.h"
 #include "Basis.h"
+
+
+using namespace TE;
 
 /**
  * Represents one term in the Hamiltonian
@@ -50,8 +45,8 @@ public:
 	Hamiltonian();
 
 	std::string toString();
-	void createHamiltonMatrix(smatrix* &out, basicBasis *basis);
-	void createObservables(smatrix** &out, basicBasis *basis);	
+	std::unique_ptr<smatrix> createHamiltonMatrix(basicBasis *basis);
+	std::vector<std::unique_ptr<smatrix>> createNumberOperatorObservables(basicBasis *basis);
 
 	std::vector<opTerm> createKineticTerms(std::vector<int> modes, double gap);
 
@@ -64,7 +59,7 @@ public:
 
 
 protected:
-	smatrix* createMatrix(std::vector<opTerm>& op, basicBasis* basis);
+	std::unique_ptr<smatrix> createMatrix(std::vector<opTerm>& op, basicBasis* basis);
 
 
 private:

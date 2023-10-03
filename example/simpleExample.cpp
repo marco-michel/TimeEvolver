@@ -2,9 +2,10 @@
 #include <vector>
 #include <fstream>
 
-#include <matrixDataTypes.h>
-#include <hamiltonian.h>
-#include <krylovTimeEvolver.h>
+#include "matrixDataTypes.h"
+#include "hamiltonian.h"
+#include "krylovTimeEvolver.h"
+#include "krylovObservables.h"
 
 /*Example to simulate two coupled oscillators with Hamiltonian:
  H = E1 * a^dagger a + E2 * b^dagger b + lambda * (a^dagger b + b^dagger a)
@@ -29,8 +30,8 @@ int main()
     int nbObservables = K;
 
     //Creating particle number conserving basis consiting of two different quantum modes.
-    std::cout << "Creating basis..." << std::endl;
     basis basis(N0, K, 0, 0);
+    std::cout << "Created basis with " << basis.numberElements << " elements ..." << std::endl;
 
     //Create Hamiltonian E1 * a^dagger a + E2 * b^dagger b + lambda * (a^dagger b + b^dagger a)
     Hamiltonian hamiltonian;
@@ -43,13 +44,19 @@ int main()
     hamiltonian.hamiltonOperator = HamiltonianOperator;
 
     //Create matrix representation of HamiltonianOperator
-    std::cout << "Creating Hamiltonian matrix..." << std::endl;
-    smatrix* hamMatrix;
-    hamiltonian.createHamiltonMatrix(hamMatrix, &basis);
+    std::unique_ptr<smatrix> hamMatrix = hamiltonian.createHamiltonMatrix(&basis);
+    std::cout << "Created Hamiltonian matrix..." << std::endl;
+    
     //Create matrices for number Operators
-    std::cout << "Creating observables..." << std::endl;
-    smatrix** observables;
-    hamiltonian.createObservables(observables, &basis);
+    std::vector<std::unique_ptr<smatrix>> observables = hamiltonian.createNumberOperatorObservables(&basis);
+
+    std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
+ 
+    for (int i = 0; i != basis.numberModes; i++)
+    {
+        observableList.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), std::move(observables[i])));
+    }
+    std::cout << "Created observables..." << std::endl;
 
     //Create initial state with all particles in the first mode (N0, 0)
     basisVector init(K); init.e[0] = N0;
@@ -61,47 +68,38 @@ int main()
 
     //Start of time evolution   
     std::cout << "Starting time evolution..." << std::endl;
-    std::complex<double> imaginaryMinus;
-    imaginaryMinus.imag(-1);
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, observables, nbObservables, hamMatrix, imaginaryMinus);
+    krylovTimeEvolver timeEvolver(maxT, vec, samplingStep, std::move(observableList),  std::move(hamMatrix));
     krylovReturn* results = timeEvolver.timeEvolve();
 
     std::cout << "Finished time evolution..." << std::endl;
 
-    //Sort observables for easier access since observable data for different observables is stored consecutively for each time step in results matrix 
-    //The storage layout of krylovReturn has folowing form: obs1 (t0), obs2(t0), obs1(t1), obs2(t1), ....
-    double** nicelySorted = new double*[nbObservables];
-    for(int i = 0; i < nbObservables; ++i)
-        nicelySorted[i] = new double[results->nSamples]; 
-    
-    for (int j = 0; j < nbObservables; j++)
-    {
-        for (unsigned int i = 0; i < results->nSamples; i++)
-            nicelySorted[j][i] = (results->sampling->values + nbObservables * i + j)->real();
-    }
-
     //Write date to csv file
-    std::cout << "Writing data to file..." << std::endl;
+    observableList = std::move(results->observableList);
 
-    for(int j = 0; j != nbObservables; j++)
-    {
-        std::ofstream outputfile;
-        outputfile.open("SimpleExampleOutputOccupationNumber"+std::to_string(j)+".csv");
-        for(int i = 0; i != (results->nSamples)-1; i++)
-            outputfile << nicelySorted[j][i] << ", ";
-        outputfile <<  nicelySorted[j][(results->nSamples)-1];
-        outputfile.close();
-    }
-    
+    std::vector<std::unique_ptr<krylovBasicObservable>>::const_iterator obsIter;
 
-    //clean up
-	for (int i = 0; i < nbObservables; i++)
-    {
-		delete[] nicelySorted[i];
-        delete observables[i];
-    }
-    delete[] nicelySorted; delete results; delete hamMatrix; delete[] vec; delete[] observables;
 
+    obsIter = observableList.begin();
+
+
+
+   std::string outputFileName = "SimpleExampleOutputOccupationNumber";
+
+   for (; obsIter != observableList.end(); obsIter++)
+   {
+       std::string fileNameCSV = outputFileName + (*obsIter)->retName() + ".csv";
+       std::ofstream outputfile;
+       outputfile.open(fileNameCSV);
+       double* exptVal = (*obsIter)->retExpectationValues();
+       for (int i = 0; i != (*obsIter)->retNumSamples() - 1; i++)
+           outputfile << exptVal[i] << ", ";
+       outputfile << exptVal[((*obsIter)->retNumSamples()) - 1];
+       outputfile.close();
+   }
+   std::cout << "Results have been saved to file." << std::endl;
+
+
+delete[] vec; delete results;
     return 0;
 }

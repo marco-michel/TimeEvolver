@@ -1,8 +1,4 @@
-#include <vector>
-#include <unordered_map>
 
-#include "boost/container_hash/hash.hpp"
-#include "boost/math/special_functions/binomial.hpp"
 
 #include "Basis.h"
 
@@ -151,6 +147,8 @@ tensorBasis::tensorBasis(int N1, int K1, int N2, int K2, int C2)
 		basisElements = new basisVector[length1];
 		for (int i = 0; i != length1; i++)
 			basisElements[i] = b1->basisElements[i];
+		delete b1;
+		delete b2;
 		return;
 	}
 

@@ -1,36 +1,79 @@
 #pragma once
 
+#include <complex>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
 
-
-#include <mkl.h>
-#include <mkl_spblas.h>
-
+#include "mathHeader.h"
 #include "matrixDataTypes.h"
 
 
+/**
+* Exception raised when an observable requests the TimeEvolver to stop at the current timestep.
+*/
+class requestStopException : public std::exception {
+public:
+    virtual const char* what() const throw();
+    requestStopException() = default;
+};
 
+
+using namespace TE;
+
+
+/**
+* Different types of observable classes describing the underlying data structure
+*/
 enum obsType { VOID_TYPE_OBS, VECTOR_TYPE_OBS, SPARSE_MATRIX_TYPE_OBS, MATRIX_TYPE_OBS };
 
+
+
+/**
+* Base observable class used for defining observables, computing expectation values as well as manage output to file
+*/
 class krylovBasicObservable
 {
 public:
-    krylovBasicObservable(const std::string& name) : obs_name(name), dim(0), type(VOID_TYPE_OBS) {}
-    virtual ~krylovBasicObservable() {}
+    krylovBasicObservable(const std::string& name) : obs_name(name), dim(0), numSamples(0), sampleIndex(0), type(VOID_TYPE_OBS), expectationValues(nullptr) {}
+    krylovBasicObservable(const std::string& name, std::vector<double> values);
+    virtual ~krylovBasicObservable();
     virtual std::complex<double> expectation(std::complex<double>* vec, int len) = 0;
     obsType retType();
     std::string retName();
+    double* retExpectationValues();
+    size_t retNumSamples();
+    virtual void initializeResultArray(size_t size);
+    size_t resetResultArray();
+
+
+
 
     static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
     static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
 
 protected:
-    obsType type;
     std::string obs_name;
     size_t dim;
+    size_t numSamples;
+    size_t sampleIndex;
+    obsType type;
+    double* expectationValues;
 };
 
+/**
+* Derived observable class only used for easier file output. Can't be used for sampling in the TimeEvolver. Calling the expectation function will result in a runtime error. 
+*/
+class krylovOutputObservable : public krylovBasicObservable {
+public:
+    krylovOutputObservable(const std::string& name, std::vector<double> values);
+    std::complex<double> expectation(std::complex<double>* vec, int len);
+};
 
-
+/**
+* Derviced observable class. The observable is represented as a vector and the expecation value is computed as the squared dot product: |<Obs|state>|^2
+*/
 class krylovVectorObservable : public krylovBasicObservable
 {
 public:
@@ -43,26 +86,28 @@ private:
 };
 
 
-
+/**
+* Derived observable class. The observable is represented as a sparse matrix and the expectation value is computed as <Obs|state|Obs>
+*/
 class krylovSpMatrixObservable : public krylovBasicObservable
 {
 public:
-    krylovSpMatrixObservable(const std::string& name, smatrix* obs);
+    krylovSpMatrixObservable(const std::string& name, std::unique_ptr<smatrix> obs);
     ~krylovSpMatrixObservable();
     std::complex<double> expectation(std::complex<double>* vec, int len);
 
 private:
     std::unique_ptr<smatrix> obs;
-    matrix_descr descriptorObs;
     std::complex<double>* tmpBlasVec;
-    sparse_matrix_t* ObsOpt;
 };
 
 
-
-class [[deprecated("Dense matrix observables are not fully tested yet. Please use with care.")]] krylovMatrixObservable : public krylovBasicObservable
+/**
+* Derived observable class. The observable is represented as a (dense) matrix and the expectation value is computed as <Obs|state|Obs>
+*/
+class krylovMatrixObservable : public krylovBasicObservable
 {
-    krylovMatrixObservable(const std::string& name, matrix* obs);
+    krylovMatrixObservable(const std::string& name, std::unique_ptr<matrix> obs);
     ~krylovMatrixObservable();
     std::complex<double> expectation(std::complex<double>* vec, int len);
 

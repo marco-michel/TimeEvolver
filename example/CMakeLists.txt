@@ -9,7 +9,7 @@ target_link_libraries(Example PUBLIC
     ${BLAS_LIBRARIES}
     ${Boost_LIBRARIES}
     dl pthread
-    Helper TimeEvolver) 
+    Helper outputHelper TimeEvolver) 
 
 if(HDF5_FOUND)
     target_link_libraries(Example PUBLIC

@@ -1,37 +1,26 @@
 #include <unordered_map>
 #include <complex>
 #include <iostream>
-#include <stdexcept>
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
-#include <cmath>
 #include <memory>
 #include <chrono>
 
-#undef I
-#define MKL_Complex16 std::complex<double>
-#define MKL_INT size_t
-
-#include <mkl_types.h>
-#include <mkl.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#ifdef USE_HDF
-#include <H5Cpp.h>
-using namespace H5;
-#endif
+
 
 #include "matrixDataTypes.h"
 #include "krylovTimeEvolver.h"
 #include "Basis.h"
 #include "hamiltonian.h"
 #include "exampleHamiltonian.h"
-#include "krylovHelper.h"
 #include "krylovObservables.h"
+#include "parameter.h"
+#include "krylovHelper.h"
+
+using namespace TE;
 
 //INPUT:
 //    int N0; int Nm; int K;
@@ -47,9 +36,9 @@ int main(int argc, char* argv[])
     int K; 
     double C0; double Cm;
     double maxT; double samplingStep;
-    double tol; int m; int numThreads;
-     double DeltaN; int capacity; 
-     bool fastIntegration;
+    double tol; int m;
+    double DeltaN; int capacity; 
+    bool fastIntegration;
     
     po::options_description desc("Allowed options");
     po::variables_map vm;
@@ -67,7 +56,6 @@ int main(int argc, char* argv[])
 	    ("samplingStep", po::value<double>(&samplingStep)->default_value(0.01), "Time interval of sampling")
         ("tol", po::value<double>(&tol)->default_value(1.0e-8), "Numerical tolerance")
         ("m", po::value<int>(&m)->default_value(40), "Dimension of Krylov-Space")
-        ("threads", po::value<int>(&numThreads)->default_value(2), "Number of OpenMP Threads for Intel MKL")
         ("DeltaN", po::value<double>(&DeltaN)->default_value(12), "Distance between critical sectors")
         ("capacity", po::value<int>(&capacity)->default_value(1), "Capacity of cirtial modes")
         ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(false), "Use faster and less accurate integration")
@@ -89,19 +77,12 @@ int main(int argc, char* argv[])
             return 1;
         }
     }
-    
-    
-    int nbObservables = 2*K + 2;
-
-    mkl_set_num_threads(numThreads);
-    //end determine parameters
-
 
     std::cout << "TimeEvolver Example" << std::endl;
     
     //Create basis
-    std::cout << "Creating basis..." << std::endl;
     tensorBasis basis(N0, 2, Nm, 2*K, capacity);
+    std::cout << "Created basis with " << basis.numberElements << " elements ..." << std::endl;
     
     //Create Hamiltonian
     exampleHamiltonian ham = exampleHamiltonian(N0, Nm, DeltaN, K, K, capacity, C0, 1, 1, Cm, Cm);
@@ -109,14 +90,14 @@ int main(int argc, char* argv[])
     //std::cout << ham.toString() << std::endl;
     
    //Create Hamiltonian matrix
-    std::cout << "Creating Hamiltonian matrix..." << std::endl;
-    smatrix* hamMatrix;
-    ham.createHamiltonMatrix(hamMatrix, &basis);
-
+    std::unique_ptr<smatrix> hamMatrix = ham.createHamiltonMatrix(&basis);
+    std::cout << "Created Hamiltonian matrix..." << std::endl;
+    
+   
     //Create matrices for observables
-    std::cout << "Creating observables..." << std::endl;
-    smatrix** observables;
-    ham.createObservables(observables, &basis);
+    std::vector<std::unique_ptr<smatrix>> observables = ham.createNumberOperatorObservables(&basis);
+    std::cout << "Created observables..." << std::endl;
+   
 
     //Create initial state
     basisVector init = ham.createInitState();
@@ -127,22 +108,24 @@ int main(int argc, char* argv[])
    
     //Start of actual time evolution   
     std::cout << "Starting time evolution..." << std::endl;
-    std::complex<double> imaginaryMinus;
-    imaginaryMinus.imag(-1);
 
     auto begin = std::chrono::high_resolution_clock::now();
 
     std::vector<std::unique_ptr<krylovBasicObservable>> observableList;
-
+ 
     for (int i = 0; i != basis.numberModes; i++)
     {
-        observableList.push_back(std::make_unique<krylovSpMatrixObservable>(std::to_string(i), observables[i]));
+        observableList.push_back(std::make_unique<krylovSpMatrixObservable>("mode" + std::to_string(i), std::move(observables[i])));
     }
-    
+  
+    double alpha = 1.0;
 
-    krylovTimeEvolver timeEvolver(maxT, basis.numberElements, vec, samplingStep, tol, m, std::move(observableList), hamMatrix, imaginaryMinus, true, fastIntegration, true);
+    krylovTimeEvolver timeEvolver(maxT, vec, samplingStep, std::move(observableList), std::move(hamMatrix), alpha, tol, m, fastIntegration, true);
+
+    timeEvolver.changeLogLevel(krylovLogger::loggingLevel::DEBUG);
 
     krylovReturn* results = timeEvolver.timeEvolve();
+
     
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin);
@@ -155,35 +138,29 @@ int main(int argc, char* argv[])
     //End of actual time evolution 
     
 
-    std::cout << "Writing results to file..." << std::endl;
     parameter_list parameters;
 
-    parameters.push_back(paraPush("N", N0));
-    parameters.push_back(paraPush("Nm", Nm));
-    parameters.push_back(paraPush("K", K));
-    parameters.push_back(paraPush("C", capacity));
-    parameters.push_back(paraPush("DeltaN", DeltaN));
-    parameters.push_back(paraPush("C0", C0));
-    parameters.push_back(paraPush("Cm", Cm));
-    parameters.push_back(paraPush("maxT", maxT));
-    parameters.push_back(paraPush("tol", tol));
-    parameters.push_back(paraPush("samplingStep", samplingStep));
-    parameters.push_back(paraPush("m", m));
-    parameters.push_back(paraPush("fastIntegration", fastIntegration));
+    parameters.push_back(paraPush("N", true, N0));
+    parameters.push_back(paraPush("Nm", true, Nm));
+    parameters.push_back(paraPush("K", true, K));
+    parameters.push_back(paraPush("C", true, capacity));
+    parameters.push_back(paraPush("DeltaN", true, DeltaN));
+    parameters.push_back(paraPush("C0", true, C0));
+    parameters.push_back(paraPush("Cm", true, Cm));
+    parameters.push_back(paraPush("maxT", true, maxT));
+    parameters.push_back(paraPush("tol", true, tol));
+    parameters.push_back(paraPush("samplingStep", true, samplingStep));
+    parameters.push_back(paraPush("m", true, m));
+    parameters.push_back(paraPush("fastIntegration", true, fastIntegration));
+    parameters.push_back(paraPush("TE_MAJOR_VERSION", false, TIMEEVOLVER_VERSION / 100));
+    parameters.push_back(paraPush("TE_MINOR_VERSION", false, TIMEEVOLVER_VERSION % 100));
 
-    observable_list obsus;
-    for (int i = 0; i != nbObservables; i++)
-        obsus.push_back(obsPush("mode" + std::to_string(i), obsType::SPARSE_MATRIX_TYPE_OBS));
+    observableList = std::move(results->observableList);
 
-    outputHelper fileHelper(results, parameters, obsus, "ResultBlackHole");
-    fileHelper.saveResult();
+    saveResult(observableList, parameters, "ResultBlackHole");
+    std::cout << "Results have been saved to file." << std::endl;
 
-    for (int i = 0; i < nbObservables; i++)
-    {
-        delete observables[i];
-    }
-
-    delete results; delete hamMatrix; delete[] vec; delete[] observables;
+    delete results; delete[] vec;
 
     return 0;
 }
