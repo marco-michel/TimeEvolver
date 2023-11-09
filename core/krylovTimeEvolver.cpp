@@ -600,7 +600,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 			ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
 		}
 		catch (std::exception const& x) { //boost integration routine throw exception
-			logger.log_message(krylovLogger::INFO, "Integration had to be restarted with a smaller substep.");
+			logger.log_message(krylovLogger::INFO, "Integration for error bound had to be restarted with a smaller substep due to a BOOST exception.");
 			ret = this->tol * 10; //ignore the error in the integration by setting error to fail the following check to invoke substep reduction
 		}
 		//Check if requested accuracy was achieved; no check is needed if the contribution of the integral computed here to the absolute error integral is small
