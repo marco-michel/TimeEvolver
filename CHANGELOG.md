@@ -5,7 +5,8 @@
 ## 2.0.1 - 2023-11-09
 
 ### Changed
-- Exception thrown by BOOST integration is now displayed as an info. 
+- Exception thrown by BOOST integration is now displayed as an info.
+- `requestStopException` is now logged as info rather than error. 
 
 ## 2.0.0 - 2023-10-03
 
