@@ -2,7 +2,7 @@
 
 # Changelog
 
-## 2.0.1 - 
+## 2.0.1 - 2023-11-09
 
 ### Changed
 - Exception thrown by BOOST integration is now displayed as an info. 
