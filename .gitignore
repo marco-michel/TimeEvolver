@@ -15,3 +15,7 @@
 /TimeEvolver.vcxproj.user
 /VTune Profiler Results/sample (matrix)
 /TimeEvolverVS
+/TimeEvolverVS.sln
+*.vcxproj
+*.filters
+*.user

@@ -308,7 +308,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	}
 	catch (requestStopException& e)
 	{
-		logger.log_message(krylovLogger::ERROR, e.what());
+		logger.log_message(krylovLogger::INFO, e.what());
 		return generateReturn();
 	}
 
@@ -424,7 +424,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 				sample();
 			} catch (requestStopException& e)
 			{
-				logger.log_message(krylovLogger::ERROR, e.what());
+				logger.log_message(krylovLogger::INFO, e.what());
 				delete[] eigenvalues; delete[] schurvector;
 				delete V; delete H;
 				if (progressBar){
@@ -600,7 +600,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 			ret = integ.integrate(f, a, b, termination, &error, &L1); //Double exponential integration
 		}
 		catch (std::exception const& x) { //boost integration routine throw exception
-			logger.log_message(krylovLogger::WARNING, boost::diagnostic_information(x));
+			logger.log_message(krylovLogger::INFO, "Integration for error bound had to be restarted with a smaller substep due to a BOOST exception.");
 			ret = this->tol * 10; //ignore the error in the integration by setting error to fail the following check to invoke substep reduction
 		}
 		//Check if requested accuracy was achieved; no check is needed if the contribution of the integral computed here to the absolute error integral is small
