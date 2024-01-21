@@ -168,7 +168,7 @@ smatrix::smatrix(const smatrix& old_obj) {
 */
 int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double> *out) {
 
-#if defined USE_MKL
+#if defined(USE_MKL) && !defined(USE_CUDA)
     sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, alpha, *MKLSparseMatrix,
         descriptor, in, zero, out);
     return (int) mklStatus;
@@ -178,6 +178,12 @@ int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::com
     for (unsigned int i = 0; i != m; i++)
         out[i] = res(i);
     return 0;
+#elif defined USE_CUDA
+    CHECK_CUDA(cudaMemcpy(CX, in, n * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
+
+    CHECK_CUSPARSE(cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY, CUDA_C_64F, CUSPARSE_SPMV_ALG_DEFAULT, dBuffer));
+
+    CHECK_CUDA(cudaMemcpy(out, CY, n * sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
 
 #else  //not recommended, very slow,  please install an optimized sparse BLAS library for reasonable performance
     for (size_t i = 0; i != n; i++)
@@ -198,7 +204,7 @@ int smatrix::initialize() {
     if (initialized == true)
         return -1;
 
-#ifdef USE_MKL
+#if defined(USE_MKL) && !defined(USE_CUDA)
     if (numValues == 0)
         return 1;
 
@@ -224,6 +230,32 @@ int smatrix::initialize() {
     mkl_sparse_optimize(*MKLSparseMatrix);
     
  #endif
+
+#ifdef USE_CUDA
+
+    CHECK_CUDA( cudaMalloc((void**)&Cvalues, sizeof(std::complex<double>) * numValues));
+    CHECK_CUDA( cudaMalloc((void**)&CX, sizeof(std::complex<double>) * n));
+    CHECK_CUDA( cudaMalloc((void**)&CY, sizeof(std::complex<double>) * n));
+    CHECK_CUDA( cudaMalloc((void**)&Ccolumns, sizeof(size_t) * numValues));
+    CHECK_CUDA( cudaMalloc((void**)&CrowIndex, sizeof(size_t) * numValues));
+
+    CHECK_CUDA( cudaMemcpy(CrowIndex, rowIndex, sizeof(size_t) * numValues, cudaMemcpyHostToDevice));
+    CHECK_CUDA( cudaMemcpy(Ccolumns, columns, sizeof(size_t) * numValues, cudaMemcpyHostToDevice));
+    CHECK_CUDA( cudaMemcpy(Cvalues, values, sizeof(std::complex<double>) * numValues, cudaMemcpyHostToDevice));
+
+    CHECK_CUSPARSE( cusparseCreate(&handle));
+
+    CHECK_CUSPARSE( cusparseCreateCoo(&matA, n, m, numValues, CrowIndex, Ccolumns, Cvalues, CUSPARSE_INDEX_64I, CUSPARSE_INDEX_BASE_ZERO, CUDA_C_64F));
+    CHECK_CUSPARSE( cusparseCreateDnVec(&vecX, m, CX, CUDA_C_64F));
+    CHECK_CUSPARSE( cusparseCreateDnVec(&vecY, m, CY, CUDA_C_64F));
+
+    CHECK_CUSPARSE( cusparseSpMV_bufferSize(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY, CUDA_C_64F, CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize));
+
+    CHECK_CUDA( cudaMalloc(&dBuffer, bufferSize));
+
+
+#endif
+
     
 #ifdef USE_ARMADILLO
     ArmadillorowIndex = arma::umat((unsigned long long *) rowIndex, 1, numValues, false, true);
@@ -252,11 +284,18 @@ smatrix::~smatrix()
         delete[] columns;
     }
 
-#ifdef USE_MKL
+#if defined(USE_MKL) && !defined(USE_CUDA)
     if (MKLSparseMatrix != nullptr) {
         mkl_sparse_destroy(*MKLSparseMatrix);
         delete MKLSparseMatrix;
     }
+#endif
+
+#ifdef USE_CUDA
+    cusparseDestroySpMat(matA);
+    cusparseDestroyDnVec(vecX);
+    cusparseDestroyDnVec(vecY);
+    cusparseDestroy(handle);
 #endif
 }
 

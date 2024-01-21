@@ -31,3 +31,10 @@
 #define lapack_complex_double std::complex<double>
 #include <Accelerate.h>
 #endif
+
+
+#ifdef USE_CUDA
+#include <cuda_runtime_api.h> 
+#include <cusparse.h> 
+#include "CudaHelper.h"
+#endif

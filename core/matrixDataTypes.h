@@ -96,6 +96,27 @@
             arma::umat ArmadilloindexMatrix;
             arma::cx_vec ArmadillovalueVector;
 #endif
+
+#ifdef USE_CUDA
+            cudaError_t Cudastatus;
+
+            std::complex<double>* Cvalues;
+            size_t* Ccolumns;
+            size_t* CrowIndex;
+            size_t CnumValues;
+            size_t Cn, Cm;
+            std::complex<double>* CX;
+            std::complex<double>* CY;
+
+            std::complex<double> alpha = 1.0;
+            std::complex<double> beta = 0.0;
+
+            cusparseHandle_t     handle = NULL;
+            cusparseSpMatDescr_t matA;
+            cusparseDnVecDescr_t vecX, vecY;
+            void* dBuffer = NULL;
+            size_t               bufferSize = 0;
+#endif
         };
 
 
