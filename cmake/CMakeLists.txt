@@ -5,7 +5,7 @@ set_property (DIRECTORY PROPERTY EP_BASE Dependencies)
 set (DEPENDENCIES)
 set (EXTRA_CMAKE_ARGS)
 
-set( boost_download "https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz")
+set( boost_download "https://archives.boost.io/release/1.83.0/source/boost_1_83_0.tar.gz")
 set( boost_SHA256 "c0685b68dd44cc46574cce86c4e17c0f611b15e195be9848dfd0769a0a207628" )
 set( boost_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/third_party/boost )
 set( boost_INCLUDE_DIR ${boost_INSTALL}/include )
