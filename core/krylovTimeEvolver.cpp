@@ -60,7 +60,12 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 	currentVec = new std::complex<double>[Hsize];
 	cblas_zcopy(Hsize, v, 1, currentVec, 1);
 	//The state to be sampled
+#ifdef USE_CUDA
+	cudaMallocHost((void**)&sampledState, sizeof(std::complex<double>) * Hsize);
+#else
 	sampledState = new std::complex<double>[Hsize];
+#endif
+
 	cblas_zcopy(Hsize, v, 1, sampledState, 1);
 	//A temporary vector of size Hsize
 	tmpBlasVec = new std::complex<double>[Hsize];
@@ -98,10 +103,14 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 */
 krylovTimeEvolver::~krylovTimeEvolver()
 {
+#ifdef USE_CUDA
+	cudaFreeHost(sampledState);
+#else
+	delete[] sampledState;
+#endif
     delete[] tmpBlasVec;
     delete[] tmpKrylovVec1;
     delete[] tmpKrylovVec2;
-    delete[] sampledState;
     delete[] currentVec;
 	delete[] tmpintKernelExp;
 	delete[] tmpintKernelExp1;
