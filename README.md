@@ -17,8 +17,8 @@ M. Michel and S. Zell, *TimeEvolver*: A Program for Time Evolution With Improved
 **If you use *TimeEvolver*, please cite the above paper.**
 
 If you have any questions or experience technical problems, please feel free to **contact us**:
-- <michelma@post.bgu.ac.il>
-- <sebastian.zell@uclouvain.be>
+- <mmichel.physics@gmail.com>
+- <sebastian.zell@lmu.de>
 
 # Project Structure
 
