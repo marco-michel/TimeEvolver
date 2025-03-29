@@ -74,6 +74,14 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 	HamCUDA = std::make_unique<smatrixCUDA>(*(this->Ham));
 	cudaMalloc(reinterpret_cast<void**>( & d_negativeH), sizeof(cuDoubleComplex));
 	cublasCreate(&cuBLAShandle);
+	cublasSetPointerMode(cuBLAShandle, CUBLAS_POINTER_MODE_DEVICE);
+	this->expFactorCUDA = cuDoubleComplex{ 0.0, -1.0 * expFactor };
+	cudaMalloc(&normyDevice, sizeof(double));
+	cudaMalloc(&inverseNormDevice, sizeof(cuDoubleComplex));
+	cudaMalloc(&normDevice, sizeof(cuDoubleComplex));
+
+	HRetCuda = new matrixCUDA(m,m);//(HRet->n, HRet->m);
+	VRetCuda = new matrixCUDA(Hsize, m);//(VRet->n, VRet->m);
 #endif
 
 
@@ -600,35 +608,16 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
  * @return false, is no lucky breakdown has occured; true if lucky breakdown has occured
  */
 bool krylovTimeEvolver::arnoldiAlgorithmCUDA(double tolRate, TE::matrix* HRet, TE::matrix* VRet, double* hRet, size_t* mRet) {
-	double normy = 0.;
-	std::complex<double> negativeH;
-	cblas_zcopy(Hsize, currentVec, 1, VRet->values, 1);
 
-	matrixCUDA HRetCuda(HRet->n, HRet->m);
-	matrixCUDA VRetCuda(VRet->n, VRet->m);
-
-	CHECK_CUDA(cudaMemcpy(VRetCuda.valuesCUDA, currentVec, Hsize * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
-
-
-
+	CHECK_CUDA(cudaMemcpy(VRetCuda->valuesCUDA, currentVec, Hsize * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
 
 
 	for (size_t j = 0; j <= m - 1; j++) {
-		CHECK_CUSPARSE(cusparseDnVecSetValues(HamCUDA->vecX, VRetCuda.valuesCUDA + j * Hsize));
+		CHECK_CUSPARSE(cusparseDnVecSetValues(HamCUDA->vecX, VRetCuda->valuesCUDA + j * Hsize));
 
-		cuDoubleComplex testAVal[10];
-		cuDoubleComplex testCX[10];
-		cuDoubleComplex testCY[10];
-		
-		cudaMemcpy(testCX, HamCUDA->CX, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
-		cudaMemcpy(testCY, HamCUDA->CY, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
-		cudaMemcpy(testAVal, HamCUDA->Cvalues, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
+		cublasStatus_t cublasStat;
 
-
-
-
-
-		int spStatus = HamCUDA->spMV(expFactor, HamCUDA->vecX, HamCUDA->vecY);
+		int spStatus = HamCUDA->spMV(expFactorCUDA, HamCUDA->vecX, HamCUDA->vecY);
 
 		if (spStatus != 0)
 		{
@@ -639,61 +628,64 @@ bool krylovTimeEvolver::arnoldiAlgorithmCUDA(double tolRate, TE::matrix* HRet, T
 			negativeH = (-1.0) * *((HRet->values) + j - 1 + j * m);
 			cblas_zaxpy(Hsize, &negativeH, VRet->values + (j - 1) * Hsize, 1,
 				tmpBlasVec, 1);*/
-			launchComputeNegative(reinterpret_cast<cuDoubleComplex*>(HRet->values), d_negativeH, j - 1 + j * m);
-			cublasZaxpy(cuBLAShandle, Hsize, d_negativeH, reinterpret_cast<cuDoubleComplex*>(VRetCuda.valuesCUDA + (j - 1) * Hsize), 1, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1);
+			launchComputeNegative(HRetCuda->valuesCUDA, d_negativeH, j - 1 + j * m);
+			cublasStat = cublasZaxpy(cuBLAShandle, Hsize, d_negativeH, reinterpret_cast<cuDoubleComplex*>(VRetCuda->valuesCUDA + (j - 1) * Hsize), 1, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1);
 		}
 
 
 		//cblas_zdotc_sub(Hsize, VRet->values + j * Hsize, 1, tmpBlasVec, 1,
 			//(HRet->values) + j + (j * m));
-		cublasZdotc(cuBLAShandle, Hsize, reinterpret_cast<cuDoubleComplex*>(VRetCuda.valuesCUDA + j * Hsize), 1, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1, reinterpret_cast<cuDoubleComplex*>(HRetCuda.valuesCUDA + j + (j * m)));
+		cublasStat = cublasZdotc(cuBLAShandle, Hsize, VRetCuda->valuesCUDA + j * Hsize, 1, HamCUDA->CY, 1, reinterpret_cast<cuDoubleComplex*>(HRetCuda->valuesCUDA + j + (j * m)));
+
 
 
 		//negativeH = (-1.0) * *((HRet->values) + j + j * m);
-		launchComputeNegative(reinterpret_cast<cuDoubleComplex*>(HRet->values), d_negativeH, j + j * m);
+		launchComputeNegative(HRetCuda->valuesCUDA, d_negativeH, j + j * m);
+
 
 		//cblas_zaxpy(Hsize, &negativeH, VRet->values + j * Hsize, 1, tmpBlasVec,1);
-		cublasZaxpy(cuBLAShandle, Hsize, d_negativeH, reinterpret_cast<cuDoubleComplex*>(VRetCuda.valuesCUDA + j * Hsize), 1, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1);
+		cublasStat = cublasZaxpy(cuBLAShandle, Hsize, d_negativeH, VRetCuda->valuesCUDA + j * Hsize, 1, HamCUDA->CY, 1);
+
 
 		//normy = cblas_dznrm2(Hsize, tmpBlasVec, 1);
-		cublasDznrm2(cuBLAShandle, Hsize, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1, &normy);
+		cublasStat = cublasDznrm2(cuBLAShandle, Hsize, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1, normyDevice);
 
-		//Detection of lucky breakdown
-		if (normy < tolRate) {
+		//Detection of lucky breakdown  /*
+		/*if (normy < tolRate) {
 			*mRet = j + 1;
 			*hRet = normy;
 			exit(1); // not implemented yet
 			return true;
-		}
-		//End detection of lucky breakdown
+		}*/
+		//End detection of lucky breakdown*/
 
 		if (j + 1 != m) {
-			HRet->values[j + (j + 1) * m].real(-normy);
-			HRet->values[j + 1 + j * m].real(normy);
 
-			cuDoubleComplex cuComplexNormy{ normy, 0.0 };
-			cuDoubleComplex cuComplexNormyNegativ{ -normy, 0.0 };
+			launchComputeFourOutputsFromDouble(normyDevice, HRetCuda->valuesCUDA + j + 1 + j * m, normDevice , inverseNormDevice, HRetCuda->valuesCUDA + j + (j + 1) * m);
 
-			cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(HRetCuda.valuesCUDA+j+(j+1)*m), &cuComplexNormyNegativ, sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
-			cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(HRetCuda.valuesCUDA + j + 1 + j * m), &cuComplexNormy, sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
 
-			std::complex<double> inverseNorm;
-			inverseNorm.real(1.0 / normy);
-			inverseNorm.imag(0.0);
+
+			//HRet->values[j + (j + 1) * m].real(-normy);
+			//HRet->values[j + 1 + j * m].real(normy);
+
 
 			//cblas_zscal(Hsize, &inverseNorm, tmpBlasVec, 1);
-			cublasZscal(cuBLAShandle, Hsize, reinterpret_cast<cuDoubleComplex*>(&inverseNorm), reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1);
+			cublasZscal(cuBLAShandle, Hsize, inverseNormDevice, HamCUDA->CY, 1);
+
 
 			//cblas_zcopy(Hsize, tmpBlasVec, 1, (VRet->values) + Hsize * (j + 1), 1);
-			cublasZcopy(cuBLAShandle, Hsize, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1, reinterpret_cast<cuDoubleComplex*>(VRetCuda.valuesCUDA + Hsize * (j + 1)), 1);
+			cublasZcopy(cuBLAShandle, Hsize, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1, reinterpret_cast<cuDoubleComplex*>(VRetCuda->valuesCUDA + Hsize * (j + 1)), 1);
+
 		}
-		else
-			*hRet = normy;
+		else {
+		//	*hRet = normy;
+			cudaMemcpy(hRet, normyDevice, sizeof(double), cudaMemcpyDeviceToHost);
+		}
 	}
 	*mRet = m;
 
-	cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(HRetCuda.valuesCUDA), reinterpret_cast<cuDoubleComplex*>(HRet->values), HRet->numValues * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
-	cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(VRetCuda.valuesCUDA), reinterpret_cast<cuDoubleComplex*>(VRet->values), VRet->numValues * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
+	cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(HRet->values), HRetCuda->valuesCUDA, HRet->numValues * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
+	cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(VRet->values), VRetCuda->valuesCUDA, VRet->numValues * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
 
 
 	return false;

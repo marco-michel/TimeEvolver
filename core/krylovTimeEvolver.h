@@ -12,6 +12,8 @@
 #include <iomanip>
 
 #include <cublas_v2.h>
+#include <cuComplex.h>
+#include <cuda_runtime.h>
 
 #include <boost/math/quadrature/tanh_sinh.hpp>
 #include <boost/math/quadrature/gauss.hpp> 
@@ -114,6 +116,12 @@ protected:
     std::complex<double>* tmpBlasVecCUDA;
     cuDoubleComplex* d_negativeH;
     cublasHandle_t cuBLAShandle;
+    cuDoubleComplex expFactorCUDA;
+    double* normyDevice;
+    cuDoubleComplex* inverseNormDevice;
+    cuDoubleComplex* normDevice;
+    matrixCUDA* HRetCuda;//(HRet->n, HRet->m);
+    matrixCUDA* VRetCuda;//(VRet->n, VRet->m);
 #endif
     
     //temporary variables shared by different functions

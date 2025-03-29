@@ -28,7 +28,7 @@ namespace TE {
 #ifdef USE_CUDA
     class matrixCUDA : matrix {
     public:
-        std::complex<double>* valuesCUDA;
+        cuDoubleComplex* valuesCUDA;
         matrixCUDA(std::size_t nn, std::size_t mm);
         matrixCUDA(size_t nn, size_t mm, std::complex<double>* vals);
         ~matrixCUDA();
@@ -113,16 +113,18 @@ namespace TE {
     public:
         cudaError_t Cudastatus;
 
-        std::complex<double>* Cvalues;
-        size_t* Ccolumns;
+        cuDoubleComplex* Cvalues;
+        int_least64_t* Ccolumns;
         size_t* CrowIndex;
         size_t CnumValues;
         size_t Cn, Cm;
-        std::complex<double>* CX;
-        std::complex<double>* CY;
+        cuDoubleComplex* CX;
+        cuDoubleComplex* CY;
 
-        std::complex<double> alpha = 1.0;
-        std::complex<double> beta = 0.0;
+
+        cuDoubleComplex zeroCUDA{ 0.0,0.0 };
+        cuDoubleComplex oneCUDA{ 1.0,0.0 };
+
 
         cusparseHandle_t     handle = NULL;
         cusparseSpMatDescr_t matA;
@@ -131,7 +133,7 @@ namespace TE {
         size_t               bufferSize = 0;
 
         int initialize();
-        int spMV(std::complex<double> alpha, cusparseDnVecDescr_t& in, cusparseDnVecDescr_t& out);
+        int spMV(cuDoubleComplex alpha, cusparseDnVecDescr_t& in, cusparseDnVecDescr_t& out);
         smatrixCUDA() = default;
         smatrixCUDA(const smatrix& baseObj);
         ~smatrixCUDA();
