@@ -19,3 +19,5 @@
 *.vcxproj
 *.filters
 *.user
+/Intel® VTune™ Profiler Results/TimeEvolverCUDA
+/TimeEvolverCUDA/x64

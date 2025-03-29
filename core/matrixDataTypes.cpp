@@ -12,11 +12,7 @@ matrix::matrix(size_t nn, size_t mm)
     n = nn; m = mm;
     numValues = n * m;
     if (numValues > 0)
-#ifdef USE_CUDA
-        cudaMallocHost((void**)&values, sizeof(std::complex<double>)* numValues);
-#else
         values = new std::complex<double>[n * m];
-#endif
     else
         values = nullptr;
 }
@@ -45,11 +41,7 @@ matrix:: ~matrix()
 {
     if (n * m > 0)
     {
-#ifdef USE_CUDA
-        cudaFreeHost(values);
-#else
         delete[] values;
-#endif
     }
 }
 
@@ -172,6 +164,52 @@ smatrix::smatrix(const smatrix& old_obj) {
 }
 
 /**
+* Copy assingment
+* @param old_obj Reference object to construct a copy from
+*/
+smatrix& smatrix::operator=(const smatrix& old_obj) {
+    if (this != &old_obj) {
+        // Free any previously allocated memory
+        if (columns != nullptr) {
+            delete[] columns;
+            delete[] rowIndex;
+            delete[] values;
+        }
+        // Copy basic attributes
+        numValues = old_obj.numValues;
+        n = old_obj.n;
+        m = old_obj.m;
+        sym = old_obj.sym;
+        hermitian = old_obj.hermitian;
+        upperTri = old_obj.upperTri;
+        initialized = false;
+
+        // Allocate new memory for arrays
+        columns = new size_t[numValues];
+        rowIndex = new size_t[numValues];
+        values = new std::complex<double>[numValues];
+
+        // Copy over the array data
+        for (unsigned int i = 0; i != numValues; i++) {
+            values[i] = old_obj.values[i];
+            columns[i] = old_obj.columns[i];
+            rowIndex[i] = old_obj.rowIndex[i];
+        }
+
+#ifdef USE_MKL
+        // Clean up previous MKL resources if they exist
+        if (MKLSparseMatrix) {
+            delete MKLSparseMatrix;
+        }
+        MKLSparseMatrix = new sparse_matrix_t;
+        descriptor = old_obj.descriptor;
+        initialize();
+#endif
+    }
+    return *this;
+}
+
+/**
 * Sparse Matrix dense vector multiplication: out = alpha * this * in. Uses MKL for optimized routines but also has an alternative branch in case there is no MKL installed. 
 * @param alpha Scalar factor (usually set to one)
 * @param in (Dense) vector multiplying (this) matrix
@@ -180,7 +218,7 @@ smatrix::smatrix(const smatrix& old_obj) {
 */
 int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double> *out) {
 
-#if defined(USE_MKL) && !defined(USE_CUDA)
+#if defined(USE_MKL)
     sparse_status_t mklStatus = mkl_sparse_z_mv(SPARSE_OPERATION_NON_TRANSPOSE, alpha, *MKLSparseMatrix,
         descriptor, in, zero, out);
     return (int) mklStatus;
@@ -190,13 +228,6 @@ int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::com
     for (unsigned int i = 0; i != m; i++)
         out[i] = res(i);
     return 0;
-#elif defined USE_CUDA
-    CHECK_CUDA(cudaMemcpy(CX, in, n * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
-
-    CHECK_CUSPARSE(cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY, CUDA_C_64F, CUSPARSE_SPMV_ALG_DEFAULT, dBuffer));
-
-    CHECK_CUDA(cudaMemcpy(out, CY, n * sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
-
 #else  //not recommended, very slow,  please install an optimized sparse BLAS library for reasonable performance
     for (size_t i = 0; i != n; i++)
         out[i] = 0;
@@ -216,7 +247,7 @@ int smatrix::initialize() {
     if (initialized == true)
         return -1;
 
-#if defined(USE_MKL) && !defined(USE_CUDA)
+#if defined(USE_MKL)
     if (numValues == 0)
         return 1;
 
@@ -243,30 +274,7 @@ int smatrix::initialize() {
     
  #endif
 
-#ifdef USE_CUDA
 
-    CHECK_CUDA( cudaMalloc((void**)&Cvalues, sizeof(std::complex<double>) * numValues));
-    CHECK_CUDA( cudaMalloc((void**)&CX, sizeof(std::complex<double>) * n));
-    CHECK_CUDA( cudaMalloc((void**)&CY, sizeof(std::complex<double>) * n));
-    CHECK_CUDA( cudaMalloc((void**)&Ccolumns, sizeof(size_t) * numValues));
-    CHECK_CUDA( cudaMalloc((void**)&CrowIndex, sizeof(size_t) * numValues));
-
-    CHECK_CUDA( cudaMemcpy(CrowIndex, rowIndex, sizeof(size_t) * numValues, cudaMemcpyHostToDevice));
-    CHECK_CUDA( cudaMemcpy(Ccolumns, columns, sizeof(size_t) * numValues, cudaMemcpyHostToDevice));
-    CHECK_CUDA( cudaMemcpy(Cvalues, values, sizeof(std::complex<double>) * numValues, cudaMemcpyHostToDevice));
-
-    CHECK_CUSPARSE( cusparseCreate(&handle));
-
-    CHECK_CUSPARSE( cusparseCreateCoo(&matA, n, m, numValues, CrowIndex, Ccolumns, Cvalues, CUSPARSE_INDEX_64I, CUSPARSE_INDEX_BASE_ZERO, CUDA_C_64F));
-    CHECK_CUSPARSE( cusparseCreateDnVec(&vecX, m, CX, CUDA_C_64F));
-    CHECK_CUSPARSE( cusparseCreateDnVec(&vecY, m, CY, CUDA_C_64F));
-
-    CHECK_CUSPARSE( cusparseSpMV_bufferSize(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY, CUDA_C_64F, CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize));
-
-    CHECK_CUDA( cudaMalloc(&dBuffer, bufferSize));
-
-
-#endif
 
     
 #ifdef USE_ARMADILLO
@@ -296,19 +304,109 @@ smatrix::~smatrix()
         delete[] columns;
     }
 
-#if defined(USE_MKL) && !defined(USE_CUDA)
+#if defined(USE_MKL)
     if (MKLSparseMatrix != nullptr) {
         mkl_sparse_destroy(*MKLSparseMatrix);
         delete MKLSparseMatrix;
     }
 #endif
+}
+
+
+
 
 #ifdef USE_CUDA
+int TE::smatrixCUDA::initialize()
+{
+
+    CHECK_CUDA(cudaMalloc((void**)&Cvalues, sizeof(std::complex<double>) * numValues));
+    CHECK_CUDA(cudaMalloc((void**)&CX, sizeof(std::complex<double>) * n));
+    CHECK_CUDA(cudaMalloc((void**)&CY, sizeof(std::complex<double>) * n));
+    CHECK_CUDA(cudaMalloc((void**)&Ccolumns, sizeof(size_t) * numValues));
+    CHECK_CUDA(cudaMalloc((void**)&CrowIndex, sizeof(size_t) * numValues));
+
+    CHECK_CUDA(cudaMemcpy(CrowIndex, rowIndex, sizeof(size_t) * numValues, cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(Ccolumns, columns, sizeof(size_t) * numValues, cudaMemcpyHostToDevice));
+    CHECK_CUDA(cudaMemcpy(Cvalues, values, sizeof(std::complex<double>) * numValues, cudaMemcpyHostToDevice));
+
+    CHECK_CUDA(cudaMemset(CX, 0, n));
+    CHECK_CUDA(cudaMemset(CY, 0, n));
+
+    cuDoubleComplex testCX[10];
+    cuDoubleComplex testCY[10];
+
+    cudaMemcpy(testCX, CX, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
+    cudaMemcpy(testCY, CY, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
+
+    CHECK_CUSPARSE(cusparseCreate(&handle));
+
+    CHECK_CUSPARSE(cusparseCreateCoo(&matA, n, m, numValues, CrowIndex, Ccolumns, Cvalues, CUSPARSE_INDEX_64I, CUSPARSE_INDEX_BASE_ZERO, CUDA_C_64F));
+    CHECK_CUSPARSE(cusparseCreateDnVec(&vecX, m, CX, CUDA_C_64F));
+    CHECK_CUSPARSE(cusparseCreateDnVec(&vecY, m, CY, CUDA_C_64F));
+
+    CHECK_CUSPARSE(cusparseSpMV_bufferSize(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY, CUDA_C_64F, CUSPARSE_SPMV_COO_ALG1, &bufferSize));
+    //CHECK_CUDA(cudaMalloc(&dBuffer, bufferSize));
+    CHECK_CUDA(cudaMalloc(&dBuffer, m*sizeof(cuDoubleComplex)));
+    //CHECK_CUSPARSE(cusparseSpMV_preprocess(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY, CUDA_C_64F, CUSPARSE_SPMV_COO_ALG1, &dBuffer));
+
+
+
+    return 0;
+}
+int TE::smatrixCUDA::spMV(std::complex<double> alpha, cusparseDnVecDescr_t &in, cusparseDnVecDescr_t &out)
+{
+
+    cuDoubleComplex testIn[10];
+    cuDoubleComplex* testInDEVICE;
+    cudaMalloc((void**)&testInDEVICE, sizeof(cuDoubleComplex) * n);
+    cudaDataType owo;
+    long long sizu;
+
+    cusparseDnVecGet(in, &sizu, (void**) & testInDEVICE, &owo);
+    cudaMemcpy(testIn, testInDEVICE, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
+
+    //CHECK_CUDA(cudaMemcpy(CX, in, n * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
+    CHECK_CUSPARSE(cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, in, &beta, out, CUDA_C_64F, CUSPARSE_SPMV_COO_ALG1, dBuffer));
+    //CHECK_CUDA(cudaMemcpy(out, CY, n * sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
+}
+TE::smatrixCUDA::smatrixCUDA(const smatrix& baseObj) : smatrix(baseObj)
+{
+    initialize();
+}
+TE::smatrixCUDA::~smatrixCUDA()
+{
     cusparseDestroySpMat(matA);
     cusparseDestroyDnVec(vecX);
     cusparseDestroyDnVec(vecY);
     cusparseDestroy(handle);
-#endif
 }
+#endif
+#ifdef USE_CUDA
+TE::matrixCUDA::matrixCUDA(size_t nn, size_t mm) : matrix(nn,mm)
+{
+    n = nn; m = mm;
+    numValues = n * m;
+    if (numValues > 0) {
+        
+        cudaMalloc((void**)&valuesCUDA, sizeof(std::complex<double>) * numValues);
+    }
+    else {
+        values = nullptr;
+    }
+}
+TE::matrixCUDA::~matrixCUDA()
+{
+    if(numValues > 0)
+        cudaFree(valuesCUDA);
+}
+TE::matrixCUDA::matrixCUDA(size_t nn, size_t mm, std::complex<double>* vals) :matrix(nn, mm, vals) {
 
-
+    if (numValues > 0)
+    {
+        cudaMalloc((void**)&valuesCUDA, sizeof(std::complex<double>) * numValues);
+        cudaMemcpy(valuesCUDA, vals, numValues * sizeof(std::complex<double>), cudaMemcpyHostToDevice);
+    }
+    else
+        valuesCUDA = nullptr;
+}
+#endif

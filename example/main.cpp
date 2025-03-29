@@ -48,17 +48,17 @@ int main(int argc, char* argv[])
         desc.add_options()
         ("help", "produce help message")
         ("N0", po::value<int>(&N0)->default_value(20), "Number of particles in control sector")
-        ("Nm", po::value<int>(&Nm)->default_value(2), "Number of particles in critical sector")
-        ("K", po::value<int>(&K)->default_value(4), "Number of modes in critical sector")
-        ("C0", po::value<double>(&C0)->default_value(1.0), "Coupling in control sector")
-        ("Cm", po::value<double>(&Cm)->default_value(1.0), "Coupling in critical sector")
-        ("maxT", po::value<double>(&maxT)->default_value(10), "Simulation-time")
-	    ("samplingStep", po::value<double>(&samplingStep)->default_value(0.01), "Time interval of sampling")
-        ("tol", po::value<double>(&tol)->default_value(1.0e-8), "Numerical tolerance")
+        ("Nm", po::value<int>(&Nm)->default_value(3), "Number of particles in critical sector")
+        ("K", po::value<int>(&K)->default_value(6), "Number of modes in critical sector")
+        ("C0", po::value<double>(&C0)->default_value(0.0003), "Coupling in control sector")
+        ("Cm", po::value<double>(&Cm)->default_value(0.065), "Coupling in critical sector")
+        ("maxT", po::value<double>(&maxT)->default_value(5000), "Simulation-time")
+	    ("samplingStep", po::value<double>(&samplingStep)->default_value(20), "Time interval of sampling")
+        ("tol", po::value<double>(&tol)->default_value(1.0e-6), "Numerical tolerance")
         ("m", po::value<int>(&m)->default_value(40), "Dimension of Krylov-Space")
         ("DeltaN", po::value<double>(&DeltaN)->default_value(12), "Distance between critical sectors")
         ("capacity", po::value<int>(&capacity)->default_value(1), "Capacity of cirtial modes")
-        ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(false), "Use faster and less accurate integration")
+        ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(true), "Use faster and less accurate integration")
         ;
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -77,6 +77,8 @@ int main(int argc, char* argv[])
             return 1;
         }
     }
+
+    mkl_set_num_threads(2);
 
     std::cout << "TimeEvolver Example" << std::endl;
     

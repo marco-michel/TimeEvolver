@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <iomanip>
 
+#include <cublas_v2.h>
+
 #include <boost/math/quadrature/tanh_sinh.hpp>
 #include <boost/math/quadrature/gauss.hpp> 
 #include <boost/throw_exception.hpp>
@@ -21,6 +23,7 @@
 #include "krylovObservables.h"
 #include "krylovLogger.h"
 #include "version.h"
+#include "Header.cuh"
 
 
 
@@ -72,6 +75,7 @@ protected:
     int findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
     void sample();
     bool arnoldiAlgorithm(double tolRate, TE::matrix* H, TE::matrix* V, double* h, size_t* m_hbd);
+    bool arnoldiAlgorithmCUDA(double tolRate, TE::matrix* HRet, TE::matrix* VRet, double* hRet, size_t* mRet);
     double integrateError(double a, double b, std::complex<double>* T, std::complex<double>* spectrumH, double h, int method, double tolRate, bool& successful);
     void printProgress(float prog);
     void progressBarThread();
@@ -101,6 +105,16 @@ protected:
     boost::math::quadrature::tanh_sinh<double> integ;
     int integrationMethodLong, integrationMethodShort;
     double termination;
+
+#ifdef USE_CUDA
+    bool CUDAInitialized = false;
+    std::unique_ptr<smatrixCUDA> HamCUDA;
+    std::complex<double>* currentVecCUDA;
+    std::complex<double>* sampledStateCUDA;
+    std::complex<double>* tmpBlasVecCUDA;
+    cuDoubleComplex* d_negativeH;
+    cublasHandle_t cuBLAShandle;
+#endif
     
     //temporary variables shared by different functions
     std::complex<double>* currentVec;

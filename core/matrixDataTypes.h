@@ -9,119 +9,135 @@
 #include "mathHeader.h"
 
 
+
     //Define namespace for matrices and vector classes
-    namespace TE {
+namespace TE {
+    /**
+    * Dense matrix class providing function to store the matrix as well as HDF5 file output on supported platforms
+    */
+    class matrix
+    {
+    public:
+        size_t n, m;
+        std::complex<double>* values;
+        size_t numValues;
+        matrix(size_t nn, size_t mm);
+        matrix(size_t nn, size_t mm, std::complex<double>* vals);
+        ~matrix();
+    };
+#ifdef USE_CUDA
+    class matrixCUDA : matrix {
+    public:
+        std::complex<double>* valuesCUDA;
+        matrixCUDA(std::size_t nn, std::size_t mm);
+        matrixCUDA(size_t nn, size_t mm, std::complex<double>* vals);
+        ~matrixCUDA();
+    };
+#endif
 
-        /** 
-        * Dense matrix class providing function to store the matrix as well as HDF5 file output on supported platforms
-        */
-        class matrix
-        {
-        public:
-            size_t n, m;
-            std::complex<double>* values;
-            size_t numValues;
-            matrix(size_t nn, size_t mm);
-            matrix(size_t nn, size_t mm, std::complex<double>* vals);
-            ~matrix();
-        };
+    /**
+    * Class to store a dense vector
+    */
+    class vector
+    {
+    public:
+        std::complex<double>* values;
+        size_t length;
 
-
-        /**
-        * Class to store a dense vector 
-        */
-        class vector
-        {
-        public:
-            std::complex<double>* values;
-            size_t length;
-
-            vector(unsigned int n) {
-                if (n == 0) {
-                    std::cerr << "Empty vectors are not supported." << std::endl;
-                    exit(1);
-                }
-                length = n;
-                values = new std::complex<double>[length];
+        vector(unsigned int n) {
+            if (n == 0) {
+                std::cerr << "Empty vectors are not supported." << std::endl;
+                exit(1);
             }
+            length = n;
+            values = new std::complex<double>[length];
+        }
 
-            ~vector() {
-                delete[] values;
-            }
-            //implicit conversion operator to pointer
-            operator std::complex<double>* () const { return NULL; }
-        };
+        ~vector() {
+            delete[] values;
+        }
+        //implicit conversion operator to pointer
+        operator std::complex<double>* () const { return NULL; }
+    };
 
 
-        /**
-        * Internal class for sparse matrix representation. Provides a wrapper for sparse matrix - dense vector multiplications, which can take advantage of optimized libraries. 
-        */
-        class smatrix
-        {
-        public:
-            std::complex<double>* values;
-            size_t* columns;
-            size_t* rowIndex;
-            size_t numValues;
-            size_t n, m;
-            bool sym, hermitian;
-            bool upperTri;
-            bool initialized; 
+    /**
+    * Internal class for sparse matrix representation. Provides a wrapper for sparse matrix - dense vector multiplications, which can take advantage of optimized libraries.
+    */
+    class smatrix
+    {
+    public:
+        std::complex<double>* values;
+        size_t* columns;
+        size_t* rowIndex;
+        size_t numValues;
+        size_t n, m;
+        bool sym, hermitian;
+        bool upperTri;
+        bool initialized;
 
-            double norm1();
-            double normInf();
+        double norm1();
+        double normInf();
 
-            smatrix();
-            smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm);
-            smatrix(const smatrix& old_obj);
-            ~smatrix();
+        smatrix();
+        smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm);
+        smatrix(const smatrix& old_obj);
+        ~smatrix();
 
-            int spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double>* out);
-            int initialize();
+        smatrix& smatrix::operator=(const smatrix& old_obj);
 
-            static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
-            static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
+        int spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double>* out);
+        int initialize();
+
+        static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
+        static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
 
 #ifdef USE_MKL
-            //variables for mkl-library
-            sparse_matrix_t* MKLSparseMatrix;
-            matrix_descr descriptor;
+        //variables for mkl-library
+        sparse_matrix_t* MKLSparseMatrix;
+        matrix_descr descriptor;
 #endif
-
 #ifdef USE_ARMADILLO
-            //variables for armadillo-library
-            arma::sp_cx_mat* ArmadilloSparseMatrix;
-            arma::umat ArmadillorowIndex;
-            arma::umat ArmadillocolIndex;
-            arma::umat ArmadilloindexMatrix;
-            arma::cx_vec ArmadillovalueVector;
+        //variables for armadillo-library
+        arma::sp_cx_mat* ArmadilloSparseMatrix;
+        arma::umat ArmadillorowIndex;
+        arma::umat ArmadillocolIndex;
+        arma::umat ArmadilloindexMatrix;
+        arma::cx_vec ArmadillovalueVector;
 #endif
+    };
+
 
 #ifdef USE_CUDA
-            cudaError_t Cudastatus;
+    class smatrixCUDA : smatrix {
+    public:
+        cudaError_t Cudastatus;
 
-            std::complex<double>* Cvalues;
-            size_t* Ccolumns;
-            size_t* CrowIndex;
-            size_t CnumValues;
-            size_t Cn, Cm;
-            std::complex<double>* CX;
-            std::complex<double>* CY;
+        std::complex<double>* Cvalues;
+        size_t* Ccolumns;
+        size_t* CrowIndex;
+        size_t CnumValues;
+        size_t Cn, Cm;
+        std::complex<double>* CX;
+        std::complex<double>* CY;
 
-            std::complex<double> alpha = 1.0;
-            std::complex<double> beta = 0.0;
+        std::complex<double> alpha = 1.0;
+        std::complex<double> beta = 0.0;
 
-            cusparseHandle_t     handle = NULL;
-            cusparseSpMatDescr_t matA;
-            cusparseDnVecDescr_t vecX, vecY;
-            void* dBuffer = NULL;
-            size_t               bufferSize = 0;
+        cusparseHandle_t     handle = NULL;
+        cusparseSpMatDescr_t matA;
+        cusparseDnVecDescr_t vecX, vecY;
+        void* dBuffer = NULL;
+        size_t               bufferSize = 0;
+
+        int initialize();
+        int spMV(std::complex<double> alpha, cusparseDnVecDescr_t& in, cusparseDnVecDescr_t& out);
+        smatrixCUDA() = default;
+        smatrixCUDA(const smatrix& baseObj);
+        ~smatrixCUDA();
+    };
 #endif
-        };
-
-
-    }
-     
+}
 
     /**
     * Wrapper for element-wise vector operations: exp
