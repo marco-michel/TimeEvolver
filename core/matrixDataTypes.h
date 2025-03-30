@@ -32,6 +32,7 @@ namespace TE {
         matrixCUDA(std::size_t nn, std::size_t mm);
         matrixCUDA(size_t nn, size_t mm, std::complex<double>* vals);
         ~matrixCUDA();
+        cuDoubleComplex zero{ 0.0,0.0 };
     };
 #endif
 

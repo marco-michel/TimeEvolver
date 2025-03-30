@@ -48,7 +48,7 @@ extern "C" void launchComputeFourOutputsFromDouble(const double* d_input,
 {
     // Launch the kernel with one block and one thread.
     computeFourOutputsFromDouble << <1, 1 >> > (d_input, d_out0, d_out1, d_out2, d_out3);
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 }
 
 
@@ -59,5 +59,5 @@ extern "C" void launchComputeNegative(const cuDoubleComplex* d_HRet_values,
     // Launch the kernel
     computeNegative << <1, 1 >> > (d_HRet_values, d_negativeH, idx);
     // Optionally, synchronize to wait for kernel completion
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 }

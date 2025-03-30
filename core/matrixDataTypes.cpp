@@ -12,7 +12,12 @@ matrix::matrix(size_t nn, size_t mm)
     n = nn; m = mm;
     numValues = n * m;
     if (numValues > 0)
+#ifdef USE_CUDA
+        cudaMallocHost(reinterpret_cast<void**>(&values), numValues * sizeof(std::complex<double>));
+#else
         values = new std::complex<double>[n * m];
+#endif
+
     else
         values = nullptr;
 }
@@ -41,7 +46,11 @@ matrix:: ~matrix()
 {
     if (n * m > 0)
     {
+#ifdef USE_CUDA
+        cudaFreeHost(values);
+#else
         delete[] values;
+#endif
     }
 }
 
@@ -329,15 +338,6 @@ int TE::smatrixCUDA::initialize()
     CHECK_CUDA(cudaMemcpy(Ccolumns, columns, sizeof(size_t) * numValues, cudaMemcpyHostToDevice));
     CHECK_CUDA(cudaMemcpy(Cvalues, values, sizeof(std::complex<double>) * numValues, cudaMemcpyHostToDevice));
 
-    CHECK_CUDA(cudaMemset(CX, 0, n));
-    CHECK_CUDA(cudaMemset(CY, 0, n));
-
-
-    cuDoubleComplex testCX[10];
-    cuDoubleComplex testCY[10];
-
-    cudaMemcpy(testCX, CX, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
-    cudaMemcpy(testCY, CY, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
 
     CHECK_CUSPARSE(cusparseCreate(&handle));
 
@@ -349,31 +349,13 @@ int TE::smatrixCUDA::initialize()
     //CHECK_CUDA(cudaMalloc(&dBuffer, bufferSize));
     CHECK_CUDA(cudaMalloc(&dBuffer, m*sizeof(cuDoubleComplex)));
     //CHECK_CUSPARSE(cusparseSpMV_preprocess(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, vecX, &beta, vecY, CUDA_C_64F, CUSPARSE_SPMV_COO_ALG1, &dBuffer));
-
-
-
     return 0;
 }
 int TE::smatrixCUDA::spMV(cuDoubleComplex alpha, cusparseDnVecDescr_t &in, cusparseDnVecDescr_t &out)
 {
-
-    cuDoubleComplex testIn[10];
-    cuDoubleComplex* testInDEVICE;
-    cudaMalloc((void**)&testInDEVICE, sizeof(cuDoubleComplex) * n);
-    cudaDataType owo;
-    long long sizu;
-    cusparseDnVecGet(in, &sizu, (void**) & testInDEVICE, &owo);
-    cudaMemcpy(testIn, testInDEVICE+205, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
-
-    cuDoubleComplex zero{ 0.0,0.0 };
-
-
     //CHECK_CUDA(cudaMemcpy(CX, in, n * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
-    CHECK_CUSPARSE(cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, in, &zero, out, CUDA_C_64F, CUSPARSE_SPMV_COO_ALG1, dBuffer));
+    CHECK_CUSPARSE(cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, &alpha, matA, in, &zeroCUDA, out, CUDA_C_64F, CUSPARSE_SPMV_COO_ALG1, dBuffer));
     //CHECK_CUDA(cudaMemcpy(out, CY, n * sizeof(std::complex<double>), cudaMemcpyDeviceToHost));
-
-    cusparseDnVecGet(out, &sizu, (void**)&testInDEVICE, &owo);
-    cudaMemcpy(testIn, testInDEVICE + 118, sizeof(cuDoubleComplex) * 10, cudaMemcpyDeviceToHost);
 }
 TE::smatrixCUDA::smatrixCUDA(const smatrix& baseObj) : smatrix(baseObj)
 {

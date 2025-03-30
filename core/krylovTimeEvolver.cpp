@@ -62,7 +62,12 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 	n_samples = (size_t)floor(t / samplingStep) + 1;
 
 	//The state at the current time
+#ifdef USE_CUDA
+	cudaMallocHost(reinterpret_cast<void**>(&currentVec), Hsize * sizeof(std::complex<double>));
+#else
 	currentVec = new std::complex<double>[Hsize];
+#endif
+
 	cblas_zcopy(Hsize, v, 1, currentVec, 1);
 	//The state to be sampled
 	sampledState = new std::complex<double>[Hsize];
@@ -125,12 +130,14 @@ krylovTimeEvolver::~krylovTimeEvolver()
 {
 #ifdef USE_CUDA
 	cublasDestroy(cuBLAShandle);
+	cudaFreeHost(currentVec);
+#else
+	delete[] currentVec;
 #endif
 	delete[] sampledState;
     delete[] tmpBlasVec;
     delete[] tmpKrylovVec1;
     delete[] tmpKrylovVec2;
-    delete[] currentVec;
 	delete[] tmpintKernelExp;
 	delete[] tmpintKernelExp1;
 	delete[] tmpintKernelExp2;
@@ -347,6 +354,10 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	matrix* V = new matrix(Hsize, m);
 	//The (m+1,m) element of Hessenberg matrix (needed for computation of error)
 	double h = 0;
+
+	double* hCUDA;
+	cudaMallocHost(reinterpret_cast<void**>(&hCUDA), sizeof(double));
+
 	//Eigenvalues of Hessenberg matrix
 	std::complex<double>* eigenvalues = new std::complex<double>[m];
 	//Eigenvectors of Hessenberg matrix
@@ -363,8 +374,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		double err_step = 0;
 
 		//STEP 1: Construct Krylov subspace using Arnoldi algorithm
-		dummy_hbd = arnoldiAlgorithmCUDA(tolRate, H, V, &h, &m_hbd);
-
+		dummy_hbd = arnoldiAlgorithmCUDA(tolRate, H, V, hCUDA, &m_hbd);
+		h = *hCUDA;
 		//Some special adjustments in case of a lucky breakdown, i.e. when projection in Krylov-subspace of dimension m_hbd <= m is exact (within numerical uncertainty)
 		//In particular, the time step of the current Krylov space can be arbitarily large in this case
 		if (dummy_hbd) 
