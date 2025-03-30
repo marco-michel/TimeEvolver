@@ -85,7 +85,7 @@ namespace TE {
         smatrix(const smatrix& old_obj);
         ~smatrix();
 
-        smatrix& smatrix::operator=(const smatrix& old_obj);
+        smatrix& operator=(const smatrix& old_obj);
 
         int spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double>* out);
         int initialize();
