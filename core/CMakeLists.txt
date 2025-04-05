@@ -4,11 +4,11 @@ target_link_libraries(MatrixDataTypes PUBLIC ${BLAS_LIBRARIES} ${Boost_LIBRARIES
      dl pthread)
 
 
-add_library(TimeEvolver STATIC krylovTimeEvolver.cpp krylovObservables.cpp krylovLogger.cpp)
+add_library(TimeEvolver STATIC krylovTimeEvolver.cpp krylovObservables.cpp krylovLogger.cpp File.cu)
 target_include_directories(TimeEvolver PUBLIC ../helper)
 
 target_link_libraries(TimeEvolver PUBLIC ${BLAS_LIBRARIES} ${Boost_LIBRARIES}
-     dl pthread MatrixDataTypes)
+     dl pthread MatrixDataTypes CUDA::cudart CUDA::cusparse CUDA::cublas)
 
 install(TARGETS TimeEvolver DESTINATION TimeEvolver/lib)
 install(FILES matrixDataTypes.h krylovTimeEvolver.h krylovObservables.h mathHeader.h DESTINATION TimeEvolver/include)

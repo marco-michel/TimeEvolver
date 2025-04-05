@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 set (CMAKE_CXX_STANDARD 17)
 enable_language(CXX)
 enable_language(C)
+enable_language(CUDA)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -20,6 +21,12 @@ else()
 endif()
 
 
+set(CMAKE_BUILD_TYPE Debug)
+
+
+find_package(CUDAToolkit REQUIRED COMPONENTS cudart cublas cusparse)
+add_compile_definitions(USE_CUDA)
+set(CMAKE_CUDA_ARCHITECTURES "native")
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 message("Installation directory would be: ${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
