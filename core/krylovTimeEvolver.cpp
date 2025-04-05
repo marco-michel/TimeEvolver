@@ -6,7 +6,7 @@
  */
 
 #include "krylovTimeEvolver.h"
-#include "../Header.cuh"
+#include "Header.cuh"
 #include <cublas_v2.h>
 
 
