@@ -261,6 +261,7 @@ smatrix::~smatrix()
 }
 
 
+#ifdef USE_HDF
 
 /**
 * Save sparse matrix to a HDF5 file
@@ -464,3 +465,5 @@ void smatrix::loadHDF5(const std::string& filename)
     H5Fclose(file);
     initialize();
 }
+
+#endif
