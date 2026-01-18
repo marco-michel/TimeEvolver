@@ -261,6 +261,8 @@ smatrix::~smatrix()
 }
 
 
+#ifdef USE_HDF
+
 
 /**
 * Save sparse matrix to a HDF5 file
@@ -351,7 +353,6 @@ void smatrix::saveHDF5(const std::string& filename) const
         H5Sclose(space);
     }
 
-    // --- cleanup ---
     H5Tclose(complexType);
     H5Fclose(file);
 }
@@ -459,8 +460,9 @@ void smatrix::loadHDF5(const std::string& filename)
             this->rowIndex[i] = static_cast<size_t>(tmp[i]);
     }
 
-    // ---- cleanup ----
     H5Tclose(complexType);
     H5Fclose(file);
     initialize();
 }
+
+#endif
