@@ -161,6 +161,8 @@ namespace TE {
     }
 
 
+#ifdef USE_HDF
+
     /**
     * Class to store complex numbers in legacy HDF5 1.14 format
     */
@@ -197,5 +199,7 @@ namespace TE {
         H5Aread(attr, h5Type, &out);
         H5Aclose(attr);
     }
+
+#endif
 
 }
