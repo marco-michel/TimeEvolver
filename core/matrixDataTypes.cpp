@@ -97,6 +97,25 @@ double smatrix::normInf()
 }
 
 /**
+* Compares two matrices modulo floating point noise. Flags are not checked. Differently sorted indices are not accounted for so far.
+* @return true if matrices are approximitaley (up to fp noise) equal.
+*/
+bool smatrix::approxEqual(const smatrix& other, double absTol)
+{
+    //first check basic info
+    if (other.m != this->m || other.n != this->n || other.numValues != this->numValues)
+        return false;
+    
+    for(size_t i = 0; i != this->numValues; i++)
+    {
+        if(other.columns[i] != this->columns[i] || other.rowIndex[i] != this->rowIndex[i] || std::abs(other.values[i] - this->values[i]) > absTol)
+            return false;        
+    }
+    //all checks passed therefore matrices are equal
+    return true;
+}
+
+/**
 * Constructor for sparse matrix with initializing values
 * @param val Values to initialize the (sparse) matrix with
 * @param col Column indices for non-zero values 
@@ -263,6 +282,8 @@ smatrix::~smatrix()
 
 #ifdef USE_HDF
 
+#ifdef USE_HDF
+
 /**
 * Save sparse matrix to a HDF5 file
 * @param M sparse matrix to be stored on file
@@ -352,7 +373,6 @@ void smatrix::saveHDF5(const std::string& filename) const
         H5Sclose(space);
     }
 
-    // --- cleanup ---
     H5Tclose(complexType);
     H5Fclose(file);
 }
@@ -460,7 +480,6 @@ void smatrix::loadHDF5(const std::string& filename)
             this->rowIndex[i] = static_cast<size_t>(tmp[i]);
     }
 
-    // ---- cleanup ----
     H5Tclose(complexType);
     H5Fclose(file);
     initialize();
