@@ -8,13 +8,13 @@ FetchContent_Declare(
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(googletest)
-
-
-
-add_executable(TestTest test_test.cpp)
-target_link_libraries(TestTest PRIVATE GTest::gtest_main)
-
 include(GoogleTest)
+
+
+add_executable(unit_tests test_smatrix_equals.cpp test_smatrix_creation.cpp ../example/exampleHamiltonian.cpp)
+target_include_directories(unit_tests PRIVATE ../core ../helper ../example)
+target_link_libraries(unit_tests PRIVATE GTest::gtest_main MatrixDataTypes Helper ${HDF5_LIBRARIES})
+
 
 
 add_executable(TestBlackHole testBlackHole.cpp)
@@ -43,4 +43,4 @@ set_target_properties(TestSimpleExample PROPERTIES OUTPUT_NAME "testSimpleExampl
 add_test(NAME BlackHoleTest COMMAND testBlackHole)
 add_test(NAME BlackHoleTestLB COMMAND testBlackHoleLB)
 add_test(NAME SimpleExampleTest COMMAND testSimpleExample)
-gtest_discover_tests(TestTest)
+gtest_discover_tests(unit_tests)
