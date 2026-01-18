@@ -82,8 +82,10 @@ add_subdirectory(core TimeEvolver)
 add_subdirectory(helper Helper)
 add_subdirectory(example Example)
 
-add_subdirectory(test Test)
+option(BUILD_TESTING "Build tests" ON)
+if(BUILD_TESTING)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
 
-add_test(NAME BlackHoleTest COMMAND Test/testBlackHole)
-add_test(NAME BlackHoleTestLB COMMAND Test/testBlackHoleLB)
-add_test(NAME SimpleExampleTest COMMAND Test/testSimpleExample)
+
