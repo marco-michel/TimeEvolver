@@ -20,3 +20,8 @@ endif()
 if(USING_ARMADILLO)
 target_link_libraries(TimeEvolver PUBLIC  ${ARMADILLO_LIBRARIES})
 endif()
+
+if(HDF5_FOUND)
+    target_link_libraries(TimeEvolver PUBLIC
+    ${HDF5_LIBRARIES}) 
+endif()

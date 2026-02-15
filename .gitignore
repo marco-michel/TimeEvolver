@@ -19,6 +19,13 @@
 *.vcxproj
 *.filters
 *.user
+/TimeEvolver/x64/Debug
+/e000
+/Intel® VTune™ Profiler Results/TimeEvolver
+/TimeEvolver/x64/Release
+*.advidb2
+*.advixeproj
+/config
 
 # Python
 .venv/
