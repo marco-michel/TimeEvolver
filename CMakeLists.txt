@@ -7,6 +7,8 @@ enable_language(C)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 option (DOWNLOAD_BOOST "Whether or not Boost should be downloaded" OFF)
+option (TIMEEVOLVER_PYTHON "Build Python bindings via pybind11" OFF)
+option (TIMEEVOLVER_ENABLE_PYTHON_GTEST "Enable a GoogleTest smoke test that imports the Python module (requires TIMEEVOLVER_PYTHON)" OFF)
 
 set(NOSYSTEMBOOST OFF)
 
@@ -23,7 +25,12 @@ endif()
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 message("Installation directory would be: ${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
-set (Boost_USE_STATIC_LIBS ON)
+if(TIMEEVOLVER_PYTHON)
+  # Python extension is a shared module; avoid linking non-PIC static Boost archives.
+  set(Boost_USE_STATIC_LIBS OFF)
+else()
+  set(Boost_USE_STATIC_LIBS ON)
+endif()
 
 include(CTest)
 
@@ -79,6 +86,12 @@ include_directories(${Boost_INCLUDE_DIRS} ${boost_SOURCE_DIR})
 
 
 add_subdirectory(core TimeEvolver)
+
+if(TIMEEVOLVER_PYTHON)
+  find_package(pybind11 CONFIG REQUIRED)
+  add_subdirectory(python)
+endif()
+
 add_subdirectory(helper Helper)
 add_subdirectory(example Example)
 
@@ -87,5 +100,3 @@ if(BUILD_TESTING)
   enable_testing()
   add_subdirectory(tests)
 endif()
-
-
