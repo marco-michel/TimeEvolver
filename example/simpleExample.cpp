@@ -61,10 +61,10 @@ int main()
     //Create initial state with all particles in the first mode (N0, 0)
     basisVector init(K); init.e[0] = N0;
     //Create initial state vector
-    std::complex<double>* vec = new std::complex<double>[basis.numberElements];
+    std::complex<double>* vec = new std::complex<double>[basis.numberElements]();
 	//find init state in hash table
     int entry = basis.hashTable.find(init)->second;
-    vec[entry].real(1.0);
+    vec[entry] = std::complex<double>(1.0, 0.0);
 
     //Start of time evolution   
     std::cout << "Starting time evolution..." << std::endl;

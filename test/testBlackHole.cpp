@@ -15,7 +15,7 @@ using namespace H5;
 
 int main()
 {
-    std::system("./Example/main");
+    std::system("./Example/main --N0 20 --Nm 2 --K 4 --C0 1 --Cm 1 --maxT 10 --samplingStep 0.01 --tol 1e-08 --m 40 --DeltaN 12 --capacity 1 --fastIntegration 0");
 
 
 #ifdef USE_HDF

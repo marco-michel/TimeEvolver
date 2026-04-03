@@ -15,7 +15,7 @@ using namespace H5;
 
 int main()
 {
-    std::system("./Example/main --N0 1 --Nm 1 --K 1 --maxT 1000 --samplingStep 1");
+    std::system("./Example/main --N0 1 --Nm 1 --K 1 --C0 1 --Cm 1 --maxT 1000 --samplingStep 1 --tol 1e-08 --m 40 --DeltaN 12 --capacity 1 --fastIntegration 0");
 
 
 

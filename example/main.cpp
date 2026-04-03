@@ -102,10 +102,10 @@ int main(int argc, char* argv[])
 
     //Create initial state
     basisVector init = ham.createInitState();
-    std::complex<double>* vec = new std::complex<double>[basis.numberElements];
+    std::complex<double>* vec = new std::complex<double>[basis.numberElements]();
 	//find init state in hash table
     int entry = basis.hashTable.find(init)->second;
-    vec[entry].real(1.0);
+    vec[entry] = std::complex<double>(1.0, 0.0);
    
     //Start of actual time evolution   
     std::cout << "Starting time evolution..." << std::endl;
