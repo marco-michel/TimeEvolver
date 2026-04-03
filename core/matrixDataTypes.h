@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <cstdint>
 
 #include "mathHeader.h"
 
@@ -22,13 +23,14 @@ namespace TE {
         std::complex<double>* values;
         size_t numValues;
         matrix(size_t nn, size_t mm);
+        matrix(size_t nn, size_t mm, bool allocateValues);
         matrix(size_t nn, size_t mm, std::complex<double>* vals);
         ~matrix();
     };
 #ifdef USE_CUDA
-    class matrixCUDA : matrix {
+    class matrixCUDA : public matrix {
     public:
-        cuDoubleComplex* valuesCUDA;
+        cuDoubleComplex* valuesCUDA = nullptr;
         matrixCUDA(std::size_t nn, std::size_t mm);
         matrixCUDA(size_t nn, size_t mm, std::complex<double>* vals);
         ~matrixCUDA();
@@ -110,31 +112,30 @@ namespace TE {
 
 
 #ifdef USE_CUDA
-    class smatrixCUDA : smatrix {
+    class smatrixCUDA : public smatrix {
     public:
-        cudaError_t Cudastatus;
-
-        cuDoubleComplex* Cvalues;
-        int_least64_t* Ccolumns;
-        size_t* CrowIndex;
-        size_t CnumValues;
-        size_t Cn, Cm;
-        cuDoubleComplex* CX;
-        cuDoubleComplex* CY;
+        cuDoubleComplex* Cvalues = nullptr;
+        std::int64_t* Ccolumns = nullptr;
+        std::int64_t* CrowOffsets = nullptr;
+        cuDoubleComplex* CX = nullptr;
+        cuDoubleComplex* CY = nullptr;
 
 
         cuDoubleComplex zeroCUDA{ 0.0,0.0 };
         cuDoubleComplex oneCUDA{ 1.0,0.0 };
 
 
-        cusparseHandle_t     handle = NULL;
-        cusparseSpMatDescr_t matA;
-        cusparseDnVecDescr_t vecX, vecY;
-        void* dBuffer = NULL;
+        cusparseHandle_t     handle = nullptr;
+        cusparseSpMatDescr_t matA = nullptr;
+        cusparseDnVecDescr_t vecX = nullptr;
+        cusparseDnVecDescr_t vecY = nullptr;
+        void* dBuffer = nullptr;
         size_t               bufferSize = 0;
+        bool cudaInitialized = false;
 
-        int initialize();
-        int spMV(cuDoubleComplex alpha, cusparseDnVecDescr_t& in, cusparseDnVecDescr_t& out);
+        void initialize();
+        void initializeFromHost(const smatrix& source);
+        void spMV(cuDoubleComplex alpha, cusparseDnVecDescr_t in, cusparseDnVecDescr_t out);
         smatrixCUDA() = default;
         smatrixCUDA(const smatrix& baseObj);
         ~smatrixCUDA();

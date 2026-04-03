@@ -4,7 +4,7 @@ target_link_libraries(MatrixDataTypes PUBLIC ${BLAS_LIBRARIES} ${Boost_LIBRARIES
      dl pthread)
 
 
-add_library(TimeEvolver STATIC krylovTimeEvolver.cpp krylovObservables.cpp krylovLogger.cpp File.cu)
+add_library(TimeEvolver STATIC krylovTimeEvolver.cpp krylovObservables.cpp krylovLogger.cpp)
 target_include_directories(TimeEvolver PUBLIC ../helper)
 
 target_link_libraries(TimeEvolver PUBLIC ${BLAS_LIBRARIES} ${Boost_LIBRARIES}

@@ -6,13 +6,36 @@
  */
 
 #include "krylovTimeEvolver.h"
-#include "Header.cuh"
 #include <cublas_v2.h>
 
 
 
 
 using namespace TE;
+
+namespace {
+
+class cublasPointerModeGuard {
+public:
+	cublasPointerModeGuard(cublasHandle_t handle, cublasPointerMode_t mode) : handle_(handle)
+	{
+		TE_CUBLAS_CHECK(cublasGetPointerMode(handle_, &previousMode_));
+		TE_CUBLAS_CHECK(cublasSetPointerMode(handle_, mode));
+	}
+
+	~cublasPointerModeGuard()
+	{
+		if (handle_ != nullptr) {
+			cublasSetPointerMode(handle_, previousMode_);
+		}
+	}
+
+private:
+	cublasHandle_t handle_ = nullptr;
+	cublasPointerMode_t previousMode_ = CUBLAS_POINTER_MODE_HOST;
+};
+
+}
 
 
 /**
@@ -28,12 +51,13 @@ using namespace TE;
  * @param fastIntegration Whether a faster but less accurate method for evaluating the error integral should be used (default value: false)
  * @param progressBar Whether or not to show a progressbar in the terminal (default value: true)
  */
-krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar)
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar, executionBackend backend)
 {
 
 
 	this->t = t;  this->samplingStep = samplingStep; this->tol = tol;  this->progressBar = progressBar;
 	this->Ham = std::move(Ham); this->expFactor = std::complex<double>(0,-1*expFactor); this->fastIntegration = fastIntegration; this->nbObservables = (int)observables.size();
+	this->backendPreference = backend;
 
 	matrixNorm = this->Ham->norm1();
 	this->Hsize = this->Ham->m;
@@ -62,50 +86,50 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 	n_samples = (size_t)floor(t / samplingStep) + 1;
 
 	//The state at the current time
-#ifdef USE_CUDA
-	cudaMallocHost(reinterpret_cast<void**>(&currentVec), Hsize * sizeof(std::complex<double>));
-#else
-	currentVec = new std::complex<double>[Hsize];
-#endif
+	currentVec = new std::complex<double>[Hsize]();
 
 	cblas_zcopy(Hsize, v, 1, currentVec, 1);
 	//The state to be sampled
-	sampledState = new std::complex<double>[Hsize];
+	sampledState = new std::complex<double>[Hsize]();
 
 #ifdef USE_CUDA
-	cudaMalloc((void**)&currentVecCUDA, sizeof(std::complex<double>) * Hsize);
-	cudaMalloc((void**)&sampledStateCUDA, sizeof(std::complex<double>) * Hsize);
-	cudaMalloc((void**)&tmpBlasVecCUDA, sizeof(std::complex<double>) * Hsize);
-	HamCUDA = std::make_unique<smatrixCUDA>(*(this->Ham));
-	cudaMalloc(reinterpret_cast<void**>( & d_negativeH), sizeof(cuDoubleComplex));
-	cublasCreate(&cuBLAShandle);
-	cublasSetPointerMode(cuBLAShandle, CUBLAS_POINTER_MODE_DEVICE);
-	this->expFactorCUDA = cuDoubleComplex{ 0.0, -1.0 * expFactor };
-	cudaMalloc(&normyDevice, sizeof(double));
-	cudaMalloc(&inverseNormDevice, sizeof(cuDoubleComplex));
-	cudaMalloc(&normDevice, sizeof(cuDoubleComplex));
-
-	HRetCuda = new matrixCUDA(m,m);//(HRet->n, HRet->m);
-	VRetCuda = new matrixCUDA(Hsize, m);//(VRet->n, VRet->m);
+	if (backendPreference != executionBackend::CPU) {
+		try {
+			initializeCUDAResources();
+			useCUDA = true;
+		}
+		catch (const std::exception& e)
+		{
+			releaseCUDAResources();
+			if (backendPreference == executionBackend::GPU) {
+				throw std::runtime_error(std::string("Failed to initialize requested GPU backend: ") + e.what());
+			}
+			logger.log_message(krylovLogger::WARNING, std::string("CUDA path disabled, falling back to CPU: ") + e.what());
+		}
+	}
+#else
+	if (backendPreference == executionBackend::GPU) {
+		throw std::runtime_error("GPU backend requested but CUDA support is not compiled in.");
+	}
 #endif
 
 
 
 	cblas_zcopy(Hsize, v, 1, sampledState, 1);
 	//A temporary vector of size Hsize
-	tmpBlasVec = new std::complex<double>[Hsize];
+	tmpBlasVec = new std::complex<double>[Hsize]();
 	//Two temporary vectors of size m
-	tmpKrylovVec1 = new std::complex<double>[m];
-	tmpKrylovVec2 = new std::complex<double>[m];
-	tmpintKernelExp = new std::complex<double>[m];
-	tmpintKernelExp1 = new std::complex<double>[m];
-	tmpintKernelExp2 = new std::complex<double>[m];
-	tmpintKernelExp3 = new std::complex<double>[m];
-	tmpintKernelT = new std::complex<double>[m];
+	tmpKrylovVec1 = new std::complex<double>[m]();
+	tmpKrylovVec2 = new std::complex<double>[m]();
+	tmpintKernelExp = new std::complex<double>[m]();
+	tmpintKernelExp1 = new std::complex<double>[m]();
+	tmpintKernelExp2 = new std::complex<double>[m]();
+	tmpintKernelExp3 = new std::complex<double>[m]();
+	tmpintKernelT = new std::complex<double>[m]();
 
 	index_samples = 0;
-	e_1 = new std::complex<double>[m];
-	e_1[0].real(1);
+	e_1 = new std::complex<double>[m]();
+	e_1[0] = one;
 
 	obsVector = std::move(observables);
 	for (auto iter = obsVector.begin(); iter != obsVector.end(); iter++)
@@ -120,8 +144,8 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 * @param observables The vector of observables that are to be sampled
 * @param Ham The full Hamiltonian
 */
-krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham) : krylovTimeEvolver(t, v, samplingStep,  std::move(observables), std::move(Ham),
-	1.0, 1e-6, 40, false, false){}
+krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, executionBackend backend) : krylovTimeEvolver(t, v, samplingStep,  std::move(observables), std::move(Ham),
+	1.0, 1e-6, 40, false, false, backend){}
 
 /**
 * Destructor
@@ -129,11 +153,9 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 krylovTimeEvolver::~krylovTimeEvolver()
 {
 #ifdef USE_CUDA
-	cublasDestroy(cuBLAShandle);
-	cudaFreeHost(currentVec);
-#else
-	delete[] currentVec;
+	releaseCUDAResources();
 #endif
+	delete[] currentVec;
 	delete[] sampledState;
     delete[] tmpBlasVec;
     delete[] tmpKrylovVec1;
@@ -146,6 +168,98 @@ krylovTimeEvolver::~krylovTimeEvolver()
     delete[] e_1;
 	obsVector.clear();
 }
+
+#ifdef USE_CUDA
+void krylovTimeEvolver::initializeCUDAResources()
+{
+	int deviceCount = 0;
+	TE_CUDA_CHECK(cudaGetDeviceCount(&deviceCount));
+	if (deviceCount == 0) {
+		throw std::runtime_error("No CUDA device available.");
+	}
+
+	TE_CUDA_CHECK(cudaSetDevice(0));
+
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&currentVecCUDA), sizeof(cuDoubleComplex) * Hsize));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&sampledStateCUDA), sizeof(cuDoubleComplex) * Hsize));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&tmpBlasVecCUDA), sizeof(cuDoubleComplex) * m));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&arnoldiPreviousNormCUDA), sizeof(cuDoubleComplex)));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&arnoldiInverseNormCUDA), sizeof(cuDoubleComplex)));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&arnoldiDiagonalCUDA), sizeof(cuDoubleComplex) * m));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&arnoldiCurrentDiagonalCUDA), sizeof(cuDoubleComplex)));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&arnoldiNegativeDiagonalCUDA), sizeof(cuDoubleComplex)));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&negativeOneCUDA), sizeof(cuDoubleComplex)));
+	TE_CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&arnoldiNormCUDA), sizeof(double)));
+	TE_CUDA_CHECK(cudaMemcpy(currentVecCUDA, currentVec, sizeof(cuDoubleComplex) * Hsize, cudaMemcpyHostToDevice));
+	TE_CUDA_CHECK(cudaMemcpy(sampledStateCUDA, sampledState, sizeof(cuDoubleComplex) * Hsize, cudaMemcpyHostToDevice));
+	const cuDoubleComplex negativeOne = make_cuDoubleComplex(-1.0, 0.0);
+	TE_CUDA_CHECK(cudaMemcpy(negativeOneCUDA, &negativeOne, sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+
+	HamCUDA = std::make_unique<smatrixCUDA>(*Ham);
+	VRetCuda = std::make_unique<matrixCUDA>(Hsize, m);
+
+	TE_CUBLAS_CHECK(cublasCreate(&cuBLAShandle));
+	TE_CUBLAS_CHECK(cublasSetPointerMode(cuBLAShandle, CUBLAS_POINTER_MODE_HOST));
+	expFactorCUDA = make_cuDoubleComplex(expFactor.real(), expFactor.imag());
+}
+
+void krylovTimeEvolver::releaseCUDAResources() noexcept
+{
+	VRetCuda.reset();
+	HamCUDA.reset();
+
+	if (cuBLAShandle != nullptr) {
+		cublasDestroy(cuBLAShandle);
+		cuBLAShandle = nullptr;
+	}
+
+	cudaFree(tmpBlasVecCUDA);
+	cudaFree(sampledStateCUDA);
+	cudaFree(currentVecCUDA);
+	cudaFree(arnoldiNormCUDA);
+	cudaFree(negativeOneCUDA);
+	cudaFree(arnoldiNegativeDiagonalCUDA);
+	cudaFree(arnoldiCurrentDiagonalCUDA);
+	cudaFree(arnoldiDiagonalCUDA);
+	cudaFree(arnoldiInverseNormCUDA);
+	cudaFree(arnoldiPreviousNormCUDA);
+
+	tmpBlasVecCUDA = nullptr;
+	sampledStateCUDA = nullptr;
+	currentVecCUDA = nullptr;
+	arnoldiNormCUDA = nullptr;
+	negativeOneCUDA = nullptr;
+	arnoldiNegativeDiagonalCUDA = nullptr;
+	arnoldiCurrentDiagonalCUDA = nullptr;
+	arnoldiDiagonalCUDA = nullptr;
+	arnoldiInverseNormCUDA = nullptr;
+	arnoldiPreviousNormCUDA = nullptr;
+	useCUDA = false;
+}
+
+void krylovTimeEvolver::reconstructStateOnGPU(const std::complex<double>* krylovVecHost, cuDoubleComplex* stateDevice, std::complex<double>* stateHost)
+{
+	const cuDoubleComplex alpha = make_cuDoubleComplex(1.0, 0.0);
+	const cuDoubleComplex beta = make_cuDoubleComplex(0.0, 0.0);
+
+	TE_CUDA_CHECK(cudaMemcpy(tmpBlasVecCUDA, krylovVecHost, sizeof(cuDoubleComplex) * m, cudaMemcpyHostToDevice));
+	TE_CUBLAS_CHECK(cublasZgemv(cuBLAShandle,
+		CUBLAS_OP_N,
+		static_cast<int>(Hsize),
+		static_cast<int>(m),
+		&alpha,
+		VRetCuda->valuesCUDA,
+		static_cast<int>(Hsize),
+		tmpBlasVecCUDA,
+		1,
+		&beta,
+		stateDevice,
+		1));
+	if (stateHost != nullptr) {
+		TE_CUDA_CHECK(cudaMemcpy(stateHost, stateDevice, sizeof(cuDoubleComplex) * Hsize, cudaMemcpyDeviceToHost));
+	}
+}
+#endif
 
 
 
@@ -351,17 +465,21 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Hessenberg matrix
 	matrix* H = new matrix(m, m);
 	//Corresponding transformation matrix
-	matrix* V = new matrix(Hsize, m);
+	matrix* V = nullptr;
+	bool allocateHostBasis = true;
+#ifdef USE_CUDA
+	allocateHostBasis = !useCUDA;
+#endif
+	if (allocateHostBasis) {
+		V = new matrix(Hsize, m);
+	}
 	//The (m+1,m) element of Hessenberg matrix (needed for computation of error)
 	double h = 0;
 
-	double* hCUDA;
-	cudaMallocHost(reinterpret_cast<void**>(&hCUDA), sizeof(double));
-
 	//Eigenvalues of Hessenberg matrix
-	std::complex<double>* eigenvalues = new std::complex<double>[m];
+	std::complex<double>* eigenvalues = new std::complex<double>[m]();
 	//Eigenvectors of Hessenberg matrix
-	std::complex<double>* schurvector = new std::complex<double>[m * m];
+	std::complex<double>* schurvector = new std::complex<double>[m * m]();
 
 	//Start progressBar thread
 	if (progressBar == true)
@@ -374,29 +492,45 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		double err_step = 0;
 
 		//STEP 1: Construct Krylov subspace using Arnoldi algorithm
-		dummy_hbd = arnoldiAlgorithmCUDA(tolRate, H, V, hCUDA, &m_hbd);
-		h = *hCUDA;
+#ifdef USE_CUDA
+		if (useCUDA) {
+			dummy_hbd = arnoldiAlgorithmCUDA(tolRate, H, V, &h, &m_hbd);
+		}
+		else
+#endif
+		{
+			dummy_hbd = arnoldiAlgorithm(tolRate, H, V, &h, &m_hbd);
+		}
 		//Some special adjustments in case of a lucky breakdown, i.e. when projection in Krylov-subspace of dimension m_hbd <= m is exact (within numerical uncertainty)
 		//In particular, the time step of the current Krylov space can be arbitarily large in this case
-		if (dummy_hbd) 
-		{
-			t_step = t - t_now;
-			matrix *Htmp = new matrix(m_hbd, m_hbd);
-			matrix *Vtmp = new matrix(Hsize, m_hbd);
-			for (size_t ll = 0; ll != m_hbd * m_hbd; ll++) {
-				Htmp->values[ll] = H->values[ll
-						+ (m - m_hbd) * (int) std::floor(ll / m_hbd)];
-			}
-			for (size_t ll = 0; ll != m_hbd * Hsize; ll++) {
-				Vtmp->values[ll] = V->values[ll];
-			}
-			delete H;
-			delete V;
-			H = Htmp;
-			V = Vtmp;
-			m = m_hbd;
+			if (dummy_hbd) 
+			{
+				t_step = t - t_now;
+				matrix *Htmp = new matrix(m_hbd, m_hbd);
+				for (size_t ll = 0; ll != m_hbd * m_hbd; ll++) {
+					Htmp->values[ll] = H->values[ll
+							+ (m - m_hbd) * (int) std::floor(ll / m_hbd)];
+				}
+				delete H;
+				H = Htmp;
+	#ifdef USE_CUDA
+				if (useCUDA && V == nullptr) {
+					V = new matrix(Hsize, m_hbd);
+					TE_CUDA_CHECK(cudaMemcpy(V->values, VRetCuda->valuesCUDA, m_hbd * Hsize * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
+				}
+				else
+	#endif
+				{
+					matrix *Vtmp = new matrix(Hsize, m_hbd);
+					for (size_t ll = 0; ll != m_hbd * Hsize; ll++) {
+						Vtmp->values[ll] = V->values[ll];
+					}
+					delete V;
+					V = Vtmp;
+				}
+				m = m_hbd;
 
-			logger.log_message(krylovLogger::INFO, "***Lucky breakdown at Krylov dimension" + std::to_string(m) + " *** ");
+				logger.log_message(krylovLogger::INFO, "***Lucky breakdown at Krylov dimension" + std::to_string(m) + " *** ");
 
 			statusCode = 1;
 		}
@@ -418,7 +552,15 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			else
 				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS, numericalErrorEstimate, false, &t_step, tmpKrylovVec1, &err_step);
 
-            cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec1, 1, &zero, currentVec, 1);
+#ifdef USE_CUDA
+			if (useCUDA) {
+				reconstructStateOnGPU(tmpKrylovVec1, currentVecCUDA);
+			}
+			else
+#endif
+			{
+				cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec1, 1, &zero, currentVec, 1);
+			}
         }
 
 		//Error handling of findMaximalStepSize
@@ -457,7 +599,15 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
             }
             //Now temp2 is no longer needed and can be reused
             cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, schurvector, m, tmpKrylovVec1, 1, &zero, tmpKrylovVec2, 1);
-            cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec2, 1, &zero, sampledState, 1);
+#ifdef USE_CUDA
+			if (useCUDA) {
+				reconstructStateOnGPU(tmpKrylovVec2, sampledStateCUDA, nbObservables > 0 ? sampledState : nullptr);
+			}
+			else
+#endif
+			{
+				cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec2, 1, &zero, sampledState, 1);
+			}
 
 			try {
 				sample();
@@ -482,6 +632,11 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 
 
 	//As a consistency check, determine if norm of state was preserved
+#ifdef USE_CUDA
+	if (useCUDA && nbObservables == 0) {
+		TE_CUDA_CHECK(cudaMemcpy(sampledState, sampledStateCUDA, sizeof(cuDoubleComplex) * Hsize, cudaMemcpyDeviceToHost));
+	}
+#endif
 	if (std::abs(cblas_dznrm2(Hsize, sampledState, 1) - 1.0) > tol)
 	{
 		logger.log_message(krylovLogger::WARNING, "CRITICAL WARNING: Norm of state vector is not inside specified tolerance. \n \
@@ -562,6 +717,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::matrix *VRet, double *hRet, size_t *mRet) {
 	double normy = 0.;
 	std::complex<double> negativeH;
+	std::fill_n(HRet->values, HRet->numValues, zero);
+	std::fill_n(VRet->values, VRet->numValues, zero);
 	cblas_zcopy(Hsize, currentVec, 1, VRet->values, 1);
 
 	for (size_t j = 0; j <= m - 1; j++) {
@@ -619,85 +776,95 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
  * @return false, is no lucky breakdown has occured; true if lucky breakdown has occured
  */
 bool krylovTimeEvolver::arnoldiAlgorithmCUDA(double tolRate, TE::matrix* HRet, TE::matrix* VRet, double* hRet, size_t* mRet) {
-
-	CHECK_CUDA(cudaMemcpy(VRetCuda->valuesCUDA, currentVec, Hsize * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
+	double normy = 0.;
+	std::complex<double> previousNorm(0.0, 0.0);
+	std::complex<double> inverseNorm;
+	std::vector<std::complex<double>> diagonalHost(m);
+	std::fill_n(HRet->values, HRet->numValues, zero);
+	TE_CUDA_CHECK(cudaMemset(arnoldiDiagonalCUDA, 0, sizeof(cuDoubleComplex) * m));
+	TE_CUDA_CHECK(cudaMemcpy(VRetCuda->valuesCUDA, currentVecCUDA, Hsize * sizeof(cuDoubleComplex), cudaMemcpyDeviceToDevice));
+	cublasPointerModeGuard pointerModeGuard(cuBLAShandle, CUBLAS_POINTER_MODE_DEVICE);
 
 
 	for (size_t j = 0; j <= m - 1; j++) {
-		CHECK_CUSPARSE(cusparseDnVecSetValues(HamCUDA->vecX, VRetCuda->valuesCUDA + j * Hsize));
-
-		cublasStatus_t cublasStat;
-
-		int spStatus = HamCUDA->spMV(expFactorCUDA, HamCUDA->vecX, HamCUDA->vecY);
-
-		if (spStatus != 0)
-		{
-			logger.log_message(krylovLogger::FATAL, "spMV error ");
-			exit(1);
-		}
-		if (j != 0) {/*
-			negativeH = (-1.0) * *((HRet->values) + j - 1 + j * m);
-			cblas_zaxpy(Hsize, &negativeH, VRet->values + (j - 1) * Hsize, 1,
-				tmpBlasVec, 1);*/
-			launchComputeNegative(HRetCuda->valuesCUDA, d_negativeH, j - 1 + j * m);
-			cublasStat = cublasZaxpy(cuBLAShandle, Hsize, d_negativeH, reinterpret_cast<cuDoubleComplex*>(VRetCuda->valuesCUDA + (j - 1) * Hsize), 1, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1);
+		TE_CUSPARSE_CHECK(cusparseDnVecSetValues(HamCUDA->vecX, VRetCuda->valuesCUDA + j * Hsize));
+		HamCUDA->spMV(expFactorCUDA, HamCUDA->vecX, HamCUDA->vecY);
+		if (j != 0) {
+			TE_CUBLAS_CHECK(cublasZaxpy(cuBLAShandle,
+				static_cast<int>(Hsize),
+				arnoldiPreviousNormCUDA,
+				VRetCuda->valuesCUDA + (j - 1) * Hsize,
+				1,
+				HamCUDA->CY,
+				1));
 		}
 
+		TE_CUBLAS_CHECK(cublasZdotc(cuBLAShandle,
+			static_cast<int>(Hsize),
+			VRetCuda->valuesCUDA + j * Hsize,
+			1,
+			HamCUDA->CY,
+			1,
+			arnoldiCurrentDiagonalCUDA));
+		TE_CUBLAS_CHECK(cublasZcopy(cuBLAShandle, 1, arnoldiCurrentDiagonalCUDA, 1, arnoldiDiagonalCUDA + j, 1));
+		TE_CUBLAS_CHECK(cublasZcopy(cuBLAShandle, 1, arnoldiCurrentDiagonalCUDA, 1, arnoldiNegativeDiagonalCUDA, 1));
+		TE_CUBLAS_CHECK(cublasZscal(cuBLAShandle, 1, negativeOneCUDA, arnoldiNegativeDiagonalCUDA, 1));
+		TE_CUBLAS_CHECK(cublasZaxpy(cuBLAShandle,
+			static_cast<int>(Hsize),
+			arnoldiNegativeDiagonalCUDA,
+			VRetCuda->valuesCUDA + j * Hsize,
+			1,
+			HamCUDA->CY,
+			1));
 
-		//cblas_zdotc_sub(Hsize, VRet->values + j * Hsize, 1, tmpBlasVec, 1,
-			//(HRet->values) + j + (j * m));
-		cublasStat = cublasZdotc(cuBLAShandle, Hsize, VRetCuda->valuesCUDA + j * Hsize, 1, HamCUDA->CY, 1, reinterpret_cast<cuDoubleComplex*>(HRetCuda->valuesCUDA + j + (j * m)));
+		TE_CUBLAS_CHECK(cublasDznrm2(cuBLAShandle,
+			static_cast<int>(Hsize),
+			HamCUDA->CY,
+			1,
+			arnoldiNormCUDA));
+		TE_CUDA_CHECK(cudaMemcpy(&normy, arnoldiNormCUDA, sizeof(double), cudaMemcpyDeviceToHost));
 
-
-
-		//negativeH = (-1.0) * *((HRet->values) + j + j * m);
-		launchComputeNegative(HRetCuda->valuesCUDA, d_negativeH, j + j * m);
-
-
-		//cblas_zaxpy(Hsize, &negativeH, VRet->values + j * Hsize, 1, tmpBlasVec,1);
-		cublasStat = cublasZaxpy(cuBLAShandle, Hsize, d_negativeH, VRetCuda->valuesCUDA + j * Hsize, 1, HamCUDA->CY, 1);
-
-
-		//normy = cblas_dznrm2(Hsize, tmpBlasVec, 1);
-		cublasStat = cublasDznrm2(cuBLAShandle, Hsize, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1, normyDevice);
-
-		//Detection of lucky breakdown  /*
-		/*if (normy < tolRate) {
+		if (normy < tolRate) {
 			*mRet = j + 1;
 			*hRet = normy;
-			exit(1); // not implemented yet
+			TE_CUDA_CHECK(cudaMemcpy(diagonalHost.data(), arnoldiDiagonalCUDA, (j + 1) * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
+			for (size_t diag = 0; diag <= j; ++diag) {
+				HRet->values[diag + diag * m] = diagonalHost[diag];
+			}
+			if (VRet != nullptr) {
+				TE_CUDA_CHECK(cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(VRet->values), VRetCuda->valuesCUDA, (j + 1) * Hsize * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
+			}
 			return true;
-		}*/
-		//End detection of lucky breakdown*/
+		}
 
 		if (j + 1 != m) {
-
-			launchComputeFourOutputsFromDouble(normyDevice, HRetCuda->valuesCUDA + j + 1 + j * m, normDevice , inverseNormDevice, HRetCuda->valuesCUDA + j + (j + 1) * m);
-
-
-
-			//HRet->values[j + (j + 1) * m].real(-normy);
-			//HRet->values[j + 1 + j * m].real(normy);
-
-
-			//cblas_zscal(Hsize, &inverseNorm, tmpBlasVec, 1);
-			cublasZscal(cuBLAShandle, Hsize, inverseNormDevice, HamCUDA->CY, 1);
-
-
-			//cblas_zcopy(Hsize, tmpBlasVec, 1, (VRet->values) + Hsize * (j + 1), 1);
-			cublasZcopy(cuBLAShandle, Hsize, reinterpret_cast<cuDoubleComplex*>(HamCUDA->CY), 1, reinterpret_cast<cuDoubleComplex*>(VRetCuda->valuesCUDA + Hsize * (j + 1)), 1);
-
+			HRet->values[j + (j + 1) * m] = std::complex<double>(-normy, 0.0);
+			HRet->values[j + 1 + j * m] = std::complex<double>(normy, 0.0);
+			inverseNorm = std::complex<double>(1.0 / normy, 0.0);
+			TE_CUDA_CHECK(cudaMemcpy(arnoldiInverseNormCUDA, &inverseNorm, sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
+			TE_CUBLAS_CHECK(cublasZscal(cuBLAShandle,
+				static_cast<int>(Hsize),
+				arnoldiInverseNormCUDA,
+				HamCUDA->CY,
+				1));
+			TE_CUBLAS_CHECK(cublasZcopy(cuBLAShandle,
+				static_cast<int>(Hsize),
+				HamCUDA->CY,
+					1,
+					VRetCuda->valuesCUDA + Hsize * (j + 1),
+					1));
+			previousNorm = std::complex<double>(normy, 0.0);
+			TE_CUDA_CHECK(cudaMemcpy(arnoldiPreviousNormCUDA, &previousNorm, sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
 		}
 		else {
-		//	*hRet = normy;
-			cudaMemcpy(hRet, normyDevice, sizeof(double), cudaMemcpyDeviceToHost);
+			*hRet = normy;
 		}
 	}
 	*mRet = m;
-
-	cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(HRet->values), HRetCuda->valuesCUDA, HRet->numValues * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
-	cudaMemcpy(reinterpret_cast<cuDoubleComplex*>(VRet->values), VRetCuda->valuesCUDA, VRet->numValues * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
-
+	TE_CUDA_CHECK(cudaMemcpy(diagonalHost.data(), arnoldiDiagonalCUDA, m * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost));
+	for (size_t diag = 0; diag < m; ++diag) {
+		HRet->values[diag + diag * m] = diagonalHost[diag];
+	}
 
 	return false;
 }

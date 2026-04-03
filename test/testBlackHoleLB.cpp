@@ -1,129 +1,43 @@
-#include <iostream>
 #include <string>
-#include <cstdlib>
-#include <cmath>
-#include <fstream>
 #include <vector>
-#include <sstream>
 
-#ifdef USE_HDF
-#include <H5Cpp.h>
-using namespace H5;
-#endif
+#include <gtest/gtest.h>
 
+#include "TestUtils.h"
 
-
-int main()
+TEST(BlackHoleLowBasisRegression, OutputMatchesReference)
 {
-    std::system("./Example/main --N0 1 --Nm 1 --K 1 --C0 1 --Cm 1 --maxT 1000 --samplingStep 1 --tol 1e-08 --m 40 --DeltaN 12 --capacity 1 --fastIntegration 0");
-
-
+    test_utils::run_command("./Example/main --N0 1 --Nm 1 --K 1 --C0 1 --Cm 1 --maxT 1000 --samplingStep 1 --tol 1e-08 --m 40 --DeltaN 12 --capacity 1 --fastIntegration 0");
 
 #ifdef USE_HDF
+    const std::string reference_path = "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0.h5";
+    const std::string output_path = "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0.h5";
+    test_utils::cleanup_guard cleanup({ output_path });
 
-    std::string reference = "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0.h5";
-    std::string testData = "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0.h5";
-
-    H5File fileRef (reference.c_str(), H5F_ACC_RDONLY);
-    H5File fileTest (testData.c_str(), H5F_ACC_RDONLY);
-    double* data0 = new double[1001];
-    double* data1 = new double[1001];
-
-    for(int i = 0; i != 4; i++)
-    {
-        DataSet dsRef = fileRef.openDataSet("mode"+std::to_string(i));
-        dsRef.read(data0, PredType::NATIVE_DOUBLE);
-
-        DataSet dsTest = fileTest.openDataSet("mode"+std::to_string(i));
-        dsTest.read(data1, PredType::NATIVE_DOUBLE);
-
-        for(int j = 0; j != 1001; j++)
-        {
-            double diff = std::abs(data1[j]-data0[j]);
-            if (diff > 1e-8)
-                return 1; //return != 0 indicated test failure 
-        }
+    for (int mode = 0; mode < 4; ++mode) {
+        const std::string dataset_name = "mode" + std::to_string(mode);
+        SCOPED_TRACE(dataset_name);
+        test_utils::expect_hdf_dataset_near(reference_path, output_path, dataset_name, 1.0e-8);
     }
-    delete[] data0;
-    delete[] data1;
-    std::system("rm ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0.h5");
-
 #else
+    const std::vector<std::string> reference_files = {
+        "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode0.csv",
+        "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode1.csv",
+        "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode2.csv",
+        "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode3.csv"
+    };
+    const std::vector<std::string> output_files = {
+        "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode0.csv",
+        "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode1.csv",
+        "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode2.csv",
+        "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode3.csv"
+    };
+    test_utils::cleanup_guard cleanup(output_files);
 
-
-    const int numFiles = 4;
-
-    std::string reference[numFiles] = {"../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode0.csv", "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode1.csv",
-    "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode2.csv","../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode3.csv"};
-    std::string testData[numFiles] = {"ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode0.csv", "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode1.csv",
-    "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode2.csv","ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode3.csv"};
-
-    std::ifstream finRef;
-    std::ifstream finOut;
-
-    std::vector<double> valRef;
-    std::vector<double> valOut;
-
-
-    for(int i = 0; i != numFiles; i++)
-    {
-        finRef.open(reference[i], std::ifstream::ate);
-        finOut.open(testData[i], std::ifstream::ate);
-
-        if(finRef.fail() || finOut.fail())
-        {
-            return 1;
-        }
-
-        if (finRef.tellg() != finOut.tellg()) 
-        {
-            return 1; 
-        }
-
-        finRef.seekg(0, std::ifstream::beg);
-        finOut.seekg(0, std::ifstream::beg);
-
-        std::string line;
-
-        while(getline(finRef, line))
-        {
-            std::stringstream sep(line);
-            std::string va;
-
-            while (std::getline(sep, va, ','))
-            {
-                valRef.push_back(std::stod(va));
-            }
-        }
-
-        while(getline(finOut, line))
-        {
-            std::stringstream sep(line);
-            std::string va;
-
-            while (std::getline(sep, va, ','))
-            {
-                valOut.push_back(std::stod(va));
-            }
-        }
-
-        finOut.close();
-        finRef.close();
-
-        for(int i = 0; i != valOut.size(); i++)
-        {
-            double diff = std::abs(valOut[i]-valRef[i]);
-            if (diff > 1e-8)
-                return 1; //return != 0 indicated test failure 
-        }
+    ASSERT_EQ(reference_files.size(), output_files.size());
+    for (std::size_t i = 0; i < reference_files.size(); ++i) {
+        SCOPED_TRACE(output_files[i]);
+        test_utils::expect_csv_file_near(reference_files[i], output_files[i], 1.0e-8);
     }
-
-    for (int i = 0; i != numFiles; i++)
-    {          
-        std::system(("rm " + testData[i]).c_str());
-    }
-
 #endif
-
-    return 0;
 }

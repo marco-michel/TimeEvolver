@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 set (CMAKE_CXX_STANDARD 17)
 enable_language(CXX)
 enable_language(C)
-enable_language(CUDA)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -23,16 +22,19 @@ endif()
 
 set(CMAKE_BUILD_TYPE Debug)
 
-
 find_package(CUDAToolkit REQUIRED COMPONENTS cudart cublas cusparse)
 add_compile_definitions(USE_CUDA)
-set(CMAKE_CUDA_ARCHITECTURES "native")
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 message("Installation directory would be: ${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 set (Boost_USE_STATIC_LIBS ON)
 
 include(CTest)
+
+if(BUILD_TESTING)
+  find_package(GTest REQUIRED)
+  include(GoogleTest)
+endif()
 
 if(NOSYSTEMBOOST)
   set (Boost_NO_SYSTEM_PATHS ON)
@@ -88,9 +90,8 @@ include_directories(${Boost_INCLUDE_DIRS} ${boost_SOURCE_DIR})
 add_subdirectory(core TimeEvolver)
 add_subdirectory(helper Helper)
 add_subdirectory(example Example)
+add_subdirectory(bench Benchmark)
 
-add_subdirectory(test Test)
-
-add_test(NAME BlackHoleTest COMMAND Test/testBlackHole)
-add_test(NAME BlackHoleTestLB COMMAND Test/testBlackHoleLB)
-add_test(NAME SimpleExampleTest COMMAND Test/testSimpleExample)
+if(BUILD_TESTING)
+  add_subdirectory(test Test)
+endif()

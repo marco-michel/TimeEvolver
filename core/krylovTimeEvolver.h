@@ -25,7 +25,6 @@
 #include "krylovObservables.h"
 #include "krylovLogger.h"
 #include "version.h"
-#include "Header.cuh"
 
 
 
@@ -61,8 +60,10 @@ public:
 class krylovTimeEvolver
 {
 public:
-    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar);
-    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham);
+    enum class executionBackend { AUTO, CPU, GPU };
+
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, double expFactor, double tol, int mm, bool fastIntegration, bool progressBar, executionBackend backend = executionBackend::AUTO);
+    krylovTimeEvolver(double t, std::complex<double>* v, double samplingStep, std::vector<std::unique_ptr<krylovBasicObservable>> observables, std::unique_ptr<smatrix> Ham, executionBackend backend = executionBackend::AUTO);
     krylovReturn* timeEvolve();
     ~krylovTimeEvolver();
 
@@ -107,21 +108,28 @@ protected:
     boost::math::quadrature::tanh_sinh<double> integ;
     int integrationMethodLong, integrationMethodShort;
     double termination;
+    executionBackend backendPreference = executionBackend::AUTO;
 
 #ifdef USE_CUDA
-    bool CUDAInitialized = false;
+    bool useCUDA = false;
     std::unique_ptr<smatrixCUDA> HamCUDA;
-    std::complex<double>* currentVecCUDA;
-    std::complex<double>* sampledStateCUDA;
-    std::complex<double>* tmpBlasVecCUDA;
-    cuDoubleComplex* d_negativeH;
-    cublasHandle_t cuBLAShandle;
-    cuDoubleComplex expFactorCUDA;
-    double* normyDevice;
-    cuDoubleComplex* inverseNormDevice;
-    cuDoubleComplex* normDevice;
-    matrixCUDA* HRetCuda;//(HRet->n, HRet->m);
-    matrixCUDA* VRetCuda;//(VRet->n, VRet->m);
+    cuDoubleComplex* currentVecCUDA = nullptr;
+    cuDoubleComplex* sampledStateCUDA = nullptr;
+    cuDoubleComplex* tmpBlasVecCUDA = nullptr;
+    cuDoubleComplex* arnoldiPreviousNormCUDA = nullptr;
+    cuDoubleComplex* arnoldiInverseNormCUDA = nullptr;
+    cuDoubleComplex* arnoldiDiagonalCUDA = nullptr;
+    cuDoubleComplex* arnoldiCurrentDiagonalCUDA = nullptr;
+    cuDoubleComplex* arnoldiNegativeDiagonalCUDA = nullptr;
+    cuDoubleComplex* negativeOneCUDA = nullptr;
+    double* arnoldiNormCUDA = nullptr;
+    cublasHandle_t cuBLAShandle = nullptr;
+    cuDoubleComplex expFactorCUDA{ 0.0, 0.0 };
+    std::unique_ptr<matrixCUDA> VRetCuda;
+
+    void initializeCUDAResources();
+    void releaseCUDAResources() noexcept;
+    void reconstructStateOnGPU(const std::complex<double>* krylovVecHost, cuDoubleComplex* stateDevice, std::complex<double>* stateHost = nullptr);
 #endif
     
     //temporary variables shared by different functions
