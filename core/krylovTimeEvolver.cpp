@@ -97,6 +97,9 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 		try {
 			initializeCUDAResources();
 			useCUDA = true;
+			logger.log_message(
+				krylovLogger::WARNING,
+				"CUDA backend is active. The GPU path is not fully validated yet; please verify results against the CPU path for critical runs.");
 		}
 		catch (const std::exception& e)
 		{
