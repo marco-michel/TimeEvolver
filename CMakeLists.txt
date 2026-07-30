@@ -23,6 +23,13 @@ endif()
 
 
 
+option (ENABLE_WARNINGS "Compile with the common warning set" ON)
+if(ENABLE_WARNINGS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  # -Wno-unused-parameter: the observable interface deliberately ignores
+  # arguments in some overrides.
+  add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+endif()
+
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 message("Installation directory would be: ${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 set (Boost_USE_STATIC_LIBS ON)
