@@ -411,8 +411,7 @@ void Hamiltonian::creationOperator(basisState *in, unsigned int mode, int c)
 {
 	if (mode >= in->b.length)
 	{
-		std::cerr << "creationOperator: mode does not exist in vector\n";
-		exit(14);
+		throw TE::krylovInvalidArgument("creationOperator: mode does not exist in vector");
 	}
 
 	int n = in->b.e[mode];
@@ -442,8 +441,7 @@ void Hamiltonian::annihilationOperator(basisState* in, unsigned int mode)
 {
 	if (mode >= in->b.length)
 	{
-		std::cerr << "creationOperator: mode does not exist in vector\n";
-		exit(14);
+		throw TE::krylovInvalidArgument("annihilationOperator: mode does not exist in vector");
 	}
 	int n = in->b.e[mode];
 	if (n == 0)

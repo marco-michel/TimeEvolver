@@ -108,8 +108,7 @@ double smatrix::normInf()
 smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm)
 {
     if (nn == 0 || mm == 0) {
-        std::cerr << "Empty matrices are not supported." << std::endl;
-        exit(1);
+        throw krylovInvalidArgument("Empty matrices are not supported.");
     }
     numValues = nbV; n = nn; m = mm;
     sym = hermitian = upperTri = false;

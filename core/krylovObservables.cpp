@@ -120,13 +120,11 @@ std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* v
 {
     if (sampleIndex >= numSamples)
     {
-        std::cerr << "Too many samples." << std::endl;
-        exit(1);
+        throw krylovError("Too many samples.");
     }
 	if (len != dim)
 	{
-		std::cerr << "Incompatible dimensions" << std::endl;
-		exit(1);
+		throw krylovInvalidArgument("Incompatible dimensions");
 	}
 	std::complex<double> observall;
 	cblas_zgemv(CblasColMajor, CblasNoTrans, dim, dim, &one, obs->values, dim, vec, 1, &zero, tmpBlasVec, 1);
@@ -174,13 +172,11 @@ std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>*
 {
     if (sampleIndex >= numSamples)
     {
-        std::cerr << "Too many samples." << std::endl;
-        exit(1);
+        throw krylovError("Too many samples.");
     }
 	if (len != dim)
 	{
-		std::cerr << "Incompatible dimensions" << std::endl;
-		exit(1);
+		throw krylovInvalidArgument("Incompatible dimensions");
 	}
 
 	std::complex<double> observall;
@@ -217,13 +213,11 @@ std::complex<double> krylovVectorObservable::expectation(std::complex<double>* v
 {
     if (sampleIndex >= numSamples)
     {
-        std::cerr << "Too many samples." << std::endl;
-        exit(1);
+        throw krylovError("Too many samples.");
     }
 	if (len != dim)
 	{
-		std::cerr << "Incompatible dimensions" << std::endl;
-		exit(1);
+		throw krylovInvalidArgument("Incompatible dimensions");
 	}
 	std::complex<double> observall;
 	cblas_zdotc_sub(len, vec, 1, obs.get(), 1, &observall);

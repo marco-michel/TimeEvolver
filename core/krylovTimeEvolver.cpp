@@ -9,6 +9,38 @@
 
 using namespace TE;
 
+namespace {
+
+/**
+* Stops and joins the progress bar thread when the enclosing scope is left, no
+* matter whether that happens by return or by an exception. Without this a
+* throw would destroy a still joinable std::thread, which calls std::terminate.
+*/
+class progressBarGuard
+{
+public:
+	progressBarGuard(std::thread& thread, std::atomic<bool>& stopFlag)
+		: thread(thread), stopFlag(stopFlag) {}
+
+	~progressBarGuard()
+	{
+		if (thread.joinable())
+		{
+			stopFlag = true;
+			thread.join();
+		}
+	}
+
+	progressBarGuard(const progressBarGuard&) = delete;
+	progressBarGuard& operator=(const progressBarGuard&) = delete;
+
+private:
+	std::thread& thread;
+	std::atomic<bool>& stopFlag;
+};
+
+}
+
 
 /**
  * Extended constructor. Default values refer to the simplified constructor and are suited for most applications of the TimeEvoler
@@ -39,12 +71,12 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 	if (Hsize == 0)
 	{
 		logger.log_message(krylovLogger::FATAL, "Invalid Hilbertspace dimension");
-		exit(1);
+		throw krylovInvalidArgument("Invalid Hilbertspace dimension");
 	}
 
 	if (std::abs(cblas_dznrm2(Hsize, v, 1) - 1.0) > tol) {
 		logger.log_message(krylovLogger::FATAL, "Initial vector is not normalized");
-		exit(1);
+		throw krylovInvalidArgument("Initial vector is not normalized");
 	}
 
 	//Perform initializing steps for the matrix representation tailored to the installed (s)BLAS library
@@ -203,7 +235,7 @@ int krylovTimeEvolver::findMaximalStepSize(std::complex<double>* T, std::complex
 		if (nbReductions == GO_MAX)
 		{
 			logger.log_message(krylovLogger::FATAL, "Error: No small enough time step found to meet tolerance requirements.");
-			exit(1);
+			throw krylovConvergenceError("No small enough time step found to meet tolerance requirements.");
 		}
 		skipSubsteps = false;
 	}
@@ -313,21 +345,25 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	}
 
 
+	//Owned by unique_ptr so that they are released on every exit path, including
+	//the ones that report a failure by throwing.
 	//Hessenberg matrix
-	matrix* H = new matrix(m, m);
+	std::unique_ptr<matrix> H(new matrix(m, m));
 	//Corresponding transformation matrix
-	matrix* V = new matrix(Hsize, m);
+	std::unique_ptr<matrix> V(new matrix(Hsize, m));
 	//The (m+1,m) element of Hessenberg matrix (needed for computation of error)
 	double h = 0;
 	//Eigenvalues of Hessenberg matrix
-	std::complex<double>* eigenvalues = new std::complex<double>[m];
+	std::unique_ptr<std::complex<double>[]> eigenvalues(new std::complex<double>[m]);
 	//Eigenvectors of Hessenberg matrix
-	std::complex<double>* schurvector = new std::complex<double>[m * m];
+	std::unique_ptr<std::complex<double>[]> schurvector(new std::complex<double>[m * m]);
 
-	//Start progressBar thread
+	//Start progressBar thread. The guard stops and joins it however this function
+	//is left, so an exception can never escape with the thread still running.
+	progressBarGuard pBGuard(pBThread, stop_printing);
 	if (progressBar == true)
 			pBThread = std::thread(&krylovTimeEvolver::progressBarThread, this);
-	
+
     //Main loop
     while (index_samples < n_samples)
     {
@@ -335,15 +371,15 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		double err_step = 0;
 
 		//STEP 1: Construct Krylov subspace using Arnoldi algorithm
-		dummy_hbd = arnoldiAlgorithm(tolRate, H, V, &h, &m_hbd);
+		dummy_hbd = arnoldiAlgorithm(tolRate, H.get(), V.get(), &h, &m_hbd);
 
 		//Some special adjustments in case of a lucky breakdown, i.e. when projection in Krylov-subspace of dimension m_hbd <= m is exact (within numerical uncertainty)
 		//In particular, the time step of the current Krylov space can be arbitarily large in this case
 		if (dummy_hbd) 
 		{
 			t_step = t - t_now;
-			matrix *Htmp = new matrix(m_hbd, m_hbd);
-			matrix *Vtmp = new matrix(Hsize, m_hbd);
+			std::unique_ptr<matrix> Htmp(new matrix(m_hbd, m_hbd));
+			std::unique_ptr<matrix> Vtmp(new matrix(Hsize, m_hbd));
 			for (size_t ll = 0; ll != m_hbd * m_hbd; ll++) {
 				Htmp->values[ll] = H->values[ll
 						+ (m - m_hbd) * (int) std::floor(ll / m_hbd)];
@@ -351,10 +387,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			for (size_t ll = 0; ll != m_hbd * Hsize; ll++) {
 				Vtmp->values[ll] = V->values[ll];
 			}
-			delete H;
-			delete V;
-			H = Htmp;
-			V = Vtmp;
+			H = std::move(Htmp);
+			V = std::move(Vtmp);
 			m = m_hbd;
 
 			logger.log_message(krylovLogger::INFO, "***Lucky breakdown at Krylov dimension" + std::to_string(m) + " *** ");
@@ -362,11 +396,11 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			statusCode = 1;
 		}
 		//Finally diagonalize Hessenberg matrix H (since it will be exponentiated many times)
-		size_t infocheck = TE_zhseqr(m, H->values, eigenvalues, schurvector);
+		size_t infocheck = TE_zhseqr(m, H->values, eigenvalues.get(), schurvector.get());
 		if (infocheck != 0) 
 		{
 			logger.log_message(krylovLogger::FATAL, "Internal error: LAPACK error " + std::to_string((int) infocheck));
-			exit(1);
+			throw krylovBackendError("LAPACK zhseqr reported error " + std::to_string((int) infocheck));
 		}
 		//END STEP 1
         
@@ -375,9 +409,9 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         {
 			double s_0 = INITIAL_STEP_FRACTION * t_step;
 			if(t_now == 0)
-				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS, numericalErrorEstimate, true, &t_step, tmpKrylovVec1, &err_step);
+				errorCodeFindSubstep = findMaximalStepSize(schurvector.get(), eigenvalues.get(), h, tolRate, s_0, t - t_now, N_SUBSTEPS, numericalErrorEstimate, true, &t_step, tmpKrylovVec1, &err_step);
 			else
-				errorCodeFindSubstep = findMaximalStepSize(schurvector, eigenvalues, h, tolRate, s_0, t - t_now, N_SUBSTEPS, numericalErrorEstimate, false, &t_step, tmpKrylovVec1, &err_step);
+				errorCodeFindSubstep = findMaximalStepSize(schurvector.get(), eigenvalues.get(), h, tolRate, s_0, t - t_now, N_SUBSTEPS, numericalErrorEstimate, false, &t_step, tmpKrylovVec1, &err_step);
 
             cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec1, 1, &zero, currentVec, 1);
         }
@@ -406,18 +440,18 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
         {
             t_sampling += samplingStep;
             //Determine state at t_sampling in the following
-            cblas_zcopy(m, eigenvalues, 1, tmpKrylovVec1, 1);
+            cblas_zcopy(m, eigenvalues.get(), 1, tmpKrylovVec1, 1);
             cblas_zdscal(m, (t_sampling - t_now), tmpKrylovVec1, 1);
 			expV(m, tmpKrylovVec1, tmpKrylovVec2);
 
             //Now temp1 is no longer needed and can be reused
-            cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, schurvector, m, e_1, 1, &zero, tmpKrylovVec1, 1);
+            cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, schurvector.get(), m, e_1, 1, &zero, tmpKrylovVec1, 1);
             for(size_t i = 0; i != m; i++)
             {
             	tmpKrylovVec1[i] = tmpKrylovVec1[i]*tmpKrylovVec2[i];
             }
             //Now temp2 is no longer needed and can be reused
-            cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, schurvector, m, tmpKrylovVec1, 1, &zero, tmpKrylovVec2, 1);
+            cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, schurvector.get(), m, tmpKrylovVec1, 1, &zero, tmpKrylovVec2, 1);
             cblas_zgemv(CblasColMajor, CblasNoTrans, Hsize, m, &one, V->values, Hsize, tmpKrylovVec2, 1, &zero, sampledState, 1);
 
 			try {
@@ -425,12 +459,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			} catch (requestStopException& e)
 			{
 				logger.log_message(krylovLogger::INFO, e.what());
-				delete[] eigenvalues; delete[] schurvector;
-				delete V; delete H;
-				if (progressBar){
-					stop_printing = true;
-					pBThread.join();
-				}
 				statusCode = 3;
 				return generateReturn();
 			}
@@ -503,11 +531,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 		statusCode = 100;
 	}
 
-    delete[] eigenvalues;
-    delete[] schurvector;
-    delete V;
-    delete H;
-
     return generateReturn();
 }
 
@@ -532,7 +555,7 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
         if(spStatus != 0)
         {
 			logger.log_message(krylovLogger::FATAL, "spMV error ");
-            exit(1);
+            throw krylovBackendError("Sparse matrix vector multiplication failed with status " + std::to_string(spStatus));
         }
 		if (j != 0) {
 			negativeH = (-1.0) * *((HRet->values) + j - 1 + j * m);
@@ -610,7 +633,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	else
 	{
 		logger.log_message(krylovLogger::FATAL, "Internal error: No method of integration selected");
-		exit(1);
+		throw krylovError("Internal error: No method of integration selected");
 	}
 	
 	successful = successful && success;

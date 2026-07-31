@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "mathHeader.h"
+#include "krylovExceptions.h"
 
 
     //Define namespace for matrices and vector classes
@@ -38,8 +39,7 @@
 
             vector(unsigned int n) {
                 if (n == 0) {
-                    std::cerr << "Empty vectors are not supported." << std::endl;
-                    exit(1);
+                    throw krylovInvalidArgument("Empty vectors are not supported.");
                 }
                 length = n;
                 values = new std::complex<double>[length];

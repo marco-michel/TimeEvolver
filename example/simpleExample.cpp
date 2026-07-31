@@ -14,7 +14,7 @@
  Observables are the expectation value of the number operator in each mode
 */
 
-int main()
+static int runSimulation()
 {
     //Model parameters: N0-total particle number, K-number of modes
     //Energy gaps E1&E2, coulings constant lambda
@@ -102,4 +102,22 @@ int main()
 
 delete[] vec; delete results;
     return 0;
+}
+
+int main()
+{
+    try
+    {
+        return runSimulation();
+    }
+    catch (const TE::krylovError& e)
+    {
+        std::cerr << "TimeEvolver error: " << e.what() << std::endl;
+        return 1;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
 }
