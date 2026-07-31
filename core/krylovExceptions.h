@@ -47,4 +47,15 @@ namespace TE {
         explicit krylovBackendError(const std::string& message) : krylovError(message) {}
     };
 
+    /**
+    * Reading or writing a file failed. HDF5 reports errors through H5::Exception,
+    * which does not derive from std::exception; those are translated into this
+    * type at the boundary so that a single catch covers every library error.
+    */
+    class krylovIOError : public krylovError
+    {
+    public:
+        explicit krylovIOError(const std::string& message) : krylovError(message) {}
+    };
+
 }

@@ -152,12 +152,10 @@ static int runSimulation(int argc, char* argv[])
     parameters.push_back(paraPush("samplingStep", true, samplingStep));
     parameters.push_back(paraPush("m", true, m));
     parameters.push_back(paraPush("fastIntegration", true, fastIntegration));
-    parameters.push_back(paraPush("TE_MAJOR_VERSION", false, TIMEEVOLVER_VERSION / 100));
-    parameters.push_back(paraPush("TE_MINOR_VERSION", false, TIMEEVOLVER_VERSION % 100));
 
-    observableList = std::move(results->observableList);
-
-    saveResult(observableList, parameters, "ResultBlackHole");
+    //The library version is written by saveResult itself, so that every caller
+    //records it rather than only the ones that remember to.
+    saveResult(*results, parameters, "ResultBlackHole");
     std::cout << "Results have been saved to file." << std::endl;
 
     delete results; delete[] vec;

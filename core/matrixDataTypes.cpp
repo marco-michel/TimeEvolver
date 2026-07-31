@@ -52,8 +52,11 @@ smatrix::smatrix()
     m = n = 0;
     numValues = 0;
 #ifdef USE_MKL
-    //variables for mkl-library
-    MKLSparseMatrix = new sparse_matrix_t;
+    //variables for mkl-library. The handle is allocated by initialize(), which
+    //is the only place that can fill it; allocating it here as well would leak
+    //one handle per matrix and leave it uninitialized whenever initialize()
+    //returns early, which the destructor would then dereference.
+    MKLSparseMatrix = nullptr;
     descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
     descriptor.diag = SPARSE_DIAG_NON_UNIT;
     initialize();
@@ -124,8 +127,11 @@ smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV
         rowIndex[i] = row[i];
     }
 #ifdef USE_MKL
-    //variables for mkl-library
-    MKLSparseMatrix = new sparse_matrix_t;
+    //variables for mkl-library. The handle is allocated by initialize(), which
+    //is the only place that can fill it; allocating it here as well would leak
+    //one handle per matrix and leave it uninitialized whenever initialize()
+    //returns early, which the destructor would then dereference.
+    MKLSparseMatrix = nullptr;
     descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
     descriptor.diag = SPARSE_DIAG_NON_UNIT;
     initialize();
@@ -151,8 +157,8 @@ smatrix::smatrix(const smatrix& old_obj) {
     }
 
 #ifdef USE_MKL
-    //variables for mkl-library
-    MKLSparseMatrix = new sparse_matrix_t;
+    //see the remark on ownership of MKLSparseMatrix in the other constructors
+    MKLSparseMatrix = nullptr;
     descriptor = old_obj.descriptor;
     initialize();
 #endif
@@ -260,208 +266,111 @@ smatrix::~smatrix()
 }
 
 
+
 #ifdef USE_HDF
 
-
 /**
-* Save sparse matrix to a HDF5 file
-* @param M sparse matrix to be stored on file
-* @param filename of the output file
+* Save sparse matrix to a HDF5 file. The matrix is stored in COO form: one value,
+* one column index and one row index per non zero entry. Everything describing
+* the matrix itself is attached to the file as scalar attributes.
+* @param filename Name of the output file
 */
 void smatrix::saveHDF5(const std::string& filename) const
 {
-    // --- convert complex values to hdf5_complex_t buffer ---
-    std::vector<hdf5_complex_t> valBuf(this->numValues);
-    for (size_t i = 0; i < this->numValues; ++i) {
-        valBuf[i].real = this->values[i].real();
-        valBuf[i].imag = this->values[i].imag();
-    }
+TE_HDF5_TRY
+    H5::H5File file(filename, H5F_ACC_TRUNC);
 
-    // --- convert indices to hsize_t ---
-    std::vector<hsize_t> colBuf(this->numValues);
-    for (size_t i = 0; i < this->numValues; ++i) {
-        colBuf[i] = static_cast<hsize_t>(this->columns[i]);
-    }
+    hdf5::writeVersion(file);
+    hdf5::writeAttribute(file, "n", this->n);
+    hdf5::writeAttribute(file, "m", this->m);
+    hdf5::writeAttribute(file, "numValues", this->numValues);
+    hdf5::writeAttribute(file, "sym", this->sym);
+    hdf5::writeAttribute(file, "hermitian", this->hermitian);
+    hdf5::writeAttribute(file, "upperTri", this->upperTri);
 
-    std::vector<hsize_t> rowBuf(this->numValues);
-    for (size_t i = 0; i < this->numValues; ++i) {
-        rowBuf[i] = static_cast<hsize_t>(this->rowIndex[i]);
-    }
-
-    // --- create file (overwrite if existing) ---
-    hid_t file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC,
-        H5P_DEFAULT, H5P_DEFAULT);
-
-    // --- write metadata as attributes on the file ---
-    hsize_t n_attr = static_cast<hsize_t>(this->n);
-    hsize_t m_attr = static_cast<hsize_t>(this->m);
-    hsize_t nnz_attr = static_cast<hsize_t>(this->numValues);
-    int     sym_attr = this->sym ? 1 : 0;
-    int     herm_attr = this->hermitian ? 1 : 0;
-    int     upper_attr = this->upperTri ? 1 : 0;
-
-    writeScalarAttribute(file, "n", H5T_NATIVE_HSIZE, n_attr);
-    writeScalarAttribute(file, "m", H5T_NATIVE_HSIZE, m_attr);
-    writeScalarAttribute(file, "numValues", H5T_NATIVE_HSIZE, nnz_attr);
-    writeScalarAttribute(file, "sym", H5T_NATIVE_INT, sym_attr);
-    writeScalarAttribute(file, "hermitian", H5T_NATIVE_INT, herm_attr);
-    writeScalarAttribute(file, "upperTri", H5T_NATIVE_INT, upper_attr);
-
-    // --- create datatype for complex values ---
-    hid_t complexType = createComplexType();
-
-    // ---------- dataset: values ----------
+    //Values are stored as a compound type rather than as separate real and
+    //imaginary datasets, so that a reader sees a single complex array.
+    std::vector<hdf5::complexType> valueBuffer(this->numValues);
+    for (size_t i = 0; i != this->numValues; i++)
     {
-        hsize_t dims[1] = { static_cast<hsize_t>(this->numValues) };
-        hid_t space = H5Screate_simple(1, dims, nullptr);
-        hid_t dset = H5Dcreate2(file, "values", complexType, space,
-            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-        H5Dwrite(dset, complexType, H5S_ALL, H5S_ALL,
-            H5P_DEFAULT, valBuf.data());
-
-        H5Dclose(dset);
-        H5Sclose(space);
+        valueBuffer[i].r = this->values[i].real();
+        valueBuffer[i].i = this->values[i].imag();
     }
 
-    // ---------- dataset: columns ----------
+    std::vector<hsize_t> columnBuffer(this->numValues);
+    std::vector<hsize_t> rowBuffer(this->numValues);
+    for (size_t i = 0; i != this->numValues; i++)
     {
-        hsize_t dims[1] = { static_cast<hsize_t>(this->numValues) };
-        hid_t space = H5Screate_simple(1, dims, nullptr);
-        hid_t dset = H5Dcreate2(file, "columns", H5T_NATIVE_HSIZE, space,
-            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-        H5Dwrite(dset, H5T_NATIVE_HSIZE, H5S_ALL, H5S_ALL,
-            H5P_DEFAULT, colBuf.data());
-
-        H5Dclose(dset);
-        H5Sclose(space);
+        columnBuffer[i] = static_cast<hsize_t>(this->columns[i]);
+        rowBuffer[i] = static_cast<hsize_t>(this->rowIndex[i]);
     }
 
-    // ---------- dataset: rowIndex ----------
-    {
-        hsize_t dims[1] = { static_cast<hsize_t>(this->numValues) };
-        hid_t space = H5Screate_simple(1, dims, nullptr);
-        hid_t dset = H5Dcreate2(file, "rowIndex", H5T_NATIVE_HSIZE, space,
-            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-        H5Dwrite(dset, H5T_NATIVE_HSIZE, H5S_ALL, H5S_ALL,
-            H5P_DEFAULT, rowBuf.data());
-
-        H5Dclose(dset);
-        H5Sclose(space);
-    }
-
-    H5Tclose(complexType);
-    H5Fclose(file);
+    H5::CompType complexType = hdf5::complexDataType();
+    hdf5::writeDataset(file, "values", complexType, complexType,
+        valueBuffer.data(), this->numValues, sizeof(hdf5::complexType));
+    hdf5::writeDataset(file, "columns", H5::PredType::STD_U64LE, H5::PredType::NATIVE_HSIZE,
+        columnBuffer.data(), this->numValues, sizeof(hsize_t));
+    hdf5::writeDataset(file, "rowIndex", H5::PredType::STD_U64LE, H5::PredType::NATIVE_HSIZE,
+        rowBuffer.data(), this->numValues, sizeof(hsize_t));
+TE_HDF5_CATCH("Could not write sparse matrix to " + filename)
 }
 
+/**
+* Load a sparse matrix from a HDF5 file written by saveHDF5. Any data held by
+* this matrix is replaced.
+* @param filename Name of the input file
+*/
 void smatrix::loadHDF5(const std::string& filename)
 {
-    // ---- open file ----
-    hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-    if (file < 0) {
-        std::cerr << "Error: cannot open HDF5 file " << filename << std::endl;
-        return;
-    }
+TE_HDF5_TRY
+    H5::H5File file(filename, H5F_ACC_RDONLY);
 
-    // ---- read attributes into temporaries ----
-    hsize_t n_attr, m_attr, nnz_attr;
-    int sym_attr, herm_attr, upper_attr;
+    size_t newN = hdf5::readSizeAttribute(file, "n");
+    size_t newM = hdf5::readSizeAttribute(file, "m");
+    size_t newNumValues = hdf5::readSizeAttribute(file, "numValues");
 
-    readScalarAttribute(file, "n", H5T_NATIVE_HSIZE, n_attr);
-    readScalarAttribute(file, "m", H5T_NATIVE_HSIZE, m_attr);
-    readScalarAttribute(file, "numValues", H5T_NATIVE_HSIZE, nnz_attr);
-    readScalarAttribute(file, "sym", H5T_NATIVE_INT, sym_attr);
-    readScalarAttribute(file, "hermitian", H5T_NATIVE_INT, herm_attr);
-    readScalarAttribute(file, "upperTri", H5T_NATIVE_INT, upper_attr);
+    if (newN == 0 || newM == 0)
+        throw krylovInvalidArgument("Empty matrices are not supported.");
 
-    // ---- free old contents if this smatrix already had something ----
-    if (this->values)   delete[] this->values;
-    if (this->columns)  delete[] this->columns;
-    if (this->rowIndex) delete[] this->rowIndex;
+    std::vector<hdf5::complexType> valueBuffer(newNumValues);
+    std::vector<hsize_t> columnBuffer(newNumValues);
+    std::vector<hsize_t> rowBuffer(newNumValues);
 
-    // ---- assign metadata ----
-    this->n = static_cast<size_t>(n_attr);
-    this->m = static_cast<size_t>(m_attr);
-    this->numValues = static_cast<size_t>(nnz_attr);
-    this->sym = (sym_attr != 0);
-    this->hermitian = (herm_attr != 0);
-    this->upperTri = (upper_attr != 0);
-
-    if (this->initialized) {
-        if (MKLSparseMatrix != nullptr) {
-            mkl_sparse_destroy(*MKLSparseMatrix);
-            delete MKLSparseMatrix;
-        }
-        this->initialized = false;
-    }
-
-
-    // ---- allocate new arrays ----
-    this->values = new std::complex<double>[this->numValues];
-    this->columns = new size_t[this->numValues];
-    this->rowIndex = new size_t[this->numValues];
-
-    // ---- create complex datatype ----
-    hid_t complexType = createComplexType();
-
-    // ---------- read: values ----------
+    if (newNumValues != 0)
     {
-        hid_t dset = H5Dopen2(file, "values", H5P_DEFAULT);
-        hid_t space = H5Dget_space(dset);
-
-        std::vector<hdf5_complex_t> tmp(this->numValues);
-
-        H5Dread(dset, complexType, H5S_ALL, H5S_ALL,
-            H5P_DEFAULT, tmp.data());
-
-        H5Dclose(dset);
-        H5Sclose(space);
-
-        // convert back to std::complex<double>
-        for (size_t i = 0; i < this->numValues; ++i) {
-            this->values[i] = std::complex<double>(tmp[i].real, tmp[i].imag);
-        }
+        H5::CompType complexType = hdf5::complexDataType();
+        file.openDataSet("values").read(valueBuffer.data(), complexType);
+        file.openDataSet("columns").read(columnBuffer.data(), H5::PredType::NATIVE_HSIZE);
+        file.openDataSet("rowIndex").read(rowBuffer.data(), H5::PredType::NATIVE_HSIZE);
     }
 
-    // ---------- read: columns ----------
+    //Only replace the current contents once everything has been read, so that a
+    //failed load leaves the matrix as it was.
+    delete[] values;
+    delete[] columns;
+    delete[] rowIndex;
+
+    numValues = newNumValues;
+    n = newN;
+    m = newM;
+    sym = hdf5::readBoolAttribute(file, "sym");
+    hermitian = hdf5::readBoolAttribute(file, "hermitian");
+    upperTri = hdf5::readBoolAttribute(file, "upperTri");
+
+    values = new std::complex<double>[numValues];
+    columns = new size_t[numValues];
+    rowIndex = new size_t[numValues];
+
+    for (size_t i = 0; i != numValues; i++)
     {
-        hid_t dset = H5Dopen2(file, "columns", H5P_DEFAULT);
-        hid_t space = H5Dget_space(dset);
-
-        std::vector<hsize_t> tmp(this->numValues);
-
-        H5Dread(dset, H5T_NATIVE_HSIZE, H5S_ALL, H5S_ALL,
-            H5P_DEFAULT, tmp.data());
-
-        H5Dclose(dset);
-        H5Sclose(space);
-
-        for (size_t i = 0; i < this->numValues; ++i)
-            this->columns[i] = static_cast<size_t>(tmp[i]);
+        values[i] = std::complex<double>(valueBuffer[i].r, valueBuffer[i].i);
+        columns[i] = static_cast<size_t>(columnBuffer[i]);
+        rowIndex[i] = static_cast<size_t>(rowBuffer[i]);
     }
 
-    // ---------- read: rowIndex ----------
-    {
-        hid_t dset = H5Dopen2(file, "rowIndex", H5P_DEFAULT);
-        hid_t space = H5Dget_space(dset);
-
-        std::vector<hsize_t> tmp(this->numValues);
-
-        H5Dread(dset, H5T_NATIVE_HSIZE, H5S_ALL, H5S_ALL,
-            H5P_DEFAULT, tmp.data());
-
-        H5Dclose(dset);
-        H5Sclose(space);
-
-        for (size_t i = 0; i < this->numValues; ++i)
-            this->rowIndex[i] = static_cast<size_t>(tmp[i]);
-    }
-
-    H5Tclose(complexType);
-    H5Fclose(file);
+    initialized = false;
     initialize();
+TE_HDF5_CATCH("Could not read sparse matrix from " + filename)
 }
 
 #endif

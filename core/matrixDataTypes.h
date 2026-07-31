@@ -6,12 +6,9 @@
 #include <iostream>
 #include <algorithm>
 
-#ifdef USE_HDF
-#include <hdf5.h>
-#endif
-
 #include "mathHeader.h"
 #include "krylovExceptions.h"
+#include "hdf5Support.h"
 
 
     //Define namespace for matrices and vector classes
@@ -165,46 +162,5 @@ namespace TE {
 #endif
     }
 
-
-#ifdef USE_HDF
-
-    /**
-    * Class to store complex numbers in legacy HDF5 1.14 format
-    */
-    struct hdf5_complex_t {
-        double real;
-        double imag;
-    };
-
-
-    // helper to create the compound datatype for complex numbers
-    inline hid_t createComplexType()
-    {
-        hid_t complexType = H5Tcreate(H5T_COMPOUND, sizeof(hdf5_complex_t));
-        H5Tinsert(complexType, "r", HOFFSET(hdf5_complex_t, real), H5T_NATIVE_DOUBLE);
-        H5Tinsert(complexType, "i", HOFFSET(hdf5_complex_t, imag), H5T_NATIVE_DOUBLE);
-        return complexType;
-    }
-
-    // small helper for scalar attributes
-    template<typename T>
-    inline void writeScalarAttribute(hid_t obj, const char* name, hid_t h5Type, const T& value)
-    {
-        hid_t space = H5Screate(H5S_SCALAR);
-        hid_t attr = H5Acreate2(obj, name, h5Type, space, H5P_DEFAULT, H5P_DEFAULT);
-        H5Awrite(attr, h5Type, &value);
-        H5Aclose(attr);
-        H5Sclose(space);
-    }
-
-    template<typename T>
-    void readScalarAttribute(hid_t obj, const char* name, hid_t h5Type, T& out)
-    {
-        hid_t attr = H5Aopen(obj, name, H5P_DEFAULT);
-        H5Aread(attr, h5Type, &out);
-        H5Aclose(attr);
-    }
-
-#endif
 
 }

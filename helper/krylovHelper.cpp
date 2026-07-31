@@ -1,107 +1,129 @@
+#include <fstream>
+
 #include "krylovHelper.h"
 
+#ifdef USE_HDF
+#include "hdf5Support.h"
+#endif
 
-/**
- * Writes sampled expectation values of a list of observables to file
- * @param obs_list List of observables with sampled expectation values
- * @param para List of parameters that are included as attributes in the HDF5 file as well as filename (if requested)
- * @param name Requested filename
- */
-void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>>& obs_list, parameter_list& para, const std::string& name)
-{
-    std::string outputFileName = name;
+namespace {
 
-    parameter_list::iterator paraIter;
-    std::vector<std::unique_ptr<krylovBasicObservable>>::const_iterator obsIter;
-
-    //Create string with parameter and its value
-    for (paraIter = para.begin(); paraIter != para.end(); paraIter++) {
-        if ((*paraIter)->getPrintFilename() == true)
-            outputFileName += "_" + (*paraIter)->getName() + (*paraIter)->getData();
+    /**
+    * Build the output filename from the requested name and those parameters that
+    * asked to appear in it.
+    */
+    std::string buildFileName(parameter_list& para, const std::string& name)
+    {
+        std::string fileName = name;
+        for (parameter_list::iterator iter = para.begin(); iter != para.end(); iter++)
+        {
+            if ((*iter)->getPrintFilename() == true)
+                fileName += "_" + (*iter)->getName() + (*iter)->getData();
+        }
+        return fileName;
     }
-
-
-
-    obsIter = obs_list.begin();
-    size_t nbOutputParameters = para.size();
-
 
 #ifdef USE_HDF
-    outputFileName += ".h5";
-    H5File fileHh(outputFileName.c_str(), H5F_ACC_TRUNC);
-    DataSet dataset;
 
-    for (unsigned int j = 0; j < obs_list.size() && obsIter != obs_list.end(); j++)
+    /**
+    * Attach one model parameter as a scalar attribute.
+    */
+    void writeParameter(const H5::H5Object& object, const std::shared_ptr<parameter>& para)
     {
-        int NX = (int)(*obsIter)->retNumSamples();
-        const int RANK = 1;
-        hsize_t dimsf[RANK] = {};
-        dimsf[0] = NX;
-        DataSpace dataspace(RANK, dimsf);
-        FloatType datatype(PredType::NATIVE_DOUBLE);
-        datatype.setOrder(H5T_ORDER_LE);
-        std::string observableName = (*obsIter)->retName();
-        dataset = fileHh.createDataSet(observableName.c_str(), datatype, dataspace);
-        dataset.write((*obsIter)->retExpectationValues(), PredType::NATIVE_DOUBLE);
-
-        //write  parameters as attributes to file
-        hsize_t dims[1] = { 1 };
-
-        DataSpace** attr_dataspace = new DataSpace * [nbOutputParameters];
-        Attribute** attributes = new Attribute * [nbOutputParameters];
-
-        for (unsigned int i = 0; i < nbOutputParameters; ++i)
-        {
-            attr_dataspace[i] = new DataSpace(1, dims);
-            attributes[i] = new Attribute();
-        }
-
-        int counter = 0;
-        for (paraIter = para.begin(); paraIter != para.end(); paraIter++, counter++)
-        {
-            if ((*paraIter)->isDouble())
-            {
-                double paraValue = dynamic_cast<typedParameter<double>&>(*(*paraIter)).getValue();
-                *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_DOUBLE, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_DOUBLE, &paraValue);
-            }
-            else if ((*paraIter)->isInt())
-            {
-                int paraValue = dynamic_cast<typedParameter<int>&>(*(*paraIter)).getValue();
-                *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_INT, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_INT, &paraValue);
-            }
-            else if ((*paraIter)->isBool())
-            {
-                int paraValue = dynamic_cast<typedParameter<bool>&>(*(*paraIter)).getValue();
-                *attributes[counter] = dataset.createAttribute((*paraIter)->getName(), PredType::NATIVE_INT, *attr_dataspace[counter]); attributes[counter]->write(PredType::NATIVE_INT, &paraValue);
-            }
-        }
-
-        for (unsigned int i = 0; i < nbOutputParameters; ++i)
-        {
-            delete attr_dataspace[i];
-            delete attributes[i];
-        }
-
-        delete[] attr_dataspace;
-        delete[] attributes;
-
-        dataset.close();
-        obsIter++;
-
+        if (para->isDouble())
+            TE::hdf5::writeAttribute(object, para->getName(), dynamic_cast<typedParameter<double>&>(*para).getValue());
+        else if (para->isInt())
+            TE::hdf5::writeAttribute(object, para->getName(), dynamic_cast<typedParameter<int>&>(*para).getValue());
+        else if (para->isBool())
+            TE::hdf5::writeAttribute(object, para->getName(), dynamic_cast<typedParameter<bool>&>(*para).getValue());
+        else
+            throw TE::krylovIOError("Parameter '" + para->getName() +
+                "' has a type that cannot be written to file. Supported types are double, int and bool.");
     }
+
+    /**
+    * Attach everything describing the run: the accuracy information from the
+    * time evolution, the model parameters and the library version. All of it
+    * belongs to the file as a whole, not to any single observable.
+    */
+    void writeRunMetadata(const H5::H5File& file, const krylovReturn& result, parameter_list& para)
+    {
+        TE::hdf5::writeVersion(file);
+
+        //The a posteriori error bound is the point of the method, so it is part
+        //of the result rather than something the caller has to remember to keep.
+        TE::hdf5::writeAttribute(file, "err", result.err);
+        TE::hdf5::writeAttribute(file, "evolvedTime", result.evolvedTime);
+        TE::hdf5::writeAttribute(file, "statusCode", result.statusCode);
+        TE::hdf5::writeAttribute(file, "nSteps", result.n_steps);
+        TE::hdf5::writeAttribute(file, "krylovDim", result.krylovDim);
+        TE::hdf5::writeAttribute(file, "dim", result.dim);
+        TE::hdf5::writeAttribute(file, "numSamples", result.numSamples);
+
+        for (parameter_list::iterator iter = para.begin(); iter != para.end(); iter++)
+            writeParameter(file, *iter);
+    }
+
+#endif
+
+}
+
+/**
+* Write the sampled expectation values of a completed time evolution to file.
+* @param result The finished time evolution
+* @param para List of model parameters
+* @param name Requested filename without extension
+*/
+void saveResult(const krylovReturn& result, parameter_list& para, const std::string& name)
+{
+    std::string outputFileName = buildFileName(para, name);
+    const std::vector<std::unique_ptr<krylovBasicObservable>>& obs_list = result.observableList;
+
+#ifdef USE_HDF
+
+    outputFileName += ".h5";
+
+TE_HDF5_TRY
+    H5::H5File file(outputFileName, H5F_ACC_TRUNC);
+
+    writeRunMetadata(file, result, para);
+
+    for (auto obsIter = obs_list.begin(); obsIter != obs_list.end(); obsIter++)
+    {
+        hsize_t numSamples = (hsize_t)(*obsIter)->retNumSamples();
+
+        H5::DataSpace space(1, &numSamples);
+        H5::DataSet dataset = file.createDataSet((*obsIter)->retName(),
+            H5::PredType::IEEE_F64LE, space,
+            TE::hdf5::datasetProperties(numSamples, sizeof(double)));
+
+        if (numSamples != 0)
+            dataset.write((*obsIter)->retExpectationValues(), H5::PredType::NATIVE_DOUBLE);
+
+        //Only what genuinely differs between observables belongs here; the run
+        //parameters are attributes of the file.
+        TE::hdf5::writeAttribute(dataset, "numSamples", (*obsIter)->retNumSamples());
+        TE::hdf5::writeAttribute(dataset, "observableType", (int)(*obsIter)->retType());
+    }
+TE_HDF5_CATCH("Could not write result to " + outputFileName)
+
     //If HDF5 is not available, write data to simple csv files
 #else
 
-    for (; obsIter != obs_list.end(); obsIter++)
+    for (auto obsIter = obs_list.begin(); obsIter != obs_list.end(); obsIter++)
     {
         std::string fileNameCSV = outputFileName + (*obsIter)->retName() + ".csv";
         std::ofstream outputfile;
         outputfile.open(fileNameCSV);
 
-
-        for (int i = 0; i != (*obsIter)->retNumSamples() - 1; i++)
-            outputfile << (*obsIter)->retExpectationValues()[i] << ", ";
-        outputfile << (*obsIter)->retExpectationValues()[((*obsIter)->retNumSamples()) - 1];
+        const double* expectationValues = (*obsIter)->retExpectationValues();
+        const size_t numSamples = (*obsIter)->retNumSamples();
+        if (numSamples != 0)
+        {
+            for (size_t i = 0; i + 1 != numSamples; i++)
+                outputfile << expectationValues[i] << ", ";
+            outputfile << expectationValues[numSamples - 1];
+        }
         outputfile.close();
     }
 
@@ -112,95 +134,16 @@ void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>>& obs_l
 
 #ifdef USE_HDF
 /**
-* Save a sparse matrix to HDF5 file.
+* Write a sparse matrix to its own HDF5 file. The format is the one smatrix
+* reads back, so that anything written here can be loaded again.
 * @param mat Matrix to be saved
-* @param filename Filename
+* @param name Name of the output file
 */
 void saveSparseMatrix(const smatrix* mat, const std::string& name)
 {
-    double* realPart = new double[mat->numValues];
-    double* imagPart = new double[mat->numValues];
+    if (mat == nullptr)
+        throw TE::krylovInvalidArgument("saveSparseMatrix: no matrix given.");
 
-    for (unsigned int i = 0; i != mat->numValues; i++)
-    {
-        realPart[i] = mat->values[i].real();
-        imagPart[i] = mat->values[i].imag();
-    }
-
-    size_t mExport = (size_t) mat->m;
-    std::string fileNameH5 = name;
-    H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
-    size_t NX = mat->numValues;
-    const int RANK = 1;
-    hsize_t dimsf[RANK] = {};
-    hsize_t dimsatt[RANK] = {};
-    dimsf[0] = NX;
-    dimsatt[0] = 1;
-    DataSpace dataspace(RANK, dimsf);
-    FloatType datatype(PredType::NATIVE_DOUBLE);
-
-    DataSpace dataspace2(RANK, dimsatt);
-
-    datatype.setOrder(H5T_ORDER_LE);
-    DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
-        dataspace);
-    dataset1.write(realPart, PredType::NATIVE_DOUBLE);
-    DataSet dataset2 = fileHh.createDataSet("valuesImagPart", datatype,
-        dataspace);
-    dataset2.write(imagPart, PredType::NATIVE_DOUBLE);
-
-    IntType datatypeInt(PredType::NATIVE_HSIZE);
-    datatypeInt.setOrder(H5T_ORDER_LE);
-    DataSet dataset3 = fileHh.createDataSet("columIndex", datatypeInt,
-        dataspace);
-    dataset3.write(mat->columns, PredType::NATIVE_HSIZE);
-    DataSet dataset4 = fileHh.createDataSet("rowIndex", datatypeInt,
-        dataspace);
-    dataset4.write(mat->rowIndex, PredType::NATIVE_HSIZE);
-
-    DataSet dataset5 = fileHh.createDataSet("dimension", datatypeInt, dataspace2);
-    dataset5.write(&mExport, PredType::NATIVE_HSIZE);
-
-    delete[] realPart;
-    delete[] imagPart;
+    mat->saveHDF5(name);
 }
 #endif
-
-
-#ifdef USE_HDF 
-/**
-* Save matrix to HDF5 file.
-* @param mat Matrix to be saved
-* @param filename Filename
-*/
-void saveMatrix(const matrix* mat, const std::string& name)
-{
-    double* realPart = new double[mat->numValues];
-    double* imagPart = new double[mat->numValues];
-
-    for (unsigned int i = 0; i != mat->numValues; i++)
-    {
-        realPart[i] = mat->values[i].real();
-        imagPart[i] = mat->values[i].imag();
-    }
-
-    std::string fileNameH5 = name;
-    H5File fileHh(fileNameH5, H5F_ACC_TRUNC);
-    size_t NX = mat->numValues;
-    const int RANK = 1;
-    hsize_t dimsf[RANK];
-    dimsf[0] = NX;
-    DataSpace dataspace(RANK, dimsf);
-    FloatType datatype(PredType::NATIVE_DOUBLE);
-    datatype.setOrder(H5T_ORDER_LE);
-    DataSet dataset1 = fileHh.createDataSet("valuesRealPart", datatype,
-        dataspace);
-    dataset1.write(realPart, PredType::NATIVE_DOUBLE);
-    DataSet dataset2 = fileHh.createDataSet("valuesImagPart", datatype,
-        dataspace);
-    dataset2.write(imagPart, PredType::NATIVE_DOUBLE);
-
-    delete[] realPart;
-    delete[] imagPart;
-}
-#endif 

@@ -4,24 +4,34 @@
 #include <memory>
 #include <string>
 
-#ifdef USE_HDF
-#include <H5Cpp.h>
-using namespace H5;
-#endif
-
 #include "parameter.h"
 #include "krylovObservables.h"
-
-
+#include "krylovTimeEvolver.h"
 
 
 /**
-* Several auxilary function for file output. Some require HDF5. 
+* Auxiliary functions for file output. Some require HDF5.
+*
+* Note that no HDF5 header is included here: everything HDF5 specific lives in
+* the implementation, so that including this header does not drag H5 into the
+* including translation unit.
 */
 
-void saveResult(const std::vector<std::unique_ptr<krylovBasicObservable>>& obs_list, parameter_list& para, const std::string& name);
+/**
+* Write the sampled expectation values of a completed time evolution to file.
+* The Hamiltonian carried by the result is deliberately not written; it can be
+* many gigabytes and has its own function, saveSparseMatrix.
+* @param result The finished time evolution, providing both the observables and the accuracy information
+* @param para List of model parameters, stored as attributes and optionally used for the filename
+* @param name Requested filename without extension
+*/
+void saveResult(const krylovReturn& result, parameter_list& para, const std::string& name);
 
 #ifdef USE_HDF
-void saveMatrix(const matrix* mat, const std::string& name);
+/**
+* Write a sparse matrix to its own HDF5 file.
+* @param mat Matrix to be saved
+* @param name Name of the output file
+*/
 void saveSparseMatrix(const smatrix* mat, const std::string& name);
 #endif

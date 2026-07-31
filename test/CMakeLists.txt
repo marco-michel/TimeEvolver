@@ -31,4 +31,10 @@ target_include_directories(TestErrorHandling PRIVATE ../core)
 target_link_libraries(TestErrorHandling PRIVATE TimeEvolver MatrixDataTypes)
 
 
+add_executable(TestHDF5RoundTrip testHDF5RoundTrip.cpp)
+set_target_properties(TestHDF5RoundTrip PROPERTIES OUTPUT_NAME "testHDF5RoundTrip" INSTALL_RPATH_USE_LINK_PATH TRUE)
+target_include_directories(TestHDF5RoundTrip PRIVATE ../core)
+target_link_libraries(TestHDF5RoundTrip PRIVATE MatrixDataTypes)
+
+
 
