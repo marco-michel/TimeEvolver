@@ -94,7 +94,9 @@ struct PySparseMatrix {
         native->saveHDF5(filename);
 #else
         (void)filename;
-        throw py::runtime_error(
+        // pybind11 has no py::runtime_error; std::runtime_error is translated
+        // into Python's RuntimeError.
+        throw std::runtime_error(
             "HDF5 support is not available in this build (USE_HDF not defined).");
 #endif
     }
@@ -116,7 +118,9 @@ struct PySparseMatrix {
         return out;
 #else
         (void)filename;
-        throw py::runtime_error(
+        // pybind11 has no py::runtime_error; std::runtime_error is translated
+        // into Python's RuntimeError.
+        throw std::runtime_error(
             "HDF5 support is not available in this build (USE_HDF not defined).");
 #endif
     }
