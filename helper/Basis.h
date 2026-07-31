@@ -5,6 +5,8 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "krylovExceptions.h"
+
 #include "boost/container_hash/hash.hpp"
 #include "boost/math/special_functions/binomial.hpp"
 
@@ -52,8 +54,7 @@ struct basisVector
 	{
 		if (le <= pos)
 		{
-			std::cerr << "basisvector too small" << std::endl;
-			exit(12);
+			throw TE::krylovInvalidArgument("basisvector too small");
 		}
 		if (le > 0)
 		{

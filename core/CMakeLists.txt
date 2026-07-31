@@ -11,7 +11,7 @@ target_link_libraries(TimeEvolver PUBLIC ${BLAS_LIBRARIES} ${Boost_LIBRARIES}
      dl pthread MatrixDataTypes)
 
 install(TARGETS TimeEvolver DESTINATION TimeEvolver/lib)
-install(FILES matrixDataTypes.h krylovTimeEvolver.h krylovObservables.h mathHeader.h DESTINATION TimeEvolver/include)
+install(FILES matrixDataTypes.h krylovTimeEvolver.h krylovObservables.h mathHeader.h krylovExceptions.h DESTINATION TimeEvolver/include)
 
 if(USING_OPENBLAS)
     target_link_libraries(TimeEvolver PUBLIC lapacke) 
