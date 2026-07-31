@@ -6,7 +6,9 @@
 #include <iostream>
 #include <algorithm>
 
+#ifdef USE_HDF
 #include <hdf5.h>
+#endif
 
 #include "mathHeader.h"
 
@@ -82,8 +84,11 @@ namespace TE {
         int spMV(std::complex<double> alpha, std::complex<double>* in, std::complex<double>* out) const;
         int initialize();
 
+        //methods to store/load matrix to/from file
+#ifdef USE_HDF
         void saveHDF5(const std::string& filename) const;
         void loadHDF5(const std::string& filename);
+#endif
 
         static constexpr std::complex<double> one = std::complex<double>(1.0, 0.0);
         static constexpr std::complex<double> zero = std::complex<double>(0.0, 0.0);
