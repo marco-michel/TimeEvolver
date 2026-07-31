@@ -7,7 +7,9 @@
 #include "exampleHamiltonian.h"
 
 
-
+// Both tests compare a freshly created matrix against a reference stored as an
+// HDF5 file, so they only exist in a build that has HDF5 available.
+#ifdef USE_HDF
 
 TEST(smatrixCreation, simpleExampleMatrix)
 {
@@ -47,4 +49,6 @@ TEST(smatrixCreation, blackholeMatrix)
 
     EXPECT_TRUE(hamMatrix->approxEqual(storedHamMatrix));
 }
+
+#endif
 
