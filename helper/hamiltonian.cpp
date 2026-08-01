@@ -290,7 +290,7 @@ std::vector<std::unique_ptr<smatrix>> Hamiltonian::createNumberOperatorObservabl
 {
 	std::vector<std::unique_ptr<smatrix>> out;
 
-	for (unsigned int i = 0; i != basis->numberModes; i++)
+	for (int i = 0; i != basis->numberModes; i++)
 	{
 		std::vector<opTerm> operators;
 		operators.push_back(createNumberOperator(i, 1));
