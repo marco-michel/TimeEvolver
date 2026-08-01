@@ -1,5 +1,7 @@
 #include "exampleHamiltonian.h"
 
+#include "krylovExceptions.h"
+
 /**
  * Initializes the Hamiltonian for a specific choice of parameters (see accompanying paper for definition of parameters). This class allows for slightly more general choices of parameters than the Hamiltonian displayed in the paper.
  * @param n0 Parameter N0
@@ -17,7 +19,14 @@
 exampleHamiltonian::exampleHamiltonian(int n0, int nm, double deltan, int q1, int q2, int c, double c0, double cgap1, double cgap2, double cm, double cms)
 {
 	C = c; N0 = n0; Nm = nm; DeltaN = deltan; Q1 = q1; Q2 = q2;
-	C0 = c0; CGap1 = cgap1; CGap2 = cgap2; Cm = cm; CmS = cms; 
+	C0 = c0; CGap1 = cgap1; CGap2 = cgap2; Cm = cm; CmS = cms;
+
+	//The coupling of the second critical sector is divided by N0-DeltaN, so an
+	//equal pair produces an infinite Hamiltonian rather than a model.
+	if (N0 - DeltaN == 0)
+		throw TE::krylovInvalidArgument("DeltaN must differ from N0 (both are " +
+			std::to_string(N0) + "); the coupling of the second critical sector is "
+			"divided by N0-DeltaN.");
 }
 
 /**

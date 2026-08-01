@@ -74,7 +74,20 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 		throw krylovInvalidArgument("Invalid Hilbertspace dimension");
 	}
 
-	if (std::abs(cblas_dznrm2(Hsize, v, 1) - 1.0) > tol) {
+	//A Hamiltonian holding an infinity or a NaN produces a Krylov space of the
+	//same, and the failure only surfaces many steps later inside LAPACK. The
+	//1-norm is already at hand and is not a number exactly when some entry is
+	//not one.
+	if (!std::isfinite(matrixNorm))
+	{
+		logger.log_message(krylovLogger::FATAL, "Hamiltonian contains entries that are not finite");
+		throw krylovInvalidArgument("Hamiltonian contains entries that are not finite");
+	}
+
+	//Written to trigger rather than to pass when the norm is not a number: a
+	//NaN compares false against everything, so the straightforward test would
+	//let an initial vector full of NaN through.
+	if (!(std::abs(cblas_dznrm2(Hsize, v, 1) - 1.0) <= tol)) {
 		logger.log_message(krylovLogger::FATAL, "Initial vector is not normalized");
 		throw krylovInvalidArgument("Initial vector is not normalized");
 	}
