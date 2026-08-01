@@ -1,7 +1,7 @@
 /**
 * Checks that the library reports failures by throwing rather than by
-* terminating the process. Every case below used to call exit(1), which made
-* these errors unrecoverable for any embedding application.
+* terminating the process, which would make them unrecoverable for an
+* embedding application.
 */
 
 #include <complex>
@@ -71,7 +71,7 @@ int main()
 	});
 
 	//A tolerance this small can never be met, so the step size reduction runs out
-	//of attempts. This is a legitimate numerical outcome, not a misuse of the API.
+	//of attempts.
 	expectThrow("unreachable tolerance", [] {
 		const size_t dim = 50;
 		std::vector<std::complex<double>> state(dim, 0.0);

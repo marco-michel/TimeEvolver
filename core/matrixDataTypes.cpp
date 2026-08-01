@@ -53,9 +53,7 @@ smatrix::smatrix()
     numValues = 0;
 #ifdef USE_MKL
     //variables for mkl-library. The handle is allocated by initialize(), which
-    //is the only place that can fill it; allocating it here as well would leak
-    //one handle per matrix and leave it uninitialized whenever initialize()
-    //returns early, which the destructor would then dereference.
+    //is the only place that can fill it.
     MKLSparseMatrix = nullptr;
     descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
     descriptor.diag = SPARSE_DIAG_NON_UNIT;
@@ -128,9 +126,7 @@ smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV
     }
 #ifdef USE_MKL
     //variables for mkl-library. The handle is allocated by initialize(), which
-    //is the only place that can fill it; allocating it here as well would leak
-    //one handle per matrix and leave it uninitialized whenever initialize()
-    //returns early, which the destructor would then dereference.
+    //is the only place that can fill it.
     MKLSparseMatrix = nullptr;
     descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
     descriptor.diag = SPARSE_DIAG_NON_UNIT;
@@ -288,8 +284,8 @@ TE_HDF5_TRY
     hdf5::writeAttribute(file, "hermitian", this->hermitian);
     hdf5::writeAttribute(file, "upperTri", this->upperTri);
 
-    //Values are stored as a compound type rather than as separate real and
-    //imaginary datasets, so that a reader sees a single complex array.
+    //Stored as a compound type rather than as separate real and imaginary
+    //datasets, so that a reader sees a single complex array.
     std::vector<hdf5::complexType> valueBuffer(this->numValues);
     for (size_t i = 0; i != this->numValues; i++)
     {
