@@ -21,13 +21,12 @@ static int runSimulation()
     int N0 = 200; int K = 2;
     double E1 = 1; double E2 = 2; double lambda = 1;
 
-    //Simulation parameters: Evolution time: maxT, stepsize for computing observables: samplingStep,
-    //tolerance: tol, Krylovspace dimension: m (around 40 is good for most cases)
+    //Simulation parameters: Evolution time: maxT, stepsize for computing observables: samplingStep
     double maxT = 10; double samplingStep = 0.01;
-    double tol = 1.0e-6; int m = 40;
 
-    //Number of observables = number of modes
-    int nbObservables = K;
+    //The short krylovTimeEvolver constructor used below applies the default tolerance (1e-6)
+    //and Krylov-space dimension (40, a good choice for most cases). To choose them yourself,
+    //use the full constructor instead; see example/main.cpp.
 
     //Creating particle number conserving basis consiting of two different quantum modes.
     basis basis(N0, K, 0, 0);
@@ -92,9 +91,13 @@ static int runSimulation()
        std::ofstream outputfile;
        outputfile.open(fileNameCSV);
        double* exptVal = (*obsIter)->retExpectationValues();
-       for (int i = 0; i != (*obsIter)->retNumSamples() - 1; i++)
-           outputfile << exptVal[i] << ", ";
-       outputfile << exptVal[((*obsIter)->retNumSamples()) - 1];
+       const size_t numSamples = (*obsIter)->retNumSamples();
+       if (numSamples != 0)
+       {
+           for (size_t i = 0; i + 1 != numSamples; i++)
+               outputfile << exptVal[i] << ", ";
+           outputfile << exptVal[numSamples - 1];
+       }
        outputfile.close();
    }
    std::cout << "Results have been saved to file." << std::endl;

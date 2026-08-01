@@ -60,7 +60,7 @@ krylovBasicObservable::krylovBasicObservable(const std::string& name, std::vecto
 {
     expectationValues = new double[numSamples];
 
-    for (int i = 0; i != numSamples; i++) {
+    for (size_t i = 0; i != numSamples; i++) {
         expectationValues[i] = values[i];
     }
 }
@@ -124,7 +124,7 @@ std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>*
     {
         throw krylovError("Too many samples.");
     }
-	if (len != dim)
+	if (static_cast<size_t>(len) != dim)
 	{
 		throw krylovInvalidArgument("Incompatible dimensions");
 	}
@@ -165,7 +165,7 @@ std::complex<double> krylovVectorObservable::expectation(std::complex<double>* v
     {
         throw krylovError("Too many samples.");
     }
-	if (len != dim)
+	if (static_cast<size_t>(len) != dim)
 	{
 		throw krylovInvalidArgument("Incompatible dimensions");
 	}
@@ -188,7 +188,7 @@ krylovOutputObservable::krylovOutputObservable(const std::string& name, std::vec
 {
     this->numSamples = values.size();
     initializeResultArray(numSamples);
-    for (int i = 0; i != numSamples; i++) {
+    for (size_t i = 0; i != numSamples; i++) {
         expectationValues[i] = values[i];
     }
 }
