@@ -102,16 +102,3 @@ private:
 };
 
 
-/**
-* Derived observable class. The observable is represented as a (dense) matrix and the expectation value is computed as <Obs|state|Obs>
-*/
-class krylovMatrixObservable : public krylovBasicObservable
-{
-    krylovMatrixObservable(const std::string& name, std::unique_ptr<matrix> obs);
-    ~krylovMatrixObservable();
-    std::complex<double> expectation(std::complex<double>* vec, int len);
-
-private:
-    std::unique_ptr<matrix> obs;
-    std::complex<double>* tmpBlasVec;
-};
