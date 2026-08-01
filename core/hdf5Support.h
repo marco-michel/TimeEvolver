@@ -239,11 +239,26 @@ namespace TE {
             return static_cast<size_t>(value);
         }
 
+        /**
+        * Read a boolean attribute, accepting the plain integer that earlier
+        * versions of the library wrote as well as the enumeration written now.
+        * A sparse matrix file can be many gigabytes, so a change of encoding
+        * must not be a reason to have to produce it again.
+        */
         inline bool readBoolAttribute(const H5::H5Object& object, const std::string& name)
         {
+            H5::Attribute attribute = object.openAttribute(name);
+
+            if (attribute.getTypeClass() == H5T_INTEGER)
+            {
+                int value = 0;
+                attribute.read(H5::PredType::NATIVE_INT, &value);
+                return value != 0;
+            }
+
             unsigned char value = 0;
             H5::EnumType type = boolDataType();
-            readAttribute(object, name, type, value);
+            attribute.read(type, &value);
             return value != 0;
         }
 

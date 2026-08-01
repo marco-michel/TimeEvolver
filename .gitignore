@@ -1,4 +1,5 @@
 /build
+build*/
 /doc
 .vscode/
 /.vs
@@ -7,6 +8,8 @@
 /VTune Profiler Results/TimeEvolver
 /x64
 *.h5
+# ...but the reference data the tests compare against is tracked on purpose
+!output/*.h5
 *.dll
 *.log
 /TimeEvolver.sln
@@ -26,3 +29,18 @@
 *.advidb2
 *.advixeproj
 /config
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+/build-py/

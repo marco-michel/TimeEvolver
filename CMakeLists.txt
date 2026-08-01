@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 set (CMAKE_CXX_STANDARD 17)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
 enable_language(CXX)
+# C is not used for any source file, but find_package(BLAS) performs its
+# probe (e.g. "Looking for sgemm_") as a C compile check.
 enable_language(C)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
-
 option (DOWNLOAD_BOOST "Whether or not Boost should be downloaded" OFF)
+option (TIMEEVOLVER_PYTHON "Build Python bindings via pybind11" OFF)
+option (TIMEEVOLVER_ENABLE_PYTHON_GTEST "Enable a GoogleTest smoke test that imports the Python module (requires TIMEEVOLVER_PYTHON)" OFF)
 
 set(NOSYSTEMBOOST OFF)
 
@@ -21,9 +25,21 @@ endif()
 
 
 
+option (ENABLE_WARNINGS "Compile with the common warning set" ON)
+if(ENABLE_WARNINGS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  # -Wno-unused-parameter: the observable interface deliberately ignores
+  # arguments in some overrides.
+  add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+endif()
+
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
 message("Installation directory would be: ${CMAKE_INSTALL_PREFIX}/TimeEvolver/lib")
-set (Boost_USE_STATIC_LIBS ON)
+if(TIMEEVOLVER_PYTHON)
+  # Python extension is a shared module; avoid linking non-PIC static Boost archives.
+  set(Boost_USE_STATIC_LIBS OFF)
+else()
+  set(Boost_USE_STATIC_LIBS ON)
+endif()
 
 include(CTest)
 
@@ -35,9 +51,11 @@ find_package(Boost 1.75 REQUIRED COMPONENTS program_options log log_setup )
 
 find_package(HDF5 COMPONENTS CXX)
 if(HDF5_FOUND)
+  message(STATUS "HDF5 found - building with HDF5 support (USE_HDF)")
   add_compile_definitions(USE_HDF)
-  include_directories(${HDF5_INCLUDE_DIR})
-  set(_hdf5_libs hdf5 hdf5_cpp)
+  include_directories(${HDF5_INCLUDE_DIRS})
+else()
+  message(STATUS "HDF5 not found - HDF5 output and the HDF5 test paths are disabled")
 endif()
 
 
@@ -79,14 +97,17 @@ include_directories(${Boost_INCLUDE_DIRS} ${boost_SOURCE_DIR})
 
 
 add_subdirectory(core TimeEvolver)
+
+if(TIMEEVOLVER_PYTHON)
+  find_package(pybind11 CONFIG REQUIRED)
+  add_subdirectory(python)
+endif()
+
 add_subdirectory(helper Helper)
 add_subdirectory(example Example)
 
-add_subdirectory(test Test)
-
-add_test(NAME BlackHoleTest COMMAND Test/testBlackHole)
-add_test(NAME BlackHoleTestLB COMMAND Test/testBlackHoleLB)
-add_test(NAME SimpleExampleTest COMMAND Test/testSimpleExample)
-add_test(NAME ErrorHandlingTest COMMAND Test/testErrorHandling)
-add_test(NAME HDF5RoundTripTest COMMAND Test/testHDF5RoundTrip)
-add_test(NAME WavefunctionStreamingTest COMMAND Test/testWavefunctionStreaming)
+# BUILD_TESTING is defined by include(CTest) above and defaults to ON.
+# The individual tests are registered by tests/CMakeLists.txt.
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()

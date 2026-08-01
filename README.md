@@ -107,6 +107,64 @@ This will create three folder in the folder ``build``:
 * Helper (library for the creation of a matrix representation)
 * TimeEvolver (core functionality: libary for the timeevolution)
 
+### Optional: Python bindings (pybind11)
+
+To build a Python extension module (named ``timeevolver``), enable:
+
+```
+mkdir build; cd build
+cmake -DTIMEEVOLVER_PYTHON=ON ..
+cmake --build .
+```
+
+This requires a discoverable ``pybind11`` CMake package (e.g. from pip/conda/system install). The built module can then be imported from the build tree.
+
+### Recommended Python environment setup (Linux)
+
+Install system packages:
+
+```
+sudo apt-get update
+sudo apt-get install python3-venv python3-dev pybind11-dev
+```
+
+Create and activate a local virtual environment:
+
+```
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+```
+
+Configure and build Python bindings:
+
+```
+cmake -S . -B build -DTIMEEVOLVER_PYTHON=ON
+cmake --build build
+```
+
+Test import manually:
+
+```
+python -c "import sys; sys.path.insert(0, 'build/python'); import timeevolver; print(timeevolver.__doc__)"
+```
+
+### Optional GoogleTest smoke test for Python bindings
+
+Install GoogleTest development package:
+
+```
+sudo apt-get install libgtest-dev
+```
+
+Configure with both options enabled:
+
+```
+cmake -S . -B build -DTIMEEVOLVER_PYTHON=ON -DTIMEEVOLVER_ENABLE_PYTHON_GTEST=ON
+cmake --build build
+ctest --test-dir build -R PythonBindingsGTest --output-on-failure
+```
+
 ## Basic setup with installation
 
 To install *TimeEvolver* to the path ``TIMEEVOLVER_INSTALL_PATH`` set the cmake variable ``CMAKE_INSTALL_PREFIX`` accordingly in the configuration step. If this variable remains unset a system folder will be chosen as installation path by cmake. 

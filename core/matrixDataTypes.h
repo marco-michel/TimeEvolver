@@ -72,6 +72,7 @@ namespace TE {
 
         double norm1();
         double normInf();
+        bool approxEqual(const smatrix& b, double absTol = 1e-12);
 
         smatrix();
         smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm);
