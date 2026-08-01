@@ -6,6 +6,7 @@
 
 #include <complex>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -66,6 +67,28 @@ int main()
 		const size_t dim = 8;
 		std::vector<std::complex<double>> state(dim, 0.0);
 		state[0] = 5.0;
+		std::vector<std::unique_ptr<krylovBasicObservable>> observables;
+		krylovTimeEvolver evolver(1.0, state.data(), 0.5, std::move(observables), hoppingChain(dim));
+	});
+
+	//A Hamiltonian holding an infinity used to be accepted and only failed many
+	//steps later inside LAPACK, with a message about an illegal argument.
+	expectThrow("non-finite Hamiltonian", [] {
+		const size_t dim = 8;
+		std::vector<std::complex<double>> state(dim, 0.0);
+		state[0] = 1.0;
+		std::unique_ptr<TE::smatrix> ham = hoppingChain(dim);
+		ham->values[0] = std::numeric_limits<double>::infinity();
+		std::vector<std::unique_ptr<krylovBasicObservable>> observables;
+		krylovTimeEvolver evolver(1.0, state.data(), 0.5, std::move(observables), std::move(ham));
+	});
+
+	//A norm of NaN compares false against every bound, so this used to pass the
+	//normalization check and poison the whole evolution.
+	expectThrow("initial state containing NaN", [] {
+		const size_t dim = 8;
+		std::vector<std::complex<double>> state(dim, 0.0);
+		state[0] = std::numeric_limits<double>::quiet_NaN();
 		std::vector<std::unique_ptr<krylovBasicObservable>> observables;
 		krylovTimeEvolver evolver(1.0, state.data(), 0.5, std::move(observables), hoppingChain(dim));
 	});
