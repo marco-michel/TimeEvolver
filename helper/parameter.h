@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <memory>
 #include <sstream>
+#include <type_traits>
 
 /**
 * Base class for including model parameters in the output (HDF5) file
@@ -72,4 +73,6 @@ private:
 };
 
 typedef std::vector< std::shared_ptr<parameter> > parameter_list; //shorten notation.
-#define paraPush(nm, bfnm, ...) std::make_shared<typedParameter<decltype(__VA_ARGS__)>>(nm, bfnm, __VA_ARGS__) //macro for easier insertion
+//typedParameter identifies the type by comparing it to double, int and bool,
+//so const and reference have to be stripped or nothing matches.
+#define paraPush(nm, bfnm, ...) std::make_shared<typedParameter<std::decay_t<decltype(__VA_ARGS__)>>>(nm, bfnm, __VA_ARGS__) //macro for easier insertion
