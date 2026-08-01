@@ -37,9 +37,10 @@ static int runSimulation(int argc, char* argv[])
     double C0; double Cm;
     double maxT; double samplingStep;
     double tol; int m;
-    double DeltaN; int capacity; 
+    double DeltaN; int capacity;
     bool fastIntegration;
-    
+    bool storeWavefunction;
+
     po::options_description desc("Allowed options");
     po::variables_map vm;
     
@@ -59,6 +60,7 @@ static int runSimulation(int argc, char* argv[])
         ("DeltaN", po::value<double>(&DeltaN)->default_value(12), "Distance between critical sectors")
         ("capacity", po::value<int>(&capacity)->default_value(1), "Capacity of cirtial modes")
         ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(false), "Use faster and less accurate integration")
+        ("storeWavefunction", po::value<bool>(&storeWavefunction)->default_value(false), "Also write the sampled wavefunction, which needs 16 bytes per basis state and sampling point on disk")
         ;
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -124,20 +126,8 @@ static int runSimulation(int argc, char* argv[])
 
     timeEvolver.changeLogLevel(krylovLogger::loggingLevel::DEBUG);
 
-    krylovReturn* results = timeEvolver.timeEvolve();
-
-    
-    auto end = std::chrono::high_resolution_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin);
-
-    std::cout << "Time: " << elapsed.count()*1e-9 << " sec" << std::endl;
-
-    std::cout << "------------------------------------------------------\n" << std::endl;
-    std::cout << "Number of steps: " << results->n_steps << "    error: " << results->err << std::endl;
-    std::cout << "------------------------------------------------------" << std::endl;
-    //End of actual time evolution 
-    
-
+    //Needed before the evolution starts, because writing the wavefunction means
+    //opening the result file up front
     parameter_list parameters;
 
     parameters.push_back(paraPush("N", true, N0));
@@ -152,10 +142,51 @@ static int runSimulation(int argc, char* argv[])
     parameters.push_back(paraPush("samplingStep", true, samplingStep));
     parameters.push_back(paraPush("m", true, m));
     parameters.push_back(paraPush("fastIntegration", true, fastIntegration));
+    //Kept out of the filename so that the name does not depend on it
+    parameters.push_back(paraPush("storeWavefunction", false, storeWavefunction));
 
-    //The library version is written by saveResult itself, so that every caller
-    //records it rather than only the ones that remember to.
-    saveResult(*results, parameters, "ResultBlackHole");
+#ifdef USE_HDF
+    std::unique_ptr<hdf5ResultWriter> writer;
+    if (storeWavefunction)
+    {
+        writer = std::make_unique<hdf5ResultWriter>(parameters, "ResultBlackHole");
+        timeEvolver.setSampleWriter(writer.get());
+        std::cout << "Writing the sampled wavefunction to " << writer->fileName() << " ..." << std::endl;
+    }
+#else
+    if (storeWavefunction)
+    {
+        std::cerr << "The wavefunction can only be stored in an HDF5 file, and this build has no HDF5." << std::endl;
+        return 1;
+    }
+#endif
+
+    krylovReturn* results = timeEvolver.timeEvolve();
+
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin);
+
+    std::cout << "Time: " << elapsed.count()*1e-9 << " sec" << std::endl;
+
+    std::cout << "------------------------------------------------------\n" << std::endl;
+    std::cout << "Number of steps: " << results->n_steps << "    error: " << results->err << std::endl;
+    std::cout << "------------------------------------------------------" << std::endl;
+    //End of actual time evolution 
+    
+
+#ifdef USE_HDF
+    if (writer)
+    {
+        //The states are already in the file; only the final numbers are missing
+        writer->writeObservables(results->observableList);
+        writer->writeMetadata(*results);
+    }
+    else
+#endif
+    {
+        saveResult(*results, parameters, "ResultBlackHole");
+    }
     std::cout << "Results have been saved to file." << std::endl;
 
     delete results; delete[] vec;

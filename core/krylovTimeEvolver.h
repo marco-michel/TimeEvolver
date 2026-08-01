@@ -19,6 +19,7 @@
 #include "mathHeader.h"
 #include "matrixDataTypes.h"
 #include "krylovObservables.h"
+#include "krylovSampleWriter.h"
 #include "krylovLogger.h"
 #include "version.h"
 
@@ -34,6 +35,11 @@ class krylovReturn
 public:
     std::complex<double>* evolvedState;
     double err; double evolvedTime;
+    /* Time axis of the samples. They are evenly spaced, so the k-th sample
+    belongs to time k*samplingStep. totalTime is the evolution time that was
+    requested; evolvedTime is the one that was reached, which is smaller if an
+    observable stopped the evolution */
+    double samplingStep; double totalTime;
     size_t numSamples;
     size_t n_steps;
 	size_t dim;
@@ -67,7 +73,17 @@ public:
 
     void changeLogLevel(krylovLogger::loggingLevel level);
 
-    
+    /**
+    * Direct the sampled wavefunction to a writer.
+    *
+    * The states are not kept, so this is the only way to obtain the full
+    * history; krylovReturn carries the final state alone. Must be called before
+    * timeEvolve(). The writer is not owned and has to outlive the evolution.
+    * @param writer Destination of the sampled states, or nullptr to discard them
+    */
+    void setSampleWriter(TE::krylovSampleWriter* writer);
+
+
 protected:
     int findMaximalStepSize(std::complex<double>* T, std::complex<double>* spectrumH, double h, double tolRate, double t_step, double t_step_max, int n_s_min, double numericalErrorEstimate, bool increaseStep, double* t_stepRet, std::complex<double>* w_KrylovRet, double* err_stepRet);
     void sample();
@@ -87,6 +103,8 @@ protected:
     int nbObservables;
     std::unique_ptr<smatrix> Ham;
     std::vector<std::unique_ptr<krylovBasicObservable>>  obsVector;
+    //Destination of the sampled states. Not owned; null unless one was set.
+    TE::krylovSampleWriter* sampleWriter = nullptr;
 
     //Printing and Logging
     std::thread pBThread;

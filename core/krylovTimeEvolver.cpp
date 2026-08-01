@@ -39,6 +39,37 @@ private:
 	std::atomic<bool>& stopFlag;
 };
 
+/**
+* Closes the sample writer when the enclosing scope is left by an exception.
+* A failure cannot be reported here without replacing the exception that is
+* already propagating; the paths that return a result close the writer through
+* generateReturn() instead, where it can be reported.
+*/
+class sampleWriterGuard
+{
+public:
+	explicit sampleWriterGuard(krylovSampleWriter* writer) : writer(writer) {}
+
+	~sampleWriterGuard()
+	{
+		if (writer == nullptr)
+			return;
+		try
+		{
+			writer->finishStates();
+		}
+		catch (...)
+		{
+		}
+	}
+
+	sampleWriterGuard(const sampleWriterGuard&) = delete;
+	sampleWriterGuard& operator=(const sampleWriterGuard&) = delete;
+
+private:
+	krylovSampleWriter* writer;
+};
+
 }
 
 
@@ -154,7 +185,22 @@ void krylovTimeEvolver::sample() {
 	{
 		(*obsIter)->expectation(sampledState, (int) Hsize);
 	}
+
+	//Handed on immediately and not kept, so the wavefunction never costs more
+	//memory than a single state
+	if (sampleWriter != nullptr)
+		sampleWriter->appendState(sampledState, Hsize);
+
 	index_samples++;
+}
+
+/**
+* Direct the sampled wavefunction to a writer
+* @param writer Destination of the sampled states, or nullptr to discard them
+*/
+void krylovTimeEvolver::setSampleWriter(krylovSampleWriter* writer)
+{
+	sampleWriter = writer;
 }
 
 /**
@@ -334,6 +380,11 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Were there multible errors thrown
 	int nbErrors = 0;
 
+	//Open the destination of the sampled states before the first sample
+	sampleWriterGuard writerGuard(sampleWriter);
+	if (sampleWriter != nullptr)
+		sampleWriter->beginStates(Hsize, n_samples);
+
 	//Record observables for initial state
 	try {
 		sample();
@@ -345,8 +396,6 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	}
 
 
-	//Owned by unique_ptr so that they are released on every exit path, including
-	//the ones that report a failure by throwing.
 	//Hessenberg matrix
 	std::unique_ptr<matrix> H(new matrix(m, m));
 	//Corresponding transformation matrix
@@ -358,8 +407,7 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 	//Eigenvectors of Hessenberg matrix
 	std::unique_ptr<std::complex<double>[]> schurvector(new std::complex<double>[m * m]);
 
-	//Start progressBar thread. The guard stops and joins it however this function
-	//is left, so an exception can never escape with the thread still running.
+	//Start progressBar thread
 	progressBarGuard pBGuard(pBThread, stop_printing);
 	if (progressBar == true)
 			pBThread = std::thread(&krylovTimeEvolver::progressBarThread, this);
@@ -684,6 +732,11 @@ void krylovTimeEvolver::progressBarThread()
 */
 krylovReturn* krylovTimeEvolver::generateReturn()
 {
+	//Every path that returns a result passes through here, so this is where a
+	//failure to close the writer can still be reported by throwing
+	if (sampleWriter != nullptr)
+		sampleWriter->finishStates();
+
 	krylovReturn* ret = new krylovReturn((unsigned int) Hsize, statusCode);
 	cblas_zcopy(Hsize, sampledState, 1, ret->evolvedState, 1);
 	ret->n_steps = n_steps;
@@ -694,6 +747,10 @@ krylovReturn* krylovTimeEvolver::generateReturn()
 	ret->hamiltonianMatrix = std::move(Ham);
 	ret->evolvedTime = t_now;
 	ret->numSamples = index_samples;
+
+	//Sampling points are evenly spaced, so these two fix the time of every sample
+	ret->samplingStep = samplingStep;
+	ret->totalTime = t;
 
 	return ret;
 }
@@ -732,6 +789,7 @@ std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double
 krylovReturn::krylovReturn(unsigned int Hsize, int status)
 {
 	err = 0; n_steps = 0; krylovDim = 0; dim = Hsize; statusCode = status; evolvedTime = 0; numSamples = 0;
+	samplingStep = 0; totalTime = 0;
 	evolvedState = new std::complex<double>[Hsize];
 }
 

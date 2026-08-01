@@ -2,6 +2,7 @@
 
 #ifdef USE_HDF
 
+#include <algorithm>
 #include <complex>
 #include <string>
 #include <vector>
@@ -14,8 +15,6 @@
 /**
 * Shared helpers for the HDF5 output of the library. Everything HDF5 specific
 * is collected here so that the rest of the code only deals with plain types.
-*
-* Note that this header deliberately does not pull H5 into the global namespace.
 */
 namespace TE {
     namespace hdf5 {
@@ -63,8 +62,8 @@ namespace TE {
         constexpr hsize_t compressionThreshold = 1024 * 1024;
 
         /**
-        * Deflate level. Measurements on sparse matrix indices showed no
-        * meaningful gain beyond this, while the compression cost keeps rising.
+        * Deflate level. Higher levels cost noticeably more time without
+        * compressing numeric data much further.
         */
         constexpr int compressionLevel = 4;
 
@@ -91,6 +90,58 @@ namespace TE {
             properties.setShuffle();
             properties.setDeflate(compressionLevel);
             return properties;
+        }
+
+        /**
+        * Creation properties for a two dimensional dataset that is filled one
+        * row at a time and grows as it goes.
+        *
+        * A dataset can only be extended if it is chunked. A chunk spans whole
+        * rows while a row is small and a limited number of columns once it is
+        * not, because a chunk that does not fit into the cache is decompressed
+        * and rewritten on every row that touches it.
+        *
+        * @param expectedRows Number of rows the caller intends to write, used for sizing only
+        * @param columns Fixed length of a row
+        * @param elementSize Size of a single value in the file
+        */
+        inline H5::DSetCreatPropList extendibleDatasetProperties(hsize_t expectedRows, hsize_t columns,
+            size_t elementSize)
+        {
+            H5::DSetCreatPropList properties;
+
+            hsize_t chunk[2];
+            chunk[1] = std::min<hsize_t>(columns, compressionThreshold / elementSize);
+            if (chunk[1] == 0)
+                chunk[1] = 1;
+            chunk[0] = compressionThreshold / (chunk[1] * elementSize);
+            if (chunk[0] == 0)
+                chunk[0] = 1;
+            if (expectedRows != 0 && chunk[0] > expectedRows)
+                chunk[0] = expectedRows;
+
+            properties.setChunk(2, chunk);
+
+            if (expectedRows * columns * elementSize >= compressionThreshold)
+            {
+                properties.setShuffle();
+                properties.setDeflate(compressionLevel);
+            }
+
+            return properties;
+        }
+
+        /**
+        * Access properties to go with extendibleDatasetProperties. The default
+        * chunk cache holds a single chunk, which makes a partly filled chunk be
+        * evicted and recompressed on nearly every row; a few chunks of room
+        * turn that back into one compression per chunk.
+        */
+        inline H5::DSetAccPropList extendibleDatasetAccess()
+        {
+            H5::DSetAccPropList access;
+            access.setChunkCache(521, 8 * compressionThreshold, 0.75);
+            return access;
         }
 
         /**
@@ -159,6 +210,18 @@ namespace TE {
         }
 
         /**
+        * Attach a scalar attribute, replacing one of the same name if it is
+        * already there.
+        */
+        template <typename T>
+        inline void writeOrReplaceAttribute(const H5::H5Object& object, const std::string& name, const T& value)
+        {
+            if (object.attrExists(name))
+                object.removeAttr(name);
+            writeAttribute(object, name, value);
+        }
+
+        /**
         * Read a scalar attribute.
         */
         template <typename T>
@@ -186,8 +249,7 @@ namespace TE {
 
         /**
         * Record which version of the library produced the file, so that its
-        * structure can be looked up later. Written by the library itself rather
-        * than by the caller, who would otherwise have to remember to do it.
+        * structure can be looked up later.
         */
         inline void writeVersion(const H5::H5Object& object)
         {
