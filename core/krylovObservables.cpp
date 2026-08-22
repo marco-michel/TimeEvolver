@@ -97,6 +97,26 @@ krylovSpMatrixObservable::krylovSpMatrixObservable(const std::string& name, std:
 	obs = std::move(obser); 
 	obs->initialize();
 
+	//Occupation numbers, which is what observables usually are here, are
+	//diagonal. Checking once costs one pass over the entries and saves both the
+	//matrix vector product and a pass over the state at every sampling point.
+	bool isDiagonal = true;
+	for (size_t i = 0; i != obs->numValues; i++)
+	{
+		if (obs->rowIndex[i] != obs->columns[i])
+		{
+			isDiagonal = false;
+			break;
+		}
+	}
+
+	if (isDiagonal)
+	{
+		diagonal.assign(dim, std::complex<double>(0.0, 0.0));
+		for (size_t i = 0; i != obs->numValues; i++)
+			diagonal[obs->rowIndex[i]] = obs->values[i];
+	}
+
 	tmpBlasVec = new std::complex<double>[dim];
 }
 
@@ -130,8 +150,21 @@ std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>*
 	}
 
 	std::complex<double> observall;
-	obs->spMV(one, vec, tmpBlasVec);
-	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
+	if (!diagonal.empty())
+	{
+		//<v|D|v> is the sum of |v_i|^2 d_i, which is one pass over the state
+		observall = std::complex<double>(0.0, 0.0);
+		for (size_t i = 0; i != dim; i++)
+		{
+			double weight = vec[i].real() * vec[i].real() + vec[i].imag() * vec[i].imag();
+			observall += weight * diagonal[i];
+		}
+	}
+	else
+	{
+		obs->spMV(one, vec, tmpBlasVec);
+		cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
+	}
 	expectationValues[sampleIndex] = observall.real();
 	sampleIndex++;
 
