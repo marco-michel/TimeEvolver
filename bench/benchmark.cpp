@@ -52,6 +52,7 @@ struct blackHoleCaseParameters {
 
 struct benchmarkCase {
     std::string name;
+    bool hermitianStorage = false;
     std::unique_ptr<smatrix> hamiltonian;
     std::vector<std::unique_ptr<smatrix>> observableMatrices;
     std::vector<std::complex<double>> initialState;
@@ -232,7 +233,7 @@ std::vector<std::complex<double>> createDenseBenchmarkVector(std::size_t length)
     return values;
 }
 
-benchmarkCase buildSimpleCase()
+benchmarkCase buildSimpleCase(bool hermitianStorage)
 {
     const int particleCount = 200;
     const int numberModes = 2;
@@ -258,7 +259,7 @@ benchmarkCase buildSimpleCase()
     hamiltonianTerms.push_back(hamiltonian.linInteraction(0, 1, 0, 0, true, coupling));
     hamiltonian.hamiltonOperator = hamiltonianTerms;
 
-    result.hamiltonian = hamiltonian.createHamiltonMatrix(&simpleBasis);
+    result.hamiltonian = hamiltonian.createHamiltonMatrix(&simpleBasis, hermitianStorage);
     result.observableMatrices = hamiltonian.createNumberOperatorObservables(&simpleBasis);
     result.initialState.assign(simpleBasis.numberElements, std::complex<double>(0.0, 0.0));
 
@@ -305,7 +306,7 @@ blackHoleCaseParameters makePresetBlackHoleCase(
     return parameters;
 }
 
-benchmarkCase buildBlackHoleCase(const blackHoleCaseParameters& parameters, bool buildObservables)
+benchmarkCase buildBlackHoleCase(const blackHoleCaseParameters& parameters, bool buildObservables, bool hermitianStorage)
 {
     benchmarkCase result;
     result.name = parameters.name.empty() ? defaultBlackHoleCaseName(parameters) : parameters.name;
@@ -331,7 +332,7 @@ benchmarkCase buildBlackHoleCase(const blackHoleCaseParameters& parameters, bool
         parameters.Cm);
     hamiltonian.createSimplifiedHamiltonian();
 
-    result.hamiltonian = hamiltonian.createHamiltonMatrix(&basisStateSpace);
+    result.hamiltonian = hamiltonian.createHamiltonMatrix(&basisStateSpace, hermitianStorage);
     if (buildObservables) {
         result.observableMatrices = hamiltonian.createNumberOperatorObservables(&basisStateSpace);
     }
@@ -344,31 +345,31 @@ benchmarkCase buildBlackHoleCase(const blackHoleCaseParameters& parameters, bool
     return result;
 }
 
-benchmarkCase buildCaseByName(const std::string& caseName, bool buildObservables, const blackHoleCaseParameters& customParameters)
+benchmarkCase buildCaseByName(const std::string& caseName, bool buildObservables, const blackHoleCaseParameters& customParameters, bool hermitianStorage)
 {
     if (caseName == "simple") {
-        return buildSimpleCase();
+        return buildSimpleCase(hermitianStorage);
     }
     if (caseName == "blackhole_lb") {
-        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 1, 1, 1, 1.0, 1.0, 1000.0, 1.0, 1.0e-8, 40, false), buildObservables);
+        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 1, 1, 1, 1.0, 1.0, 1000.0, 1.0, 1.0e-8, 40, false), buildObservables, hermitianStorage);
     }
     if (caseName == "blackhole_medium") {
-        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 20, 2, 4, 1.0, 1.0, 10.0, 0.01, 1.0e-8, 40, false), buildObservables);
+        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 20, 2, 4, 1.0, 1.0, 10.0, 0.01, 1.0e-8, 40, false), buildObservables, hermitianStorage);
     }
     if (caseName == "blackhole_large") {
-        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 20, 4, 8, 0.0003, 0.065, 1000.0, 20.0, 1.0e-6, 40, true), buildObservables);
+        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 20, 4, 8, 0.0003, 0.065, 1000.0, 20.0, 1.0e-6, 40, true), buildObservables, hermitianStorage);
     }
     if (caseName == "blackhole_quick") {
-        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 20, 5, 9, 0.0003, 0.065, 10.0, 1.0, 1.0e-6, 40, true), buildObservables);
+        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 20, 5, 9, 0.0003, 0.065, 10.0, 1.0, 1.0e-6, 40, true), buildObservables, hermitianStorage);
     }
     if (caseName == "blackhole_1g") {
-        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 24, 6, 9, 0.0003, 0.065, 10.0, 1.0, 1.0e-6, 40, true), buildObservables);
+        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 24, 6, 9, 0.0003, 0.065, 10.0, 1.0, 1.0e-6, 40, true), buildObservables, hermitianStorage);
     }
     if (caseName == "blackhole_2g") {
-        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 20, 6, 10, 0.0003, 0.065, 40.0, 1.0, 1.0e-6, 40, true), buildObservables);
+        return buildBlackHoleCase(makePresetBlackHoleCase(caseName, 20, 6, 10, 0.0003, 0.065, 40.0, 1.0, 1.0e-6, 40, true), buildObservables, hermitianStorage);
     }
     if (caseName == "custom") {
-        return buildBlackHoleCase(customParameters, buildObservables);
+        return buildBlackHoleCase(customParameters, buildObservables, hermitianStorage);
     }
 
     throw std::invalid_argument("Unknown benchmark case `" + caseName + "`.");
@@ -733,6 +734,7 @@ int main(int argc, char* argv[])
     int repeats = 10;
     int warmup = 2;
     int cpuThreads = 0;
+    bool hermitianStorage = false;
     bool includeObservables = false;
     bool listCases = false;
     bool describeCaseFlag = false;
@@ -747,6 +749,7 @@ int main(int argc, char* argv[])
         ("warmup", po::value<int>(&warmup)->default_value(2), "Warmup repetitions")
         ("csv", po::value<std::string>(&csvPath)->default_value(""), "Append CSV output to this file")
         ("cpu-threads", po::value<int>(&cpuThreads)->default_value(0), "Set MKL CPU thread count if available")
+        ("hermitian-storage", po::value<bool>(&hermitianStorage)->default_value(false), "Store only the upper triangle of the Hamiltonian")
         ("include-observables", po::value<bool>(&includeObservables)->default_value(false), "Include observable evaluation in e2e benchmark")
         ("list-cases", po::bool_switch(&listCases), "List available benchmark cases")
         ("describe-case", po::bool_switch(&describeCaseFlag), "Build the case and print dimension, nnz, and memory estimates without timing")
@@ -808,7 +811,7 @@ int main(int argc, char* argv[])
         }
 
         const bool buildObservables = includeObservables && benchmark == benchmarkKind::e2e;
-        benchmarkCase selectedCase = buildCaseByName(caseArg, buildObservables, customParameters);
+        benchmarkCase selectedCase = buildCaseByName(caseArg, buildObservables, customParameters, hermitianStorage);
         applyRuntimeOverrides(selectedCase, customParameters, vm);
 
         if (describeCaseFlag) {

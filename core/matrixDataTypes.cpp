@@ -73,6 +73,10 @@ double smatrix::norm1()
     for (unsigned int i = 0; i != numValues; i++)
     {
         colVal[columns[i]] += std::abs(values[i]);
+        //Only one of each pair of off-diagonal entries is stored, and the one
+        //that is missing has the same modulus as the one that is there
+        if (upperTri && columns[i] != rowIndex[i])
+            colVal[rowIndex[i]] += std::abs(values[i]);
     }
 
     result = std::max_element(colVal.begin(), colVal.end());
@@ -91,6 +95,9 @@ double smatrix::normInf()
     for (unsigned int i = 0; i != numValues; i++)
     {
         rowVal[rowIndex[i]] += std::abs(values[i]);
+        //See norm1
+        if (upperTri && columns[i] != rowIndex[i])
+            rowVal[columns[i]] += std::abs(values[i]);
     }
 
     result = std::max_element(rowVal.begin(), rowVal.end());
@@ -105,6 +112,11 @@ bool smatrix::approxEqual(const smatrix& other, double absTol)
 {
     //first check basic info
     if (other.m != this->m || other.n != this->n || other.numValues != this->numValues)
+        return false;
+
+    //The same entries describe a different matrix when one of them stands for a
+    //triangle of a Hermitian matrix and the other for the whole of it
+    if (other.hermitian != this->hermitian || other.sym != this->sym || other.upperTri != this->upperTri)
         return false;
     
     for(size_t i = 0; i != this->numValues; i++)
@@ -125,13 +137,14 @@ bool smatrix::approxEqual(const smatrix& other, double absTol)
 * @param nn Column dimension
 * @param mm Row dimension
 */
-smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm)
+smatrix::smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm, bool hermitianUpperTriangle)
 {
     if (nn == 0 || mm == 0) {
         throw krylovInvalidArgument("Empty matrices are not supported.");
     }
     numValues = nbV; n = nn; m = mm;
-    sym = hermitian = upperTri = false;
+    sym = false;
+    hermitian = upperTri = hermitianUpperTriangle;
     columns = new size_t[nbV];
     rowIndex = new size_t[nbV];
     values = new std::complex<double>[nbV];
@@ -204,6 +217,9 @@ int smatrix::spMV(std::complex<double> alpha, std::complex<double>* in, std::com
         out[i] = 0;
     for (size_t i = 0; i < numValues; i++) {
         out[rowIndex[i]] += alpha * values[i] * in[columns[i]];
+        //The mirror entry is not stored, so it has to be applied here
+        if (upperTri && rowIndex[i] != columns[i])
+            out[columns[i]] += alpha * std::conj(values[i]) * in[rowIndex[i]];
     }
     return 0;
 #endif
@@ -223,10 +239,24 @@ int smatrix::initialize() {
         return 1;
 
     sparse_status_t mklStatus;
-    matrix_descr type; type.type = SPARSE_MATRIX_TYPE_GENERAL; type.diag = SPARSE_DIAG_NON_UNIT; type.mode = SPARSE_FILL_MODE_FULL;
+    matrix_descr type;
 
-    descriptor.type = SPARSE_MATRIX_TYPE_GENERAL;
-    descriptor.diag = SPARSE_DIAG_NON_UNIT;
+    //Only half of a Hermitian matrix needs to be stored. MKL then reads the
+    //triangle that is there and takes the conjugate of it for the other one,
+    //which halves the memory the multiplication has to move.
+    if (hermitian && upperTri)
+    {
+        type.type = SPARSE_MATRIX_TYPE_HERMITIAN;
+        type.mode = SPARSE_FILL_MODE_UPPER;
+    }
+    else
+    {
+        type.type = SPARSE_MATRIX_TYPE_GENERAL;
+        type.mode = SPARSE_FILL_MODE_FULL;
+    }
+    type.diag = SPARSE_DIAG_NON_UNIT;
+
+    descriptor = type;
 
     MKLSparseMatrix = new sparse_matrix_t;
 
@@ -246,6 +276,9 @@ int smatrix::initialize() {
  #endif
     
 #ifdef USE_ARMADILLO
+    if (upperTri)
+        throw krylovInvalidArgument("Triangular storage of Hermitian matrices is not implemented for the Armadillo backend.");
+
     ArmadillorowIndex = arma::umat((unsigned long long *) rowIndex, 1, numValues, false, true);
     ArmadillocolIndex = arma::umat((unsigned long long *) columns, 1, numValues, false, true);
     ArmadillovalueVector = arma::cx_vec(values, numValues, false, true);

@@ -45,7 +45,14 @@ public:
 	Hamiltonian();
 
 	std::string toString();
-	std::unique_ptr<smatrix> createHamiltonMatrix(basicBasis *basis);
+	/**
+	* @param basis Basis to build the matrix in
+	* @param useHermitianStorage Store only the upper triangle. The Hamiltonian
+	* is Hermitian, so the lower triangle carries no information of its own, and
+	* leaving it out halves both the memory and the traffic of the sparse matrix
+	* vector product. Only pass true for a Hamiltonian that really is Hermitian.
+	*/
+	std::unique_ptr<smatrix> createHamiltonMatrix(basicBasis *basis, bool useHermitianStorage = false);
 	std::vector<std::unique_ptr<smatrix>> createNumberOperatorObservables(basicBasis *basis);
 
 	std::vector<opTerm> createKineticTerms(std::vector<int> modes, double gap);
@@ -59,7 +66,7 @@ public:
 
 
 protected:
-	std::unique_ptr<smatrix> createMatrix(std::vector<opTerm>& op, basicBasis* basis);
+	std::unique_ptr<smatrix> createMatrix(std::vector<opTerm>& op, basicBasis* basis, bool upperTriangleOnly = false);
 
 
 private:

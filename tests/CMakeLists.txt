@@ -75,12 +75,21 @@ target_include_directories(TestWavefunctionStreaming PRIVATE ../core ../helper)
 target_link_libraries(TestWavefunctionStreaming PRIVATE TimeEvolver outputHelper MatrixDataTypes)
 
 
+#Builds the same Hamiltonian both ways and compares, so it needs the helper
+#that assembles it as well as the library.
+add_executable(TestHermitianStorage testHermitianStorage.cpp ../example/exampleHamiltonian.cpp)
+set_target_properties(TestHermitianStorage PROPERTIES OUTPUT_NAME "testHermitianStorage" INSTALL_RPATH_USE_LINK_PATH TRUE)
+target_include_directories(TestHermitianStorage PRIVATE ../core ../helper ../example)
+target_link_libraries(TestHermitianStorage PRIVATE TimeEvolver Helper MatrixDataTypes ${HDF5_LIBRARIES})
+
+
 add_test(NAME BlackHoleTest COMMAND testBlackHole)
 add_test(NAME BlackHoleTestLB COMMAND testBlackHoleLB)
 add_test(NAME SimpleExampleTest COMMAND testSimpleExample)
 add_test(NAME ErrorHandlingTest COMMAND testErrorHandling)
 add_test(NAME HDF5RoundTripTest COMMAND testHDF5RoundTrip)
 add_test(NAME WavefunctionStreamingTest COMMAND testWavefunctionStreaming)
+add_test(NAME HermitianStorageTest COMMAND testHermitianStorage)
 
 if(TIMEEVOLVER_UNIT_TESTS)
   gtest_discover_tests(unit_tests)
