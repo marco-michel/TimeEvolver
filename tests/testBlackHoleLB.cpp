@@ -15,13 +15,13 @@ using namespace H5;
 
 int main()
 {
-    std::system("./Example/main --N0 1 --Nm 1 --K 1 --maxT 1000 --samplingStep 1");
+    std::system("./../Example/main --N0 1 --Nm 1 --K 1 --maxT 1000 --samplingStep 1");
 
 
 
 #ifdef USE_HDF
 
-    std::string reference = "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0.h5";
+    std::string reference = "../../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0.h5";
     std::string testData = "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0.h5";
 
     H5File fileRef (reference.c_str(), H5F_ACC_RDONLY);
@@ -53,8 +53,8 @@ int main()
 
     const int numFiles = 4;
 
-    std::string reference[numFiles] = {"../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode0.csv", "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode1.csv",
-    "../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode2.csv","../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode3.csv"};
+    std::string reference[numFiles] = {"../../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode0.csv", "../../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode1.csv",
+    "../../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode2.csv","../../output/ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode3.csv"};
     std::string testData[numFiles] = {"ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode0.csv", "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode1.csv",
     "ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode2.csv","ResultBlackHole_N1_Nm1_K1_C1_DeltaN12_C01_Cm1_maxT1000_tol1e-08_samplingStep1_m40_fastIntegration0mode3.csv"};
 

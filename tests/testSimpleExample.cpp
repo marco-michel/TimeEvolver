@@ -9,11 +9,11 @@
 int main()
 {
 
-    std::system("./Example/simpleExample");
+    std::system("./../Example/simpleExample");
 
     const int numFiles = 2;
 
-    std::string reference[numFiles] = {"../output/SimpleExampleOutputOccupationNumber0.csv", "../output/SimpleExampleOutputOccupationNumber1.csv"};
+    std::string reference[numFiles] = {"../../output/SimpleExampleOutputOccupationNumber0.csv", "../../output/SimpleExampleOutputOccupationNumber1.csv"};
     std::string testData[numFiles] = {"SimpleExampleOutputOccupationNumber0.csv", "SimpleExampleOutputOccupationNumber1.csv"};
 
 
