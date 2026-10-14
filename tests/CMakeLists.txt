@@ -61,10 +61,26 @@ target_include_directories(TestErrorHandling PRIVATE ../core)
 target_link_libraries(TestErrorHandling PRIVATE TimeEvolver MatrixDataTypes)
 
 
+add_executable(TestHDF5RoundTrip testHDF5RoundTrip.cpp)
+set_target_properties(TestHDF5RoundTrip PROPERTIES OUTPUT_NAME "testHDF5RoundTrip" INSTALL_RPATH_USE_LINK_PATH TRUE)
+target_include_directories(TestHDF5RoundTrip PRIVATE ../core)
+target_link_libraries(TestHDF5RoundTrip PRIVATE MatrixDataTypes)
+
+
+#Reads back what the time evolution streamed, so it needs the output helper as
+#well as the library itself.
+add_executable(TestWavefunctionStreaming testWavefunctionStreaming.cpp)
+set_target_properties(TestWavefunctionStreaming PROPERTIES OUTPUT_NAME "testWavefunctionStreaming" INSTALL_RPATH_USE_LINK_PATH TRUE)
+target_include_directories(TestWavefunctionStreaming PRIVATE ../core ../helper)
+target_link_libraries(TestWavefunctionStreaming PRIVATE TimeEvolver outputHelper MatrixDataTypes)
+
+
 add_test(NAME BlackHoleTest COMMAND testBlackHole)
 add_test(NAME BlackHoleTestLB COMMAND testBlackHoleLB)
 add_test(NAME SimpleExampleTest COMMAND testSimpleExample)
 add_test(NAME ErrorHandlingTest COMMAND testErrorHandling)
+add_test(NAME HDF5RoundTripTest COMMAND testHDF5RoundTrip)
+add_test(NAME WavefunctionStreamingTest COMMAND testWavefunctionStreaming)
 
 if(TIMEEVOLVER_UNIT_TESTS)
   gtest_discover_tests(unit_tests)
