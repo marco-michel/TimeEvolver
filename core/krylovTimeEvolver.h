@@ -94,7 +94,9 @@ protected:
     krylovReturn* generateReturn();
 
 
+    void expKrylovDiagonalPart(double t, std::complex<double>* T, std::complex<double>* spectrumH);
     std::complex<double>* expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH);
+    std::complex<double> expKrylovLastComponent(double t, std::complex<double>* T, std::complex<double>* spectrumH);
 
     
     //Input date
@@ -146,6 +148,5 @@ protected:
     //Useful constants
     static constexpr std::complex<double> one = std::complex<double>(1.0,0.0);
     static constexpr std::complex<double> zero = std::complex<double>(0.0,0.0);
-    std::complex<double>* e_1;
     static const int pBarWidth = 70;
 };

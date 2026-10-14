@@ -40,6 +40,7 @@ static int runSimulation(int argc, char* argv[])
     double DeltaN; int capacity;
     bool fastIntegration;
     bool storeWavefunction;
+    bool hermitianStorage;
 
     po::options_description desc("Allowed options");
     po::variables_map vm;
@@ -61,6 +62,7 @@ static int runSimulation(int argc, char* argv[])
         ("capacity", po::value<int>(&capacity)->default_value(1), "Capacity of cirtial modes")
         ("fastIntegration", po::value<bool>(&fastIntegration)->default_value(false), "Use faster and less accurate integration")
         ("storeWavefunction", po::value<bool>(&storeWavefunction)->default_value(false), "Also write the sampled wavefunction, which needs 16 bytes per basis state and sampling point on disk")
+            ("hermitianStorage", po::value<bool>(&hermitianStorage)->default_value(false), "Store only the upper triangle of the Hamiltonian, which halves its memory and speeds up the sparse matrix vector product")
         ;
     
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -92,7 +94,7 @@ static int runSimulation(int argc, char* argv[])
     //std::cout << ham.toString() << std::endl;
     
    //Create Hamiltonian matrix
-    std::unique_ptr<smatrix> hamMatrix = ham.createHamiltonMatrix(&basis);
+    std::unique_ptr<smatrix> hamMatrix = ham.createHamiltonMatrix(&basis, hermitianStorage);
     std::cout << "Created Hamiltonian matrix..." << std::endl;
     
    
@@ -144,6 +146,7 @@ static int runSimulation(int argc, char* argv[])
     parameters.push_back(paraPush("fastIntegration", true, fastIntegration));
     //Kept out of the filename so that the name does not depend on it
     parameters.push_back(paraPush("storeWavefunction", false, storeWavefunction));
+    parameters.push_back(paraPush("hermitianStorage", false, hermitianStorage));
 
 #ifdef USE_HDF
     std::unique_ptr<hdf5ResultWriter> writer;

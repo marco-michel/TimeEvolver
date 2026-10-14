@@ -75,7 +75,13 @@ namespace TE {
         bool approxEqual(const smatrix& b, double absTol = 1e-12);
 
         smatrix();
-        smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm);
+        /**
+        * @param hermitianUpperTriangle The values are the upper triangle of a
+        * Hermitian matrix rather than the whole of it. This has to be known here
+        * because the constructor already sets the backend up for the
+        * multiplication, and it cannot be changed afterwards.
+        */
+        smatrix(std::complex<double>* val, size_t* col, size_t* row, size_t nbV, unsigned int nn, unsigned int mm, bool hermitianUpperTriangle = false);
         smatrix(const smatrix& old_obj);
         ~smatrix();
 

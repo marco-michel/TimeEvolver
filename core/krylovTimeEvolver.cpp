@@ -150,8 +150,6 @@ krylovTimeEvolver::krylovTimeEvolver(double t, std::complex<double>* v, double s
 	tmpintKernelT = new std::complex<double>[m];
 
 	index_samples = 0;
-	e_1 = new std::complex<double>[m];
-	e_1[0].real(1);
 
 	obsVector = std::move(observables);
 	for (auto iter = obsVector.begin(); iter != obsVector.end(); iter++)
@@ -184,7 +182,6 @@ krylovTimeEvolver::~krylovTimeEvolver()
 	delete[] tmpintKernelExp2;
 	delete[] tmpintKernelExp3;
 	delete[] tmpintKernelT;
-    delete[] e_1;
 	obsVector.clear();
 }
 
@@ -506,7 +503,8 @@ krylovReturn* krylovTimeEvolver::timeEvolve()
 			expV(m, tmpKrylovVec1, tmpKrylovVec2);
 
             //Now temp1 is no longer needed and can be reused
-            cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, schurvector.get(), m, e_1, 1, &zero, tmpKrylovVec1, 1);
+            for (size_t i = 0; i != m; i++)
+            	tmpKrylovVec1[i] = std::conj(schurvector[i * m]);
             for(size_t i = 0; i != m; i++)
             {
             	tmpKrylovVec1[i] = tmpKrylovVec1[i]*tmpKrylovVec2[i];
@@ -642,10 +640,9 @@ bool krylovTimeEvolver::arnoldiAlgorithm(double tolRate, TE::matrix *HRet, TE::m
 		if (j + 1 != m) {
 			HRet->values[j + (j + 1) * m].real(-normy);
 			HRet->values[j + 1 + j * m].real(normy);
-			std::complex<double> inverseNorm;
-			inverseNorm.real(1.0 / normy);
-			inverseNorm.imag(0.0);
-			cblas_zscal(Hsize, &inverseNorm, tmpBlasVec, 1);
+			//Scaling by a real factor, which is cheaper than the general
+			//complex-by-complex scaling
+			cblas_zdscal(Hsize, 1.0 / normy, tmpBlasVec, 1);
 			cblas_zcopy(Hsize, tmpBlasVec, 1, (VRet->values) + Hsize * (j + 1),1);
 		} else
 			*hRet = normy;
@@ -672,7 +669,7 @@ double krylovTimeEvolver::integrateError(double a, double b, std::complex<double
 	bool success = true;
 
 	//Define Integrand as a lambda function
-	auto f = [&](double x) {return h * std::abs(expKrylov(x, T, spectrumH)[m - 1]); };
+	auto f = [&](double x) {return h * std::abs(expKrylovLastComponent(x, T, spectrumH)); };
 
 	if(method == 0)
 		ret = boost::math::quadrature::gauss<double, 15>::integrate(f, a, b); //Gauss-Legendre quadrature with 15 abscissa 
@@ -770,6 +767,31 @@ krylovReturn* krylovTimeEvolver::generateReturn()
 
 
 /**
+* The part of the Krylov space time evolution that both expKrylov and
+* expKrylovLastComponent share: the exponentiated eigenvalues multiplied by the
+* first row of the transformation. The result is left in tmpintKernelExp3.
+* @param t Time
+* @param T Transformation matrix
+* @param spectrumH Eigenvalues
+*/
+void krylovTimeEvolver::expKrylovDiagonalPart(double t, std::complex<double>* T, std::complex<double>* spectrumH)
+{
+	cblas_zcopy(m, spectrumH, 1, tmpintKernelExp1, 1);
+
+	//Exponenting scaled eigenvalues
+	cblas_zdscal(m, t, tmpintKernelExp1, 1);
+	expV(m, tmpintKernelExp1, tmpintKernelExp2);
+
+	//T is stored column-major, so the conjugate transpose applied to the first
+	//unit vector is nothing but the conjugated first row of T. Reading it costs
+	//m operations, while forming it as a matrix vector product costs m*m.
+	for (size_t i = 0; i != m; i++)
+		tmpintKernelT[i] = std::conj(T[i * m]);
+
+	mulV(m, tmpintKernelExp2, tmpintKernelT, tmpintKernelExp3);
+}
+
+/**
 * Calculate time evolution in Kyrlov space
 * @param t Time
 * @param T Transformation matrix
@@ -777,21 +799,31 @@ krylovReturn* krylovTimeEvolver::generateReturn()
 */
 std::complex<double>* krylovTimeEvolver::expKrylov(double t, std::complex<double>* T, std::complex<double>* spectrumH)
 {
-	cblas_zcopy(m, spectrumH, 1, tmpintKernelExp1, 1);
-	
-	//Exponenting scaled eigenvalues
-	cblas_zdscal(m, t, tmpintKernelExp1, 1);
-	expV(m, tmpintKernelExp1, tmpintKernelExp2);
+	expKrylovDiagonalPart(t, T, spectrumH);
 
-	
 	//Rotate basis back to Kyrlovspace
-	cblas_zgemv(CblasColMajor, CblasConjTrans, m, m, &one, T, m, e_1, 1, &zero, tmpintKernelT, 1);
-	mulV(m, tmpintKernelExp2, tmpintKernelT, tmpintKernelExp3);
 	cblas_zgemv(CblasColMajor, CblasNoTrans, m, m, &one, T, m,
 		tmpintKernelExp3, 1, &zero, tmpintKernelExp, 1);
 
 	return tmpintKernelExp;
 
+}
+
+/**
+* Last component of expKrylov. The error integrand needs this single entry and
+* nothing else, so the rotation back is one row of T times the vector instead
+* of the whole matrix times the vector.
+* @param t Time
+* @param T Transformation matrix
+* @param spectrumH Eigenvalues
+*/
+std::complex<double> krylovTimeEvolver::expKrylovLastComponent(double t, std::complex<double>* T, std::complex<double>* spectrumH)
+{
+	expKrylovDiagonalPart(t, T, spectrumH);
+
+	std::complex<double> lastComponent;
+	cblas_zdotu_sub(m, T + (m - 1), m, tmpintKernelExp3, 1, &lastComponent);
+	return lastComponent;
 }
 
 /**

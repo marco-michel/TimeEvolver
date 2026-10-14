@@ -11,6 +11,7 @@ enable_language(C)
 option (DOWNLOAD_BOOST "Whether or not Boost should be downloaded" OFF)
 option (TIMEEVOLVER_PYTHON "Build Python bindings via pybind11" OFF)
 option (TIMEEVOLVER_ENABLE_PYTHON_GTEST "Enable a GoogleTest smoke test that imports the Python module (requires TIMEEVOLVER_PYTHON)" OFF)
+option (TIMEEVOLVER_BENCHMARK "Build the performance benchmark executable" OFF)
 
 set(NOSYSTEMBOOST OFF)
 
@@ -105,6 +106,12 @@ endif()
 
 add_subdirectory(helper Helper)
 add_subdirectory(example Example)
+
+# The benchmark is a developer tool rather than part of the library, so it is
+# off unless it is asked for.
+if(TIMEEVOLVER_BENCHMARK)
+  add_subdirectory(bench Bench)
+endif()
 
 # BUILD_TESTING is defined by include(CTest) above and defaults to ON.
 # The individual tests are registered by tests/CMakeLists.txt.

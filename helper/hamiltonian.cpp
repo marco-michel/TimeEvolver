@@ -276,9 +276,9 @@ std::string Hamiltonian::toString()
  * @param basis Set of basis states
  * @return Resulting sparse matrix representation of the Hamiltonian
  */
-std::unique_ptr<smatrix> Hamiltonian::createHamiltonMatrix(basicBasis* basis)
+std::unique_ptr<smatrix> Hamiltonian::createHamiltonMatrix(basicBasis* basis, bool useHermitianStorage)
 {
-	return createMatrix(hamiltonOperator, basis);
+	return createMatrix(hamiltonOperator, basis, useHermitianStorage);
 }
 
 /**
@@ -315,8 +315,11 @@ void Hamiltonian::scalarMultiplication(basisState* in, std::complex<double> scal
  * @param op terms that sum up to form the total operator
  * @param basis set of basis states
  */
-std::unique_ptr<smatrix> Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis)
+std::unique_ptr<smatrix> Hamiltonian::createMatrix(std::vector<opTerm>& op, basicBasis * basis, bool upperTriangleOnly)
 {
+	//Counted to check that leaving out the lower triangle really loses nothing
+	size_t strictUpperCount = 0, strictLowerCount = 0;
+
 
 	const std::complex<double> one(1, 0);
 
@@ -384,6 +387,15 @@ std::unique_ptr<smatrix> Hamiltonian::createMatrix(std::vector<opTerm>& op, basi
 			if (std::abs(perRowIter->second) < std::numeric_limits<double>::epsilon()) // no zeros 
 				continue;
 
+			if (perRowIter->first > j)
+				strictUpperCount++;
+			else if (perRowIter->first < j)
+			{
+				strictLowerCount++;
+				if (upperTriangleOnly)
+					continue;
+			}
+
 			rowIndexVec.push_back(j);
 			columnIndexVec.push_back(perRowIter->first);
 			valuesVec.push_back(perRowIter->second);
@@ -393,11 +405,19 @@ std::unique_ptr<smatrix> Hamiltonian::createMatrix(std::vector<opTerm>& op, basi
 
 	}
 
+	//A Hermitian matrix has as many entries above the diagonal as below it. If
+	//it does not, the discarded triangle held something the kept one does not,
+	//and the result would silently be a different matrix.
+	if (upperTriangleOnly && strictUpperCount != strictLowerCount)
+		throw TE::krylovInvalidArgument("Hermitian storage was requested for a matrix that is not "
+			"structurally symmetric: " + std::to_string(strictUpperCount) + " entries above the "
+			"diagonal but " + std::to_string(strictLowerCount) + " below it.");
+
 	unsigned int M, N;
 	M = N = basis->numberElements;
 	size_t nz = valuesVec.size();
 
-	return std::make_unique<smatrix>(valuesVec.data(), columnIndexVec.data(), rowIndexVec.data(), nz, N, M);
+	return std::make_unique<smatrix>(valuesVec.data(), columnIndexVec.data(), rowIndexVec.data(), nz, N, M, upperTriangleOnly);
 
 }
 

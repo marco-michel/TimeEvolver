@@ -99,6 +99,11 @@ public:
 private:
     std::unique_ptr<smatrix> obs;
     std::complex<double>* tmpBlasVec;
+
+    //A diagonal observable, which is what an occupation number is, needs no
+    //matrix vector product at all. Empty unless the matrix turned out to be
+    //diagonal when it was handed over.
+    std::vector<std::complex<double>> diagonal;
 };
 
 
