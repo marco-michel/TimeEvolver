@@ -86,58 +86,6 @@ obsType krylovBasicObservable::retType()
 
 
 /**
-* Constructor for (dense) matrix observables 
-* @param name Name of the observable
-* @param obser (dense) Matrix representation of the observable 
-*/
-krylovMatrixObservable::krylovMatrixObservable(const std::string& name, std::unique_ptr<matrix> obser) : krylovBasicObservable(name)
-{
-	dim = obser->m;
-	type = MATRIX_TYPE_OBS;
-	if (dim > 0)
-		tmpBlasVec = new std::complex<double>[dim]; //array for storing temporary intermediate values
-
-	obs = std::move(obser);
-
-}
-
-/**
-* Destructor for (dense) matrix observables
-*/
-krylovMatrixObservable::~krylovMatrixObservable()
-{
-	if (dim > 0)
-		delete[] tmpBlasVec;
-}
-
-
-/**
- * Computes expectation value of a dense matrix observable for a given quantum state
- * @param vec Quantum state vector
- * @param len Length of state vector
- */
-std::complex<double> krylovMatrixObservable::expectation(std::complex<double>* vec, int len) //requires testing
-{
-    if (sampleIndex >= numSamples)
-    {
-        std::cerr << "Too many samples." << std::endl;
-        exit(1);
-    }
-	if (static_cast<size_t>(len) != dim)
-	{
-		std::cerr << "Incompatible dimensions" << std::endl;
-		exit(1);
-	}
-	std::complex<double> observall;
-	cblas_zgemv(CblasColMajor, CblasNoTrans, dim, dim, &one, obs->values, dim, vec, 1, &zero, tmpBlasVec, 1);
-	cblas_zdotc_sub(len, vec, 1, tmpBlasVec, 1, &observall);
-
-	expectationValues[sampleIndex] = observall.real();
-	sampleIndex++;
-	return observall;
-}
-
-/**
 * Constructor for (sparse) matrix observables
 * @param name Name of the observable
 * @param obser (sparse) Matrix representation of the observable
@@ -174,13 +122,11 @@ std::complex<double> krylovSpMatrixObservable::expectation(std::complex<double>*
 {
     if (sampleIndex >= numSamples)
     {
-        std::cerr << "Too many samples." << std::endl;
-        exit(1);
+        throw krylovError("Too many samples.");
     }
 	if (static_cast<size_t>(len) != dim)
 	{
-		std::cerr << "Incompatible dimensions" << std::endl;
-		exit(1);
+		throw krylovInvalidArgument("Incompatible dimensions");
 	}
 
 	std::complex<double> observall;
@@ -217,13 +163,11 @@ std::complex<double> krylovVectorObservable::expectation(std::complex<double>* v
 {
     if (sampleIndex >= numSamples)
     {
-        std::cerr << "Too many samples." << std::endl;
-        exit(1);
+        throw krylovError("Too many samples.");
     }
 	if (static_cast<size_t>(len) != dim)
 	{
-		std::cerr << "Incompatible dimensions" << std::endl;
-		exit(1);
+		throw krylovInvalidArgument("Incompatible dimensions");
 	}
 	std::complex<double> observall;
 	cblas_zdotc_sub(len, vec, 1, obs.get(), 1, &observall);

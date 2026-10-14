@@ -28,9 +28,9 @@ using namespace TE;
 //  double maxT; double samplingStep; 
 //   double tol; int m; int numThreads; int DeltaN; int capacity;  bool fastIntegration
 //  in total, argc can take up to 13 arguments
-int main(int argc, char* argv[])
+static int runSimulation(int argc, char* argv[])
 {
-    
+
     //Determine parameters
     int N0; int Nm;
     int K; 
@@ -163,4 +163,22 @@ int main(int argc, char* argv[])
     delete results; delete[] vec;
 
     return 0;
+}
+
+int main(int argc, char* argv[])
+{
+    try
+    {
+        return runSimulation(argc, argv);
+    }
+    catch (const TE::krylovError& e)
+    {
+        std::cerr << "TimeEvolver error: " << e.what() << std::endl;
+        return 1;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
 }

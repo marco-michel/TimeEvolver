@@ -53,9 +53,18 @@ set_target_properties(TestSimpleExample PROPERTIES OUTPUT_NAME "testSimpleExampl
 
 
 
+#Drives the library directly instead of running an example as a subprocess, so
+#it has to link against it.
+add_executable(TestErrorHandling testErrorHandling.cpp)
+set_target_properties(TestErrorHandling PROPERTIES OUTPUT_NAME "testErrorHandling" INSTALL_RPATH_USE_LINK_PATH TRUE)
+target_include_directories(TestErrorHandling PRIVATE ../core)
+target_link_libraries(TestErrorHandling PRIVATE TimeEvolver MatrixDataTypes)
+
+
 add_test(NAME BlackHoleTest COMMAND testBlackHole)
 add_test(NAME BlackHoleTestLB COMMAND testBlackHoleLB)
 add_test(NAME SimpleExampleTest COMMAND testSimpleExample)
+add_test(NAME ErrorHandlingTest COMMAND testErrorHandling)
 
 if(TIMEEVOLVER_UNIT_TESTS)
   gtest_discover_tests(unit_tests)
